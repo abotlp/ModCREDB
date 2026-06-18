@@ -1,0 +1,7 @@
+review_evidence_type	link_count	note
+alphafold	3360	
+homologous	6516	
+identical	2098	
+modcre	7319	
+public_database_motif_unconfirmed	401	HOCOMOCO separated from Identical_PWM until exact mapping is confirmed
+relative_homologous	93400	

@@ -1,0 +1,9 @@
+source	matrix_status	file_count	min_width	max_width	example_motif_id	example_consensus
+jaspar	usable	4279	4	35	MA1643.1	TGCCTGGCATTGTGCCAAGCA
+cisbp	usable	10035	5	39	M00001_2.00	TTATCACT
+alphafold	usable	3210	2	50	a0a024r0y4.af3.0	TAATCACGGCGCCC
+alphafold	width_zero_no_matrix	1086	0	0	a0a087wx29.af3.0	
+modcre	usable	6114	2	118	DIMER_sp_A0A1W2PPF3_DUXB_HUMAN:103:155_6a8r_B_1	AAATTAGGGA
+modcre	width_zero_no_matrix	1195	0	0	DIMER_sp_A0A1W2PPK0_CPHL2_HUMAN:22:78_1puf_B_1	
+modcre	no_parsed_matrix	10	2	7	TFS_sp_Q92966_SNPC3_HUMAN:21:411_8iue_3_1	
+hocomoco	usable	401	7	24	AHR_HUMAN.H11MO.0.B	GTTGCGTGC

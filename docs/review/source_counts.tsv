@@ -1,0 +1,6 @@
+source	label	motif_files	fimo_ready_motif_files	motif_links	model_files	review_note
+alphafold	AlphaFold	4296	3210	3360	4706	
+cisbp	CisBP	10035	10035	78959	0	
+hocomoco	HOCOMOCO	401	401	401	0	HOCOMOCO mapping semantics need confirmation
+jaspar	JASPAR	4279	4279	23055	0	
+modcre	ModCRE	7319	6114	7319	13517	

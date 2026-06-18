@@ -1,0 +1,8 @@
+source	status	file_type	file_count	distinct_tf_count	distinct_model_count	note
+alphafold	active	pdb	4296	561	4296	
+alphafold	failed	pdb	410	74	410	failed/debug rows are retained for QC, not public biological failure counts
+modcre	active	pdb	7776	1086	7776	
+modcre	active	pir	412	127	412	
+modcre	active	summary	2965	1482	2965	
+modcre	failed	pdb	1712	325	1712	failed/debug rows are retained for QC, not public biological failure counts
+modcre	failed	summary	652	326	652	failed/debug rows are retained for QC, not public biological failure counts
