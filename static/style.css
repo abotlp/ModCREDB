@@ -1048,3 +1048,36 @@ tr:last-child td {
     font-size: 28px;
   }
 }
+
+
+.matrix-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.matrix-badge {
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 750;
+  padding: 3px 8px;
+}
+
+.matrix-badge.ready {
+  background: #e7f7ef;
+  border: 1px solid #b8e5ce;
+  color: #12633d;
+}
+
+.matrix-badge.blocked {
+  background: #fff4ed;
+  border: 1px solid #ffd6c2;
+  color: #9b3412;
+}
+
+.matrix-badge.model-only {
+  background: #eef5ff;
+  border: 1px solid #cfe1fb;
+  color: #174f88;
+}

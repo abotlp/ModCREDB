@@ -143,3 +143,8 @@ fimo --version
 ## Source-release metadata
 
 Public provenance metadata is stored in `config/source_releases.tsv` and loaded into the `source_release` SQLite table by `import_db.py` or `migrate_source_releases.py`. Unknown release, license, citation, or workflow details are deliberately marked `pending confirmation` until PI/Baldo confirmation.
+
+
+## Matrix QC metadata
+
+Motif scan/logo readiness is stored on `motif_file` using `matrix_status` and related QC columns. New imports classify these fields automatically. Existing SQLite databases can be updated without rebuilding by running `python3 migrate_matrix_qc.py --db path/to/database.sqlite`. Only `matrix_status = 'usable'` motifs are selected for FIMO scanning.

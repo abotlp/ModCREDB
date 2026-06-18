@@ -12,6 +12,7 @@ import argparse
 import csv
 import os
 import json
+import math
 import re
 import sqlite3
 import tarfile
@@ -211,6 +212,12 @@ CREATE TABLE motif_file (
     nsites TEXT,
     consensus TEXT,
     matrix_json TEXT,
+    matrix_status TEXT NOT NULL DEFAULT 'unknown',
+    matrix_row_count INTEGER,
+    matrix_expected_width INTEGER,
+    matrix_row_sum_min REAL,
+    matrix_row_sum_max REAL,
+    matrix_warning TEXT,
     PRIMARY KEY (source, motif_id)
 );
 
@@ -323,11 +330,25 @@ def source_for_motif_id(motif_id: str, evidence_type: str) -> str:
     return "unknown"
 
 
-def parse_meme(content: str) -> tuple[int | None, str | None, str | None, str | None]:
-    width = None
-    nsites = None
+def meme_alphabet_status(lines: list[str]) -> str | None:
+    for line in lines:
+        stripped = line.strip()
+        if not stripped.upper().startswith("ALPHABET"):
+            continue
+        _, _, raw_value = stripped.partition("=")
+        letters = re.findall(r"[A-Za-z]", raw_value.upper())
+        if letters and set(letters) != set(BASES):
+            return "unsupported_alphabet"
+    return None
+
+
+def parse_meme_qc(content: str) -> dict[str, object]:
+    declared_width: int | None = None
+    nsites: str | None = None
     matrix: list[list[float]] = []
+    malformed_reason: str | None = None
     lines = content.splitlines()
+    unsupported = meme_alphabet_status(lines)
 
     matrix_start = None
     for index, line in enumerate(lines):
@@ -336,38 +357,97 @@ def parse_meme(content: str) -> tuple[int | None, str | None, str | None, str | 
             width_match = re.search(r"\bw=\s*(\d+)", line)
             nsites_match = re.search(r"\bnsites=\s*([^\s]+)", line)
             if width_match:
-                width = int(width_match.group(1))
+                declared_width = int(width_match.group(1))
             if nsites_match:
                 nsites = nsites_match.group(1)
             break
 
     if matrix_start is not None:
         for line in lines[matrix_start:]:
-            parts = line.split()
-            if len(parts) < 4:
-                if matrix:
+            stripped = line.strip()
+            if not stripped:
+                if matrix or declared_width == 0:
                     break
                 continue
+            parts = stripped.split()
+            if len(parts) != 4:
+                if matrix:
+                    malformed_reason = f"matrix row has {len(parts)} columns; expected 4"
+                elif declared_width and declared_width > 0:
+                    malformed_reason = "matrix row could not be parsed before expected rows were found"
+                break
             try:
-                row = [float(value) for value in parts[:4]]
+                row = [float(value) for value in parts]
             except ValueError:
-                if matrix:
-                    break
-                continue
+                malformed_reason = "matrix row contains non-numeric values"
+                break
+            if any(not math.isfinite(value) for value in row):
+                malformed_reason = "matrix row contains non-finite values"
+                break
+            if any(value < 0 for value in row):
+                malformed_reason = "matrix row contains negative probabilities"
+                break
+            if sum(row) <= 0:
+                malformed_reason = "matrix row has non-positive probability sum"
+                break
             matrix.append(row)
-            if width is not None and len(matrix) >= width:
+            if declared_width is not None and len(matrix) >= declared_width:
                 break
 
-    if width is None and matrix:
-        width = len(matrix)
+    row_count = len(matrix)
+    expected_width = declared_width if declared_width is not None else (row_count if row_count else None)
+    width = expected_width
+    row_sums = [sum(row) for row in matrix]
+    row_sum_min = min(row_sums) if row_sums else None
+    row_sum_max = max(row_sums) if row_sums else None
+    matrix_warning: str | None = None
+    if row_sums and (row_sum_min is not None and row_sum_max is not None):
+        if row_sum_min < 0.95 or row_sum_max > 1.05:
+            matrix_warning = "matrix row sums are outside the expected probability range"
+
+    if unsupported:
+        matrix_status = unsupported
+    elif declared_width == 0 and row_count == 0:
+        matrix_status = "width_zero_no_matrix"
+    elif malformed_reason:
+        matrix_status = "malformed_matrix"
+        matrix_warning = malformed_reason
+    elif row_count == 0:
+        matrix_status = "no_parsed_matrix"
+    elif expected_width is not None and row_count != expected_width:
+        matrix_status = "width_mismatch"
+        matrix_warning = f"declared width {expected_width} but parsed {row_count} matrix rows"
+    else:
+        matrix_status = "usable"
 
     consensus = None
     matrix_json = None
-    if matrix:
+    if matrix_status == "usable":
         consensus = "".join(BASES[max(range(4), key=lambda i: row[i])] for row in matrix)
         matrix_json = json.dumps(matrix, separators=(",", ":"))
 
-    return width, nsites, consensus, matrix_json
+    return {
+        "width": width,
+        "nsites": nsites,
+        "consensus": consensus,
+        "matrix_json": matrix_json,
+        "matrix_status": matrix_status,
+        "matrix_row_count": row_count,
+        "matrix_expected_width": expected_width,
+        "matrix_row_sum_min": row_sum_min,
+        "matrix_row_sum_max": row_sum_max,
+        "matrix_warning": matrix_warning,
+    }
+
+
+def parse_meme(content: str) -> tuple[int | None, str | None, str | None, str | None]:
+    parsed = parse_meme_qc(content)
+    return (
+        parsed["width"],
+        parsed["nsites"],
+        parsed["consensus"],
+        parsed["matrix_json"],
+    )
 
 
 def motif_source_from_member(member_path: str) -> str | None:
@@ -404,12 +484,14 @@ def index_motif_archive(
                 continue
             content = extracted.read().decode("utf-8", errors="replace")
             motif_id = strip_known_extension(Path(member.name).name)
-            width, nsites, consensus, matrix_json = parse_meme(content)
+            parsed = parse_meme_qc(content)
             conn.execute(
                 """
                 INSERT OR REPLACE INTO motif_file
-                    (source, motif_id, member_path, archive_path, content, width, nsites, consensus, matrix_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (source, motif_id, member_path, archive_path, content, width, nsites, consensus, matrix_json,
+                     matrix_status, matrix_row_count, matrix_expected_width, matrix_row_sum_min,
+                     matrix_row_sum_max, matrix_warning)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     source,
@@ -417,10 +499,16 @@ def index_motif_archive(
                     member.name,
                     str(archive_path),
                     content,
-                    width,
-                    nsites,
-                    consensus,
-                    matrix_json,
+                    parsed["width"],
+                    parsed["nsites"],
+                    parsed["consensus"],
+                    parsed["matrix_json"],
+                    parsed["matrix_status"],
+                    parsed["matrix_row_count"],
+                    parsed["matrix_expected_width"],
+                    parsed["matrix_row_sum_min"],
+                    parsed["matrix_row_sum_max"],
+                    parsed["matrix_warning"],
                 ),
             )
             present.add((source, motif_id))

@@ -85,6 +85,58 @@ SOURCE_HOME_URLS = {
     "alphafold": "https://alphafoldserver.com/",
     "uniprot": "https://www.uniprot.org/",
 }
+MATRIX_STATUS_LABELS = {
+    "usable": "FIMO-ready",
+    "width_zero_no_matrix": "w=0 / no matrix",
+    "no_parsed_matrix": "No parsed matrix",
+    "malformed_matrix": "Malformed matrix",
+    "width_mismatch": "Width mismatch",
+    "unsupported_alphabet": "Unsupported alphabet",
+    "missing_local_file": "Missing local file",
+    "unknown": "Unknown",
+}
+MATRIX_STATUS_INFO = {
+    "usable": {
+        "supports_logo": "yes",
+        "supports_fimo": "yes",
+        "description": "Parsed DNA A/C/G/T probability matrix is available and row count is consistent with the motif width.",
+    },
+    "width_zero_no_matrix": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "The MEME file explicitly reports w=0 and no usable matrix rows were produced.",
+    },
+    "no_parsed_matrix": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "The motif file exists, but no usable matrix rows could be parsed.",
+    },
+    "malformed_matrix": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "Matrix rows were present but invalid, non-numeric, or not four-column A/C/G/T probability rows.",
+    },
+    "width_mismatch": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "The declared motif width differs from the number of parsed matrix rows.",
+    },
+    "unsupported_alphabet": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "The matrix alphabet is not supported by the current DNA A/C/G/T scanner.",
+    },
+    "missing_local_file": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "A TF-motif reference exists, but no local motif file is available.",
+    },
+    "unknown": {
+        "supports_logo": "no",
+        "supports_fimo": "no",
+        "description": "The motif has not yet been classified by the matrix QC importer.",
+    },
+}
 BASE_COLORS = {
     "A": "#23845b",
     "C": "#2f65d9",
@@ -243,7 +295,7 @@ def search_scan_motifs(
     source: str = "",
     limit: int = 15,
 ) -> list[sqlite3.Row]:
-    where = ["mf.matrix_json IS NOT NULL"]
+    where = ["mf.matrix_status = 'usable'"]
     args: list[object] = []
     if source:
         where.append("mf.source = ?")
@@ -325,7 +377,7 @@ def load_tf_scan_regions(conn: sqlite3.Connection, tf_id: str) -> list[dict[str,
           AND sf.status = 'active'
           AND sf.residue_start IS NOT NULL
           AND sf.residue_end IS NOT NULL
-          AND mf.matrix_json IS NOT NULL
+          AND mf.matrix_status = 'usable'
         ORDER BY sf.residue_start, sf.residue_end
         """,
         (tf_id,),
@@ -419,7 +471,7 @@ def load_tf_scan_motifs(
              AND mf.motif_id = mr.motif_id
             WHERE mr.tf_id = ?
               AND mr.evidence_type IN ({placeholders})
-              AND mf.matrix_json IS NOT NULL
+              AND mf.matrix_status = 'usable'
               {region_clause}
             GROUP BY mr.source, mr.motif_id
         )
@@ -436,13 +488,34 @@ def load_tf_scan_motifs(
              AND mf.motif_id = mr.motif_id
             WHERE mr.tf_id = ?
               AND mr.evidence_type IN ({placeholders})
-              AND (mf.matrix_json IS NULL)
+              AND (COALESCE(mf.matrix_status, 'missing_local_file') != 'usable')
               {region_clause}
             GROUP BY mr.source, mr.motif_id
         )
         """,
         args,
     ).fetchone()[0]
+    skipped_status_counts = conn.execute(
+        f"""
+        SELECT matrix_status, COUNT(*) AS count
+        FROM (
+            SELECT mr.source, mr.motif_id,
+                   COALESCE(mf.matrix_status, 'missing_local_file') AS matrix_status
+            FROM motif_ref AS mr
+            LEFT JOIN motif_file AS mf
+              ON mf.source = mr.source
+             AND mf.motif_id = mr.motif_id
+            WHERE mr.tf_id = ?
+              AND mr.evidence_type IN ({placeholders})
+              AND (COALESCE(mf.matrix_status, 'missing_local_file') != 'usable')
+              {region_clause}
+            GROUP BY mr.source, mr.motif_id
+        )
+        GROUP BY matrix_status
+        ORDER BY matrix_status
+        """,
+        args,
+    ).fetchall()
     evidence_counts = conn.execute(
         f"""
         SELECT mr.evidence_type, COUNT(DISTINCT mr.source || '|' || mr.motif_id) AS count
@@ -452,7 +525,7 @@ def load_tf_scan_motifs(
          AND mf.motif_id = mr.motif_id
         WHERE mr.tf_id = ?
           AND mr.evidence_type IN ({placeholders})
-          AND mf.matrix_json IS NOT NULL
+          AND mf.matrix_status = 'usable'
           {region_clause}
         GROUP BY mr.evidence_type
         ORDER BY
@@ -470,6 +543,7 @@ def load_tf_scan_motifs(
     rows = conn.execute(
         f"""
         SELECT mf.source, mf.motif_id, mf.width, mf.nsites, mf.consensus, mf.matrix_json,
+               mf.matrix_status, mf.matrix_warning,
                GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types,
                COUNT(*) AS link_count,
                MIN(
@@ -488,7 +562,7 @@ def load_tf_scan_motifs(
          AND mf.motif_id = mr.motif_id
         WHERE mr.tf_id = ?
           AND mr.evidence_type IN ({placeholders})
-          AND mf.matrix_json IS NOT NULL
+          AND mf.matrix_status = 'usable'
           {region_clause}
         GROUP BY mf.source, mf.motif_id
         ORDER BY evidence_rank, mf.source, mf.motif_id
@@ -502,6 +576,7 @@ def load_tf_scan_motifs(
         "used_count": len(rows),
         "total_ready": total_ready,
         "skipped_no_matrix": skipped_no_matrix,
+        "skipped_status_counts": [dict(row) for row in skipped_status_counts],
         "limited": total_ready > limit,
         "limit": limit,
         "evidence_counts": [dict(row) for row in evidence_counts],
@@ -1162,6 +1237,8 @@ class TFWebApp:
         context.setdefault("evidence_labels", EVIDENCE_LABELS)
         context.setdefault("evidence_info", EVIDENCE_INFO)
         context.setdefault("source_labels", SOURCE_LABELS)
+        context.setdefault("matrix_status_labels", MATRIX_STATUS_LABELS)
+        context.setdefault("matrix_status_info", MATRIX_STATUS_INFO)
         context.setdefault("debug_enabled", self.enable_debug)
         html_text = template.render(**context)
         return html_text.encode("utf-8")
@@ -1274,6 +1351,9 @@ class TFWebApp:
             motif_rows = conn.execute(
                 """
                 SELECT mr.*, mf.consensus, mf.width, mf.nsites, mf.matrix_json,
+                       COALESCE(mf.matrix_status, CASE WHEN mr.missing_local_file = 1 THEN 'missing_local_file' ELSE 'unknown' END) AS matrix_status,
+                       mf.matrix_row_count, mf.matrix_expected_width, mf.matrix_row_sum_min,
+                       mf.matrix_row_sum_max, mf.matrix_warning,
                        region.region_start, region.region_end, region.region_model_count
                 FROM motif_ref AS mr
                 LEFT JOIN motif_file AS mf
@@ -1293,6 +1373,26 @@ class TFWebApp:
                 ) AS region ON region.motif_ref_id = mr.id
                 WHERE mr.tf_id = ?
                 ORDER BY mr.evidence_type, mr.identity_percent DESC, mr.motif_id
+                """,
+                (tf_id,),
+            ).fetchall()
+            matrix_status_counts = conn.execute(
+                """
+                SELECT COALESCE(mf.matrix_status,
+                                CASE WHEN mr.missing_local_file = 1
+                                     THEN 'missing_local_file'
+                                     ELSE 'unknown' END) AS matrix_status,
+                       COUNT(DISTINCT mr.source || '|' || mr.motif_id) AS count
+                FROM motif_ref AS mr
+                LEFT JOIN motif_file AS mf
+                  ON mf.source = mr.source
+                 AND mf.motif_id = mr.motif_id
+                WHERE mr.tf_id = ?
+                GROUP BY COALESCE(mf.matrix_status,
+                                  CASE WHEN mr.missing_local_file = 1
+                                       THEN 'missing_local_file'
+                                       ELSE 'unknown' END)
+                ORDER BY matrix_status
                 """,
                 (tf_id,),
             ).fetchall()
@@ -1332,6 +1432,7 @@ class TFWebApp:
                 region_groups=region_groups,
                 active_models=active_models,
                 model_summaries=model_summaries,
+                matrix_status_counts=matrix_status_counts,
                 visible_limit=100,
             ),
             "text/html",
@@ -1373,6 +1474,22 @@ class TFWebApp:
                 (source, motif_id),
             ).fetchall()
             source_releases = fetch_source_releases(conn, source)
+        matrix_preview: list[dict[str, object]] = []
+        if motif and motif.get("matrix_json"):
+            try:
+                matrix = json.loads(str(motif["matrix_json"]))
+                matrix_preview = [
+                    {
+                        "position": index + 1,
+                        "A": row[0],
+                        "C": row[1],
+                        "G": row[2],
+                        "T": row[3],
+                    }
+                    for index, row in enumerate(matrix[:8])
+                ]
+            except (TypeError, ValueError, IndexError):
+                matrix_preview = []
         if not motif and not refs:
             return self.not_found(f"Unknown motif: {html.escape(source)} / {html.escape(motif_id)}")
         return (
@@ -1383,6 +1500,7 @@ class TFWebApp:
                 structures=structures,
                 source=source,
                 motif_id=motif_id,
+                matrix_preview=matrix_preview,
                 source_release=source_releases[0] if source_releases else None,
             ),
             "text/html",
@@ -1468,18 +1586,18 @@ class TFWebApp:
                     if requested_source:
                         row = conn.execute(
                             """
-                            SELECT source, motif_id, width, nsites, consensus, matrix_json
+                            SELECT source, motif_id, width, nsites, consensus, matrix_json, matrix_status, matrix_warning
                             FROM motif_file
-                            WHERE source = ? AND motif_id = ? AND matrix_json IS NOT NULL
+                            WHERE source = ? AND motif_id = ? AND matrix_status = 'usable'
                             """,
                             (requested_source, requested_id),
                         ).fetchone()
                     else:
                         row = conn.execute(
                             """
-                            SELECT source, motif_id, width, nsites, consensus, matrix_json
+                            SELECT source, motif_id, width, nsites, consensus, matrix_json, matrix_status, matrix_warning
                             FROM motif_file
-                            WHERE motif_id = ? AND matrix_json IS NOT NULL
+                            WHERE motif_id = ? AND matrix_status = 'usable'
                             ORDER BY source
                             LIMIT 1
                             """,
@@ -1489,7 +1607,7 @@ class TFWebApp:
                         add_motif(row)
                     else:
                         label = f"{requested_source}|{requested_id}" if requested_source else requested_id
-                        errors.append(f"Motif not found or has no matrix: {label}")
+                        errors.append(f"Motif not found or is not FIMO-ready: {label}")
 
         with connect(self.db_path) as conn:
             motif_results = search_scan_motifs(conn, motif_q, motif_source)
@@ -1632,7 +1750,7 @@ class TFWebApp:
             )
             stats["fimo_ready_motif_count"] = safe_count(
                 conn,
-                "SELECT COUNT(*) FROM motif_file WHERE matrix_json IS NOT NULL",
+                "SELECT COUNT(*) FROM motif_file WHERE matrix_status = 'usable'",
             )
             stats["tf_with_usable_pwm_count"] = safe_count(
                 conn,
@@ -1643,7 +1761,7 @@ class TFWebApp:
                     JOIN motif_file AS mf
                       ON mf.source = mr.source
                      AND mf.motif_id = mr.motif_id
-                    WHERE mf.matrix_json IS NOT NULL
+                    WHERE mf.matrix_status = 'usable'
                 )
                 """,
             )
@@ -1663,9 +1781,9 @@ class TFWebApp:
                 conn.execute(
                     """
                     SELECT source, COUNT(*) AS count,
-                           SUM(CASE WHEN matrix_json IS NOT NULL THEN 1 ELSE 0 END) AS with_matrix,
-                           SUM(CASE WHEN matrix_json IS NULL THEN 1 ELSE 0 END) AS without_matrix,
-                           SUM(CASE WHEN width = 0 THEN 1 ELSE 0 END) AS width_zero
+                           SUM(CASE WHEN matrix_status = 'usable' THEN 1 ELSE 0 END) AS with_matrix,
+                           SUM(CASE WHEN matrix_status != 'usable' THEN 1 ELSE 0 END) AS without_matrix,
+                           SUM(CASE WHEN matrix_status = 'width_zero_no_matrix' THEN 1 ELSE 0 END) AS width_zero
                     FROM motif_file
                     GROUP BY source
                     ORDER BY count DESC, source
@@ -1747,6 +1865,26 @@ class TFWebApp:
                 ORDER BY count DESC, source, motif_id
                 """
             ).fetchall()
+            matrix_status_counts = rows_with_percent(
+                conn.execute(
+                    """
+                    SELECT matrix_status AS label, COUNT(*) AS count
+                    FROM motif_file
+                    GROUP BY matrix_status
+                    ORDER BY CASE matrix_status
+                                 WHEN 'usable' THEN 1
+                                 WHEN 'width_zero_no_matrix' THEN 2
+                                 WHEN 'no_parsed_matrix' THEN 3
+                                 WHEN 'malformed_matrix' THEN 4
+                                 WHEN 'width_mismatch' THEN 5
+                                 WHEN 'unsupported_alphabet' THEN 6
+                                 WHEN 'unknown' THEN 8
+                                 ELSE 7
+                             END, matrix_status
+                    """
+                ).fetchall()
+            )
+            matrix_status_count_map = {row["label"]: row["count"] for row in matrix_status_counts}
             source_releases = fetch_source_releases(conn)
             metadata = [
                 {"key": row["key"], "value": redact_public_value(row["value"])}
@@ -1764,6 +1902,8 @@ class TFWebApp:
                 annotation_status=annotation_status,
                 top_families=top_families,
                 missing_motifs=missing_motifs,
+                matrix_status_counts=matrix_status_counts,
+                matrix_status_count_map=matrix_status_count_map,
                 source_releases=source_releases,
                 metadata=metadata,
             ),

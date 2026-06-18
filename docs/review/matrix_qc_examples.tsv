@@ -1,0 +1,9 @@
+matrix_status	source	motif_id	width	matrix_row_count	matrix_expected_width	matrix_row_sum_min	matrix_row_sum_max	matrix_warning
+usable	jaspar	MA0001.1	10	10	10	0.999999	1.000001	NA
+usable	cisbp	M00001_2.00	8	8	8	0.999999	0.999999	NA
+usable	hocomoco	AHR_HUMAN.H11MO.0.B	9	9	9	0.9999999999999999	1.0	NA
+usable	modcre	DIMER_sp_A0A1W2PPF3_DUXB_HUMAN:103:155_6a8r_B_1	10	10	10	0.9989999999999999	1.0	NA
+width_zero_no_matrix	modcre	DIMER_sp_A0A1W2PPK0_CPHL2_HUMAN:22:78_1puf_B_1	0	0	0	NA	NA	NA
+no_parsed_matrix	modcre	TFS_sp_Q92966_SNPC3_HUMAN:21:411_8iue_3_1	2	0	2	NA	NA	NA
+usable	alphafold	a0a024r0y4.af3.0	14	14	14	0.999	1.0010000000000001	NA
+width_zero_no_matrix	alphafold	a0a087wx29.af3.0	0	0	0	NA	NA	NA

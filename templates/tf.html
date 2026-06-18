@@ -14,6 +14,9 @@
     <div class="record-stats">
       <div><strong>{{ tf.motif_ref_count }}</strong><span>motif links</span></div>
       <div><strong>{{ tf.active_model_count }}</strong><span>active models</span></div>
+      {% for row in matrix_status_counts %}
+        <div><strong>{{ row.count }}</strong><span>{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}</span></div>
+      {% endfor %}
     </div>
   </section>
   <section class="actions">
@@ -135,7 +138,19 @@
                     {% endfor %}
                   </div>
                 {% endif %}
-                {% if row.matrix_json and not row.missing_local_file %}
+                <div class="matrix-badges">
+                  {% if row.missing_local_file %}
+                    <span class="matrix-badge blocked">Missing local file</span>
+                  {% elif row.matrix_status == "usable" %}
+                    <span class="matrix-badge ready">FIMO-ready</span>
+                  {% else %}
+                    <span class="matrix-badge blocked">No usable matrix</span>
+                    {% if row.region_model_count %}
+                      <span class="matrix-badge model-only">Model-only/no usable PWM</span>
+                    {% endif %}
+                  {% endif %}
+                </div>
+                {% if row.matrix_status == "usable" and not row.missing_local_file %}
                   <div class="external-links">
                     <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan DNA</a>
                   </div>
@@ -145,12 +160,12 @@
                 {% endif %}
                 {% if row.missing_local_file %}
                   <p class="warning">Referenced in chart, but missing from local motif archive.</p>
-                {% elif row.consensus %}
+                {% elif row.matrix_status == "usable" and row.consensus %}
                   <p class="mono consensus">{{ row.consensus }}</p>
                   {{ row.matrix_json|pwm_svg(true)|safe }}
                 {% else %}
                   <p class="warning">
-                    PWM file exists, but it contains no probability matrix{% if row.width == 0 %} (<span class="mono">w=0</span>){% endif %}.
+                    {{ matrix_status_info.get(row.matrix_status, matrix_status_info.unknown).description }}
                     This entry is kept for traceability, but cannot be drawn or scanned with FIMO.
                   </p>
                 {% endif %}

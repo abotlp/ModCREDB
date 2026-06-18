@@ -15,7 +15,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-from import_db import load_source_releases, parse_meme, split_list_field
+from import_db import load_source_releases, parse_meme_qc, split_list_field
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -114,12 +114,14 @@ def import_hocomoco(
 
         imported_motifs = 0
         for motif_id, content in motif_contents.items():
-            width, nsites, consensus, matrix_json = parse_meme(content)
+            parsed = parse_meme_qc(content)
             conn.execute(
                 """
                 INSERT OR REPLACE INTO motif_file
-                    (source, motif_id, member_path, archive_path, content, width, nsites, consensus, matrix_json)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (source, motif_id, member_path, archive_path, content, width, nsites, consensus, matrix_json,
+                     matrix_status, matrix_row_count, matrix_expected_width, matrix_row_sum_min,
+                     matrix_row_sum_max, matrix_warning)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     HOCOMOCO_SOURCE,
@@ -127,10 +129,16 @@ def import_hocomoco(
                     motif_id,
                     str(meme_path),
                     content,
-                    width,
-                    nsites,
-                    consensus,
-                    matrix_json,
+                    parsed["width"],
+                    parsed["nsites"],
+                    parsed["consensus"],
+                    parsed["matrix_json"],
+                    parsed["matrix_status"],
+                    parsed["matrix_row_count"],
+                    parsed["matrix_expected_width"],
+                    parsed["matrix_row_sum_min"],
+                    parsed["matrix_row_sum_max"],
+                    parsed["matrix_warning"],
                 ),
             )
             imported_motifs += 1

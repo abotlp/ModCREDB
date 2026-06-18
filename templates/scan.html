@@ -100,7 +100,7 @@
       <div class="section-head">
         <h2>TF motif set</h2>
         <span class="muted">
-          {{ tf_scan_summary.used_count }} motifs used{% if tf_scan_summary.skipped_no_matrix %} · {{ tf_scan_summary.skipped_no_matrix }} skipped without FIMO-ready matrix{% endif %}
+          {{ tf_scan_summary.used_count }} motifs used{% if tf_scan_summary.skipped_no_matrix %} · {{ tf_scan_summary.skipped_no_matrix }} skipped because matrix_status was not usable{% endif %}
         </span>
       </div>
       <div class="annotation-grid">
@@ -135,6 +135,14 @@
         <div class="scan-evidence-counts">
           {% for row in tf_scan_summary.evidence_counts %}
             <span>{{ evidence_labels[row.evidence_type] }}: {{ row.count }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if tf_scan_summary.skipped_status_counts %}
+        <p class="muted">Skipped non-usable motifs:</p>
+        <div class="scan-evidence-counts">
+          {% for row in tf_scan_summary.skipped_status_counts %}
+            <span>{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}: {{ row.count }}</span>
           {% endfor %}
         </div>
       {% endif %}

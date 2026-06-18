@@ -7,6 +7,13 @@
       <h1 class="mono">{{ motif_id }}</h1>
       {% if motif %}
         <p>Width {{ motif.width or "unknown" }}{% if motif.nsites %}; nsites {{ motif.nsites }}{% endif %}</p>
+        <div class="matrix-badges">
+          {% if motif.matrix_status == "usable" %}
+            <span class="matrix-badge ready">FIMO-ready</span>
+          {% else %}
+            <span class="matrix-badge blocked">{{ matrix_status_labels.get(motif.matrix_status, motif.matrix_status or "Unknown") }}</span>
+          {% endif %}
+        </div>
       {% else %}
         <p class="warning">This motif is referenced by the chart but is missing from the local archive.</p>
       {% endif %}
@@ -14,7 +21,7 @@
     <div class="actions">
       {% if motif %}
         <a class="button-link" href="/download/motif?source={{ source|quote }}&id={{ motif_id|quote }}">Download MEME</a>
-        {% if motif.matrix_json %}
+        {% if motif.matrix_status == "usable" %}
           <a class="secondary-link" href="/scan?source={{ source|quote }}&id={{ motif_id|quote }}">Scan DNA</a>
         {% endif %}
       {% endif %}
@@ -96,20 +103,76 @@
     {% endif %}
   </section>
 
-  {% if motif and motif.matrix_json %}
+
+  {% if motif %}
+    <section>
+      <h2>Matrix QC</h2>
+      <div class="annotation-grid">
+        <div><span>Status</span><strong>{{ matrix_status_labels.get(motif.matrix_status, motif.matrix_status or "Unknown") }}</strong></div>
+        <div><span>Parsed rows</span><strong>{{ motif.matrix_row_count if motif.matrix_row_count is not none else "unknown" }}</strong></div>
+        <div><span>Expected width</span><strong>{{ motif.matrix_expected_width if motif.matrix_expected_width is not none else "unknown" }}</strong></div>
+        <div>
+          <span>Row-sum range</span>
+          <strong>
+            {% if motif.matrix_row_sum_min is not none and motif.matrix_row_sum_max is not none %}
+              {{ "%.3f"|format(motif.matrix_row_sum_min) }}-{{ "%.3f"|format(motif.matrix_row_sum_max) }}
+            {% else %}
+              unknown
+            {% endif %}
+          </strong>
+        </div>
+      </div>
+      {% if motif.matrix_warning %}
+        <p class="warning">{{ motif.matrix_warning }}</p>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if motif and motif.matrix_status == "usable" and motif.matrix_json %}
     <section>
       <h2>Sequence logo</h2>
       <p class="muted">Letter height shows the information content of the PWM at each position.</p>
       <p class="mono consensus">{{ motif.consensus }}</p>
       <div class="pwm-panel">{{ motif.matrix_json|pwm_svg|safe }}</div>
+      {% if matrix_preview %}
+        <h3>Matrix preview</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Position</th><th>A</th><th>C</th><th>G</th><th>T</th></tr></thead>
+            <tbody>
+              {% for row in matrix_preview %}
+                <tr>
+                  <td>{{ row.position }}</td>
+                  <td>{{ "%.4f"|format(row.A) }}</td>
+                  <td>{{ "%.4f"|format(row.C) }}</td>
+                  <td>{{ "%.4f"|format(row.G) }}</td>
+                  <td>{{ "%.4f"|format(row.T) }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if motif.matrix_row_count and motif.matrix_row_count > matrix_preview|length %}
+          <p class="muted">Showing first {{ matrix_preview|length }} of {{ motif.matrix_row_count }} matrix rows.</p>
+        {% endif %}
+      {% endif %}
     </section>
   {% elif motif %}
     <section>
       <h2>Sequence logo</h2>
-      <p class="warning">
-        This local MEME file exists, but it contains no probability matrix{% if motif.width == 0 %} (<span class="mono">w=0</span>){% endif %}.
-        There is no PWM logo to draw and FIMO cannot scan it.
-      </p>
+      {% if motif.matrix_status == "width_zero_no_matrix" %}
+        <p class="warning">
+          The motif file exists, but no usable probability matrix was produced (<span class="mono">w=0</span>).
+          It is kept for provenance/model evidence but cannot be used for FIMO or logo rendering.
+        </p>
+      {% elif motif.matrix_status == "no_parsed_matrix" %}
+        <p class="warning">The motif file exists, but no usable matrix rows could be parsed.</p>
+      {% else %}
+        <p class="warning">
+          {{ matrix_status_info.get(motif.matrix_status, matrix_status_info.unknown).description }}
+          There is no PWM logo to draw and FIMO cannot scan it.
+        </p>
+      {% endif %}
     </section>
   {% endif %}
 

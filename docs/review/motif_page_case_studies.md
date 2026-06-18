@@ -11,3 +11,4 @@ These examples cover usable and no-matrix motifs from the main motif/model sourc
 | ModCRE no-matrix/w=0 example | A0A024R3C6 | modcre | modcre | modcre | DIMER_tr_A0A024R3C6_A0A024R3C6_HUMAN:572:610_1llm_D_1 | 0 | 20 |  | width_zero_no_matrix |
 | AF3 usable-matrix example | A0A024R0Y4 | alphafold | alphafold | alphafold | a0a024r0y4.af3.0 | 14 | 20 | TAATCACGGCGCCC | usable |
 | AF3 no-matrix/w=0 example | A0A087WX29 | alphafold | alphafold | alphafold | a0a087wx29.af3.0 | 0 | 20 |  | width_zero_no_matrix |
+| ModCRE no-parsed-matrix example | Q92966 | modcre | modcre | modcre | TFS_sp_Q92966_SNPC3_HUMAN:21:411_8iue_3_1 | 2 | 20 |  | no_parsed_matrix |

@@ -160,6 +160,39 @@
     </div>
   </section>
 
+
+  <section>
+    <h2>Matrix Status</h2>
+    <p class="muted">
+      Matrix status is stored per motif file. It says whether that specific MEME/PWM file can be used for
+      sequence-logo rendering and FIMO scanning; it is not a TF-level failure label.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Files</th>
+            <th>Logo?</th>
+            <th>FIMO?</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, info in matrix_status_info.items() %}
+            <tr>
+              <td><strong>{{ matrix_status_labels.get(key, key) }}</strong><br><span class="mono">{{ key }}</span></td>
+              <td>{{ matrix_status_count_map.get(key, 0) }}</td>
+              <td>{{ info.supports_logo }}</td>
+              <td>{{ info.supports_fimo }}</td>
+              <td>{{ info.description }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section class="docs-grid">
     <article class="docs-panel">
       <h2>PWM Availability</h2>

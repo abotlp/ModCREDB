@@ -45,7 +45,7 @@ CREATE TABLE motif_file (
     width INTEGER,
     nsites TEXT,
     consensus TEXT,
-    matrix_json TEXT,
+    matrix_json TEXT, matrix_status TEXT NOT NULL DEFAULT 'unknown', matrix_row_count INTEGER, matrix_expected_width INTEGER, matrix_row_sum_min REAL, matrix_row_sum_max REAL, matrix_warning TEXT,
     PRIMARY KEY (source, motif_id)
 );
 

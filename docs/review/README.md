@@ -9,7 +9,7 @@ Generated artifacts include:
 - schema SQL
 - table/source/evidence inventories
 - source-release provenance inventory
-- matrix QC inventory
+- matrix QC inventory (`matrix_qc_inventory.tsv`) and representative status examples (`matrix_qc_examples.tsv`)
 - model and model-summary inventories
 - TF/motif/model case-study reports
 - FIMO scanner review notes
