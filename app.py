@@ -14,12 +14,14 @@ import io
 import json
 import math
 import mimetypes
+import os
 import re
 import shutil
 import sqlite3
 import subprocess
 import tarfile
 import tempfile
+import traceback
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -30,6 +32,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_DB = APP_DIR / "data" / "tf_webdb.sqlite"
+DEFAULT_MAX_POST_BYTES = int(os.environ.get("TF_WEBDB_MAX_POST_BYTES", "1000000"))
 EVIDENCE_LABELS = {
     "identical": "Identical PWM",
     "homologous": "Homologous PWM",
@@ -1081,8 +1084,10 @@ def evidence_sort_key(row: sqlite3.Row) -> tuple[int, str]:
 
 
 class TFWebApp:
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, enable_debug: bool = False, show_errors: bool = False):
         self.db_path = db_path
+        self.enable_debug = enable_debug
+        self.show_errors = show_errors
         self.templates = Environment(
             loader=FileSystemLoader(APP_DIR / "templates"),
             autoescape=select_autoescape(("html", "xml")),
@@ -1113,6 +1118,7 @@ class TFWebApp:
         context.setdefault("evidence_labels", EVIDENCE_LABELS)
         context.setdefault("evidence_info", EVIDENCE_INFO)
         context.setdefault("source_labels", SOURCE_LABELS)
+        context.setdefault("debug_enabled", self.enable_debug)
         html_text = template.render(**context)
         return html_text.encode("utf-8")
 
@@ -1816,6 +1822,15 @@ class TFWebApp:
     def not_found(self, message: str) -> tuple[bytes, str, int]:
         return self.render("error.html", title="Not found", message=message), "text/html", 404
 
+    def request_too_large(self, max_bytes: int) -> tuple[bytes, str, int]:
+        message = f"Request too large. Maximum accepted POST body is {max_bytes:,} bytes."
+        return self.render("error.html", title="Request too large", message=message), "text/html", 413
+
+    def server_error(self, exc: Exception) -> tuple[bytes, str, int]:
+        traceback.print_exc()
+        message = html.escape(str(exc)) if self.show_errors else "Internal server error. Please contact the database maintainer if this persists."
+        return self.render("error.html", title="Server error", message=message), "text/html", 500
+
 
 def make_handler(app: TFWebApp):
     class Handler(BaseHTTPRequestHandler):
@@ -1861,7 +1876,10 @@ def make_handler(app: TFWebApp):
                 elif parsed.path == "/model-data":
                     body, content_type, status, headers = app.model_data(params)
                 elif parsed.path == "/debug":
-                    body, content_type, status = app.debug()
+                    if app.enable_debug:
+                        body, content_type, status = app.debug()
+                    else:
+                        body, content_type, status = app.not_found("Page not found.")
                 elif parsed.path == "/docs":
                     body, content_type, status = app.docs()
                 elif parsed.path == "/evidence":
@@ -1874,28 +1892,33 @@ def make_handler(app: TFWebApp):
                     body, content_type, status = app.static_file(parsed.path)
                 else:
                     body, content_type, status = app.not_found("Page not found.")
-            except Exception as exc:  # pragma: no cover - local debug visibility
-                body = app.render("error.html", title="Server error", message=html.escape(str(exc)))
-                content_type = "text/html"
-                status = 500
+            except Exception as exc:  # pragma: no cover - defensive response
+                body, content_type, status = app.server_error(exc)
 
             self.send_body(body, content_type, status, headers)
 
         def do_POST(self) -> None:
             parsed = urlparse(self.path)
-            content_length = int(self.headers.get("Content-Length", "0") or "0")
+            headers: dict[str, str] = {}
+            try:
+                content_length = int(self.headers.get("Content-Length", "0") or "0")
+            except ValueError:
+                body = app.render("error.html", title="Bad request", message="Invalid Content-Length header.")
+                self.send_body(body, "text/html", 400, headers)
+                return
+            if content_length > self.server.max_post_bytes:
+                body, content_type, status = app.request_too_large(self.server.max_post_bytes)
+                self.send_body(body, content_type, status, headers)
+                return
             raw_body = self.rfile.read(content_length).decode("utf-8", errors="replace")
             params = parse_qs(raw_body)
-            headers: dict[str, str] = {}
             try:
                 if parsed.path == "/scan":
                     body, content_type, status = app.scan(params, method="POST")
                 else:
                     body, content_type, status = app.not_found("Page not found.")
-            except Exception as exc:  # pragma: no cover - local debug visibility
-                body = app.render("error.html", title="Server error", message=html.escape(str(exc)))
-                content_type = "text/html"
-                status = 500
+            except Exception as exc:  # pragma: no cover - defensive response
+                body, content_type, status = app.server_error(exc)
 
             self.send_body(body, content_type, status, headers)
 
@@ -1910,6 +1933,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8090)
+    parser.add_argument("--max-post-bytes", type=int, default=DEFAULT_MAX_POST_BYTES)
+    parser.add_argument("--enable-debug", action="store_true", help="Expose the internal /debug page. Keep disabled in production.")
+    parser.add_argument("--show-errors", action="store_true", help="Show exception messages in HTTP 500 responses. Keep disabled in production.")
     return parser.parse_args()
 
 
@@ -1917,8 +1943,9 @@ def main() -> None:
     args = parse_args()
     if not args.db.exists():
         raise SystemExit(f"Database does not exist: {args.db}. Run import_db.py first.")
-    app = TFWebApp(args.db)
+    app = TFWebApp(args.db, enable_debug=args.enable_debug, show_errors=args.show_errors)
     server = ThreadingHTTPServer((args.host, args.port), make_handler(app))
+    server.max_post_bytes = args.max_post_bytes
     print(f"TF web database running at http://{args.host}:{args.port}/")
     try:
         server.serve_forever()

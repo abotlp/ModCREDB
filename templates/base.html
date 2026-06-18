@@ -14,7 +14,7 @@
         <a href="/scan">Scan DNA</a>
         <a href="/docs">Docs</a>
         <a href="/evidence">Evidence</a>
-        <a href="/debug">Debug</a>
+        {% if debug_enabled %}<a href="/debug">Debug</a>{% endif %}
       </nav>
     </header>
     <main class="page">

@@ -75,6 +75,14 @@ The enrichment script only fetches missing annotations by default. Use
 python3 app.py --host 127.0.0.1 --port 8090 --db data/tf_webdb.sqlite
 ```
 
+For local curation only, expose the internal debug page and exception details with:
+
+```bash
+python3 app.py --host 127.0.0.1 --port 8090 --db data/tf_webdb.sqlite --enable-debug --show-errors
+```
+
+Keep `--enable-debug` and `--show-errors` disabled in production.
+
 Then open:
 
 ```text
@@ -103,7 +111,7 @@ fimo --version
 - `/scan` FIMO scanner for pasted DNA/FASTA sequences, with motif search/selection and example input.
 - `/docs` documentation landing page with database statistics and import coverage.
 - `/evidence` explanation of evidence levels and interpretation.
-- `/debug` local curation page for missing motif files and failed model counts.
+- `/debug` optional local-only curation page for missing motif files and failed model counts, enabled with `--enable-debug`.
 
 ## V1 Design Choices
 
