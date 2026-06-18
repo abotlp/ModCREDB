@@ -138,3 +138,8 @@ fimo --version
 2. Add export formats for scanner results and a queued job mode for longer sequences.
 3. Replace the tiny local server with Flask/FastAPI when deploying publicly.
 4. Unpack or object-store model files on the university server for fast download and visualization.
+
+
+## Source-release metadata
+
+Public provenance metadata is stored in `config/source_releases.tsv` and loaded into the `source_release` SQLite table by `import_db.py` or `migrate_source_releases.py`. Unknown release, license, citation, or workflow details are deliberately marked `pending confirmation` until PI/Baldo confirmation.

@@ -51,6 +51,61 @@
     </article>
   </section>
 
+
+  <section>
+    <h2>Data Sources and Releases</h2>
+    <p class="muted">
+      This table separates the public/provenance source from the TF evidence labels. Fields marked
+      pending confirmation should be checked with PI/Baldo before publication wording is finalized.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Release</th>
+            <th>Collection</th>
+            <th>Species scope</th>
+            <th>Motif/model type</th>
+            <th>Links</th>
+            <th>Citation/license</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in source_releases %}
+            <tr>
+              <td><strong>{{ source_labels.get(row.source, row.source) }}</strong></td>
+              <td>{{ row.release_name }}</td>
+              <td>{{ row.collection }}</td>
+              <td>{{ row.species_scope }}</td>
+              <td>{{ row.motif_or_model_type }}</td>
+              <td>
+                {% if row.source_url and row.source_url != "pending confirmation" %}
+                  <a href="{{ row.source_url }}" target="_blank" rel="noopener">source</a>
+                {% endif %}
+                {% if row.download_url and row.download_url not in ["pending confirmation", "not public / pending confirmation"] %}
+                  <a href="{{ row.download_url }}" target="_blank" rel="noopener">download</a>
+                {% elif row.download_url %}
+                  <span>{{ row.download_url }}</span>
+                {% endif %}
+              </td>
+              <td>
+                {{ row.citation }}
+                {% if row.license_note %}<br><span class="muted">{{ row.license_note }}</span>{% endif %}
+              </td>
+              <td>{{ row.confirmation_status }}</td>
+              <td>{{ row.notes }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="9">No source-release metadata has been loaded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section>
     <h2>Evidence Sources</h2>
     <div class="table-wrap">

@@ -75,11 +75,15 @@ SOURCE_LABELS = {
     "hocomoco": "HOCOMOCO",
     "modcre": "ModCRE",
     "alphafold": "AlphaFold",
+    "uniprot": "UniProt",
 }
 SOURCE_HOME_URLS = {
     "jaspar": "https://jaspar2024.elixir.no/",
     "cisbp": "https://cisbp.ccbr.utoronto.ca/",
     "hocomoco": "https://hocomoco11.autosome.org/",
+    "modcre": "https://sbi.upf.edu/modcre/",
+    "alphafold": "https://alphafoldserver.com/",
+    "uniprot": "https://www.uniprot.org/",
 }
 BASE_COLORS = {
     "A": "#23845b",
@@ -115,6 +119,46 @@ def safe_count(conn: sqlite3.Connection, sql: str) -> int:
         return conn.execute(sql).fetchone()[0]
     except sqlite3.OperationalError:
         return 0
+
+
+def redact_public_value(value: object) -> str:
+    text = str(value or "")
+    private_prefixes = ("/home/patricia", "/data/sbi", "/users/sbi")
+    if text.startswith(private_prefixes):
+        name = Path(text).name or "path"
+        return f"[local path redacted]/{name}"
+    return text
+
+
+def fetch_source_releases(conn: sqlite3.Connection, source: str | None = None) -> list[sqlite3.Row]:
+    try:
+        if source:
+            return conn.execute(
+                """
+                SELECT *
+                FROM source_release
+                WHERE source = ?
+                ORDER BY release_name, collection
+                """,
+                (source,),
+            ).fetchall()
+        return conn.execute(
+            """
+            SELECT *
+            FROM source_release
+            ORDER BY CASE source
+                         WHEN 'jaspar' THEN 1
+                         WHEN 'cisbp' THEN 2
+                         WHEN 'hocomoco' THEN 3
+                         WHEN 'modcre' THEN 4
+                         WHEN 'alphafold' THEN 5
+                         WHEN 'uniprot' THEN 6
+                         ELSE 99
+                     END, source, release_name, collection
+            """
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return []
 
 
 def motif_external_links(source: str, motif_id: str) -> list[dict[str, str]]:
@@ -1328,10 +1372,19 @@ class TFWebApp:
                 """,
                 (source, motif_id),
             ).fetchall()
+            source_releases = fetch_source_releases(conn, source)
         if not motif and not refs:
             return self.not_found(f"Unknown motif: {html.escape(source)} / {html.escape(motif_id)}")
         return (
-            self.render("motif.html", motif=motif, refs=refs, structures=structures, source=source, motif_id=motif_id),
+            self.render(
+                "motif.html",
+                motif=motif,
+                refs=refs,
+                structures=structures,
+                source=source,
+                motif_id=motif_id,
+                source_release=source_releases[0] if source_releases else None,
+            ),
             "text/html",
             200,
         )
@@ -1694,7 +1747,11 @@ class TFWebApp:
                 ORDER BY count DESC, source, motif_id
                 """
             ).fetchall()
-            metadata = conn.execute("SELECT key, value FROM metadata ORDER BY key").fetchall()
+            source_releases = fetch_source_releases(conn)
+            metadata = [
+                {"key": row["key"], "value": redact_public_value(row["value"])}
+                for row in conn.execute("SELECT key, value FROM metadata ORDER BY key").fetchall()
+            ]
         return (
             self.render(
                 "docs.html",
@@ -1707,6 +1764,7 @@ class TFWebApp:
                 annotation_status=annotation_status,
                 top_families=top_families,
                 missing_motifs=missing_motifs,
+                source_releases=source_releases,
                 metadata=metadata,
             ),
             "text/html",

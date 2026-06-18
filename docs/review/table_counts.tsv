@@ -5,7 +5,8 @@ model_summary	7700
 motif_file	26330
 motif_ref	113094
 motif_structure	12453
-source	5
+source	6
+source_release	6
 structure_file	18223
 tf	5417
 tf_annotation	5417

@@ -8,6 +8,7 @@ Generated artifacts include:
 
 - schema SQL
 - table/source/evidence inventories
+- source-release provenance inventory
 - matrix QC inventory
 - model and model-summary inventories
 - TF/motif/model case-study reports

@@ -72,6 +72,24 @@ CREATE TABLE source (
     description TEXT NOT NULL
 );
 
+CREATE TABLE source_release (
+            source TEXT NOT NULL REFERENCES source(source),
+            release_name TEXT NOT NULL,
+            collection TEXT,
+            species_scope TEXT,
+            motif_or_model_type TEXT,
+            source_url TEXT,
+            download_url TEXT,
+            citation TEXT,
+            license_note TEXT,
+            downloaded_at TEXT,
+            local_file_label TEXT,
+            checksum_sha256 TEXT,
+            confirmation_status TEXT NOT NULL,
+            notes TEXT,
+            PRIMARY KEY (source, release_name, collection)
+        );
+
 CREATE TABLE structure_file (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     source TEXT NOT NULL REFERENCES source(source),
@@ -133,6 +151,8 @@ CREATE INDEX idx_motif_ref_evidence ON motif_ref(evidence_type);
 CREATE INDEX idx_motif_ref_motif ON motif_ref(motif_id);
 
 CREATE INDEX idx_motif_ref_tf ON motif_ref(tf_id);
+
+CREATE INDEX idx_source_release_source ON source_release(source);
 
 CREATE INDEX idx_structure_file_model ON structure_file(source, model_id);
 

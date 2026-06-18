@@ -15,7 +15,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-from import_db import parse_meme, split_list_field
+from import_db import load_source_releases, parse_meme, split_list_field
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -110,6 +110,7 @@ def import_hocomoco(
             "INSERT OR IGNORE INTO source (source, label, description) VALUES (?, ?, ?)",
             (HOCOMOCO_SOURCE, "HOCOMOCO", "HOCOMOCO v11 CORE human mononucleotide motifs"),
         )
+        load_source_releases(conn)
 
         imported_motifs = 0
         for motif_id, content in motif_contents.items():

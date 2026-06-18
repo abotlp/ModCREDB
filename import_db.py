@@ -18,8 +18,10 @@ import tarfile
 from pathlib import Path
 
 
-DEFAULT_DATA_DIR = Path(os.environ.get("TF_WEBDB_DATA_DIR", Path(__file__).resolve().parent / "data" / "raw"))
-DEFAULT_DB = Path(__file__).resolve().parent / "data" / "tf_webdb.sqlite"
+APP_DIR = Path(__file__).resolve().parent
+DEFAULT_DATA_DIR = Path(os.environ.get("TF_WEBDB_DATA_DIR", APP_DIR / "data" / "raw"))
+DEFAULT_DB = APP_DIR / "data" / "tf_webdb.sqlite"
+DEFAULT_SOURCE_RELEASES = APP_DIR / "config" / "source_releases.tsv"
 
 BASES = ("A", "C", "G", "T")
 SOURCE_LABELS = {
@@ -28,7 +30,102 @@ SOURCE_LABELS = {
     "hocomoco": "HOCOMOCO",
     "modcre": "ModCRE",
     "alphafold": "AlphaFold",
+    "uniprot": "UniProt",
 }
+
+SOURCE_RELEASE_COLUMNS = (
+    "source",
+    "release_name",
+    "collection",
+    "species_scope",
+    "motif_or_model_type",
+    "source_url",
+    "download_url",
+    "citation",
+    "license_note",
+    "downloaded_at",
+    "local_file_label",
+    "checksum_sha256",
+    "confirmation_status",
+    "notes",
+)
+
+
+def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+            (table_name,),
+        ).fetchone()
+        is not None
+    )
+
+
+def ensure_source_release_table(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS source_release (
+            source TEXT NOT NULL REFERENCES source(source),
+            release_name TEXT NOT NULL,
+            collection TEXT,
+            species_scope TEXT,
+            motif_or_model_type TEXT,
+            source_url TEXT,
+            download_url TEXT,
+            citation TEXT,
+            license_note TEXT,
+            downloaded_at TEXT,
+            local_file_label TEXT,
+            checksum_sha256 TEXT,
+            confirmation_status TEXT NOT NULL,
+            notes TEXT,
+            PRIMARY KEY (source, release_name, collection)
+        )
+        """
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_source_release_source ON source_release(source)")
+
+
+def load_source_releases(
+    conn: sqlite3.Connection,
+    config_path: Path = DEFAULT_SOURCE_RELEASES,
+) -> int:
+    if not config_path.exists():
+        return 0
+    ensure_source_release_table(conn)
+    metadata = {}
+    if table_exists(conn, "metadata"):
+        metadata = dict(conn.execute("SELECT key, value FROM metadata").fetchall())
+
+    loaded = 0
+    with config_path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        for row in reader:
+            clean = {col: (row.get(col) or "").strip() for col in SOURCE_RELEASE_COLUMNS}
+            source = clean["source"]
+            if not source:
+                continue
+            clean["release_name"] = clean["release_name"] or "pending confirmation"
+            clean["collection"] = clean["collection"] or "pending confirmation"
+            clean["confirmation_status"] = clean["confirmation_status"] or "pending confirmation"
+            if source == "uniprot" and metadata.get("uniprot_fetched_at"):
+                clean["downloaded_at"] = metadata["uniprot_fetched_at"]
+            conn.execute(
+                "INSERT OR IGNORE INTO source (source, label, description) VALUES (?, ?, ?)",
+                (source, SOURCE_LABELS.get(source, source), f"{SOURCE_LABELS.get(source, source)} source metadata"),
+            )
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO source_release
+                    (source, release_name, collection, species_scope, motif_or_model_type,
+                     source_url, download_url, citation, license_note, downloaded_at,
+                     local_file_label, checksum_sha256, confirmation_status, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                tuple(clean[col] for col in SOURCE_RELEASE_COLUMNS),
+            )
+            loaded += 1
+    return loaded
 
 
 SCHEMA = """
@@ -42,6 +139,7 @@ DROP TABLE IF EXISTS motif_file;
 DROP TABLE IF EXISTS structure_file;
 DROP TABLE IF EXISTS tf_annotation;
 DROP TABLE IF EXISTS tf;
+DROP TABLE IF EXISTS source_release;
 DROP TABLE IF EXISTS source;
 DROP TABLE IF EXISTS import_issue;
 DROP TABLE IF EXISTS metadata;
@@ -55,6 +153,24 @@ CREATE TABLE source (
     source TEXT PRIMARY KEY,
     label TEXT NOT NULL,
     description TEXT NOT NULL
+);
+
+CREATE TABLE source_release (
+    source TEXT NOT NULL REFERENCES source(source),
+    release_name TEXT NOT NULL,
+    collection TEXT,
+    species_scope TEXT,
+    motif_or_model_type TEXT,
+    source_url TEXT,
+    download_url TEXT,
+    citation TEXT,
+    license_note TEXT,
+    downloaded_at TEXT,
+    local_file_label TEXT,
+    checksum_sha256 TEXT,
+    confirmation_status TEXT NOT NULL,
+    notes TEXT,
+    PRIMARY KEY (source, release_name, collection)
 );
 
 CREATE TABLE tf (
@@ -162,6 +278,7 @@ CREATE TABLE import_issue (
     motif_id TEXT
 );
 
+CREATE INDEX idx_source_release_source ON source_release(source);
 CREATE INDEX idx_tf_family_family ON tf_family(family);
 CREATE INDEX idx_tf_annotation_gene_names ON tf_annotation(gene_names);
 CREATE INDEX idx_tf_annotation_organism_name ON tf_annotation(organism_name);
@@ -691,6 +808,7 @@ def build_database(data_dir: Path, db_path: Path, skip_model_index: bool = False
                 "INSERT INTO source (source, label, description) VALUES (?, ?, ?)",
                 (source, label, f"{label} motif/model evidence"),
             )
+        load_source_releases(conn)
 
         present_motifs: set[tuple[str, str]] = set()
         present_motifs |= index_motif_archive(conn, archives["jaspar"], "jaspar")

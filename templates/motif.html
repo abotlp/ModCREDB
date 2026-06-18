@@ -40,6 +40,62 @@
     </section>
   {% endif %}
 
+
+  <section>
+    <h2>Source/provenance</h2>
+    {% if source_release %}
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr>
+              <th>Source</th>
+              <td>{{ source_labels.get(source_release.source, source_release.source) }}</td>
+            </tr>
+            <tr>
+              <th>Release</th>
+              <td>{{ source_release.release_name }}</td>
+            </tr>
+            <tr>
+              <th>Collection</th>
+              <td>{{ source_release.collection }}</td>
+            </tr>
+            <tr>
+              <th>Status</th>
+              <td>{{ source_release.confirmation_status }}</td>
+            </tr>
+            <tr>
+              <th>External source</th>
+              <td>
+                {% if source_release.source_url and source_release.source_url != "pending confirmation" %}
+                  <a href="{{ source_release.source_url }}" target="_blank" rel="noopener">source page</a>
+                {% endif %}
+                {% if source_release.download_url and source_release.download_url not in ["pending confirmation", "not public / pending confirmation"] %}
+                  <a href="{{ source_release.download_url }}" target="_blank" rel="noopener">download</a>
+                {% elif source_release.download_url %}
+                  <span>{{ source_release.download_url }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% if source_release.citation or source_release.license_note %}
+              <tr>
+                <th>Citation/license</th>
+                <td>{{ source_release.citation }}{% if source_release.license_note %}<br>{{ source_release.license_note }}{% endif %}</td>
+              </tr>
+            {% endif %}
+            {% if source_release.notes %}
+              <tr>
+                <th>Notes</th>
+                <td>{{ source_release.notes }}</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No source-release metadata has been loaded for this source yet.</p>
+    {% endif %}
+  </section>
+
   {% if motif and motif.matrix_json %}
     <section>
       <h2>Sequence logo</h2>
