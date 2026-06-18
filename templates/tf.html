@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}{{ tf.tf_id }} | TF Motif Database{% endblock %}
+{% block content %}
+  <section class="record-head">
+    <div>
+      <p class="eyebrow">Transcription factor</p>
+      <h1 class="mono">{{ tf.tf_id }}</h1>
+      {% if tf.gene_names %}
+        <p><strong>{{ tf.gene_names.split()[0] }}</strong>{% if tf.protein_name %}: {{ tf.protein_name }}{% endif %}</p>
+      {% else %}
+        <p>{{ tf.family_text }}</p>
+      {% endif %}
+    </div>
+    <div class="record-stats">
+      <div><strong>{{ tf.motif_ref_count }}</strong><span>motif links</span></div>
+      <div><strong>{{ tf.active_model_count }}</strong><span>active models</span></div>
+    </div>
+  </section>
+  <section class="actions">
+    <a class="button-link" href="/scan?tf_id={{ tf.tf_id|quote }}">Scan DNA with this TF</a>
+  </section>
+
+  <section>
+    <h2>UniProt annotation</h2>
+    {% if tf.uniprot_url %}
+      <div class="annotation-grid">
+        <div><span>Gene names</span><strong>{{ tf.gene_names or "unknown" }}</strong></div>
+        <div><span>Protein</span><strong>{{ tf.protein_name or "unknown" }}</strong></div>
+        <div><span>Organism</span><strong>{{ tf.organism_name or "unknown" }}</strong></div>
+        <div><span>Taxonomy ID</span><strong>{{ tf.organism_id or "unknown" }}</strong></div>
+        <div><span>Entry status</span><strong>{% if tf.reviewed == 1 %}Reviewed Swiss-Prot{% else %}Unreviewed TrEMBL{% endif %}</strong></div>
+        <div><span>Length</span><strong>{{ tf.sequence_length or "unknown" }}</strong></div>
+      </div>
+      <p><a href="{{ tf.uniprot_url }}">Open UniProt entry</a></p>
+    {% else %}
+      <p class="warning">No UniProt annotation has been loaded for this TF yet. Run <span class="mono">python3 enrich_uniprot.py</span> from the project directory.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Families</h2>
+    <div class="chips">
+      {% for row in families %}
+        <span>{{ row.family }}</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% if region_groups %}
+    <section>
+      <div class="section-head">
+        <h2>DNA-binding regions</h2>
+        <span class="muted">{{ region_groups|length }} region{% if region_groups|length != 1 %}s{% endif %} with explicit residue ranges</span>
+      </div>
+      <p class="muted">
+        These regions are inferred from explicit residue intervals in the local ModCRE/model files.
+        General JASPAR/CisBP/homology motifs without residue intervals remain in the evidence section below.
+      </p>
+      <div class="region-grid">
+        {% for region in region_groups %}
+          <article class="region-panel">
+            <div class="section-head">
+              <h3>Region {{ region.start }}-{{ region.end }}</h3>
+              <span class="muted">{{ region.width }} aa</span>
+            </div>
+            <p><a href="/scan?tf_id={{ tf.tf_id|quote }}&tf_region={{ (region.start ~ '-' ~ region.end)|quote }}">Scan this region</a></p>
+            {% if tf.sequence_length %}
+              <div class="domain-track" aria-label="Region {{ region.start }} to {{ region.end }} on protein length {{ tf.sequence_length }}">
+                <span style="left: {{ region.track_left }}%; width: {{ region.track_width }}%;"></span>
+              </div>
+              <div class="domain-track-labels">
+                <span>1</span>
+                <span>{{ tf.sequence_length }} aa</span>
+              </div>
+            {% endif %}
+            <div class="region-stats">
+              <span>{{ region.motifs|length }} motif{% if region.motifs|length != 1 %}s{% endif %}</span>
+              <span>{{ region.models|length }} active PDB model{% if region.models|length != 1 %}s{% endif %}</span>
+              <span>{{ region.summaries|length }} summary row{% if region.summaries|length != 1 %}s{% endif %}</span>
+            </div>
+            {% if region.templates %}
+              <p class="muted">Templates:
+                {% for template in region.templates %}
+                  <a class="mono" href="{{ pdb_url(template) }}" target="_blank" rel="noopener">{{ template }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                {% if region.template_count > region.templates|length %} and {{ region.template_count - region.templates|length }} more{% endif %}
+              </p>
+            {% endif %}
+            {% if region.motifs %}
+              <ul class="region-motif-list">
+                {% for row in region.motifs[:8] %}
+                  <li>
+                    <a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a>
+                    <span>{{ source_labels.get(row.source, row.source) }} · {{ evidence_labels[row.evidence_type] }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+              {% if region.motifs|length > 8 %}
+                <p class="muted">Showing first 8 motifs for this region.</p>
+              {% endif %}
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section>
+    <h2>Motif evidence</h2>
+    <div class="legend-grid compact-legend">
+      {% for key, info in evidence_info.items() %}
+        <div>
+          <strong>{{ evidence_labels[key] }}</strong>
+          <span>{{ info.trust }}</span>
+          <p>{{ info.use }}</p>
+        </div>
+      {% endfor %}
+    </div>
+    {% for evidence, rows in grouped.items() %}
+      <details class="evidence-group" {% if rows and evidence in ["identical", "modcre", "alphafold"] %}open{% endif %}>
+        <summary>{{ evidence_labels[evidence] }} <span>{{ rows|length }}</span></summary>
+        {% if rows %}
+          <div class="motif-grid">
+            {% for row in rows[:visible_limit] %}
+              <article class="motif-card">
+                <div class="motif-card-head">
+                  <a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a>
+                  <span>{{ source_labels.get(row.source, row.source) }}</span>
+                </div>
+                {% set external_links = motif_external_links(row.source, row.motif_id) %}
+                {% if external_links %}
+                  <div class="external-links">
+                    {% for link in external_links %}
+                      <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                {% if row.matrix_json and not row.missing_local_file %}
+                  <div class="external-links">
+                    <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan DNA</a>
+                  </div>
+                {% endif %}
+                {% if row.identity_percent is not none %}
+                  <p class="muted">Identity: {{ "%.1f"|format(row.identity_percent) }}%</p>
+                {% endif %}
+                {% if row.missing_local_file %}
+                  <p class="warning">Referenced in chart, but missing from local motif archive.</p>
+                {% elif row.consensus %}
+                  <p class="mono consensus">{{ row.consensus }}</p>
+                  {{ row.matrix_json|pwm_svg(true)|safe }}
+                {% else %}
+                  <p class="warning">
+                    PWM file exists, but it contains no probability matrix{% if row.width == 0 %} (<span class="mono">w=0</span>){% endif %}.
+                    This entry is kept for traceability, but cannot be drawn or scanned with FIMO.
+                  </p>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+          {% if rows|length > visible_limit %}
+            <p class="muted">Only the first {{ visible_limit }} entries are shown for this evidence group.</p>
+          {% endif %}
+        {% else %}
+          <p class="muted">No entries.</p>
+        {% endif %}
+      </details>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h2>Active model files</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>Model</th>
+            <th>Template</th>
+            <th>Residues</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for model in active_models %}
+            <tr>
+              <td>{{ source_labels.get(model.source, model.source) }}</td>
+              <td class="mono">{{ model.model_id }}</td>
+              <td class="mono">{{ model.template_pdb or "" }}</td>
+              <td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td>
+              <td>
+                <a href="/model?id={{ model.id }}">View 3D</a>
+                <a href="/download/model?id={{ model.id }}">PDB</a>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="5">No active PDB models indexed for this TF.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if tf.active_model_count > 100 %}
+      <p class="muted">Showing first 100 active model files.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Model summaries</h2>
+      {% if model_summaries %}
+        <a href="/model-summaries/{{ tf.tf_id|quote }}">View all</a>
+      {% endif %}
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Template</th>
+            <th>Residues</th>
+            <th>Protein chain</th>
+            <th>DNA chain</th>
+            <th>Coverage</th>
+            <th>Identity</th>
+            <th>Similarity</th>
+            <th>Model</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in model_summaries %}
+            <tr>
+              <td>{{ row.model_rank or "" }}</td>
+              <td>
+                {% if row.template_pdb %}
+                  <a class="mono" href="{{ pdb_url(row.template_pdb) }}" target="_blank" rel="noopener">{{ row.template_pdb }}</a>
+                {% endif %}
+              </td>
+              <td>{{ row.n_tails or "" }}{% if row.c_tails %}-{{ row.c_tails }}{% endif %}</td>
+              <td class="mono">{{ row.protein_chain or "" }}</td>
+              <td class="mono">{{ row.dna_chain or "" }}</td>
+              <td>{{ row.coverage or "" }}</td>
+              <td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td>
+              <td>{% if row.similarity_percent is not none %}{{ "%.1f"|format(row.similarity_percent) }}%{% endif %}</td>
+              <td>
+                {% if row.matched_file_id %}
+                  {% if row.matched_file_type == "pdb" %}
+                    <a href="/model?id={{ row.matched_file_id }}">View 3D</a>
+                  {% endif %}
+                  <a href="/download/model?id={{ row.matched_file_id }}">{{ row.matched_file_type|upper }}</a>
+                {% else %}
+                  <span class="muted">unlinked</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="9">No active model summary rows indexed for this TF.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Evidence Guide | TF Motif Database{% endblock %}
+{% block content %}
+  <section>
+    <p class="eyebrow">Interpretation guide</p>
+    <h1>Evidence levels</h1>
+    <p class="muted">The same TF can have several possible motifs. The evidence type tells users where each PWM came from and how cautiously it should be interpreted.</p>
+  </section>
+
+  <section class="evidence-guide">
+    {% for key, info in evidence_info.items() %}
+      <article>
+        <div>
+          <h2>{{ evidence_labels[key] }}</h2>
+          <span class="trust">{{ info.trust }}</span>
+        </div>
+        <p>{{ info.description }}</p>
+        <p><strong>How to use it:</strong> {{ info.use }}</p>
+      </article>
+    {% endfor %}
+  </section>
+
+  <section>
+    <h2>Practical interpretation</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Question</th>
+            <th>Recommended answer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Which motif should I trust first?</td>
+            <td>Prefer identical known motifs, then close homologs, then more distant homologs, then predicted ModCRE/AlphaFold motifs.</td>
+          </tr>
+          <tr>
+            <td>Can predicted motifs be useful?</td>
+            <td>Yes. They are valuable when no experimental motif exists, but they should be treated as hypotheses.</td>
+          </tr>
+          <tr>
+            <td>Why do some motifs have identity percentages?</td>
+            <td>The percentage describes similarity to the TF used to transfer the PWM. Direct identical motifs do not need a transfer percentage.</td>
+          </tr>
+          <tr>
+            <td>Why are some referenced motifs missing?</td>
+            <td>The TSV appears to include a few JASPAR motif IDs from older or mixed releases. They are kept as references and flagged on the debug page.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

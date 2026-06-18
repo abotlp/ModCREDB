@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Search TF Motif Database{% endblock %}
+{% block content %}
+  <section>
+    <h1>Search</h1>
+    <form class="filters" action="/search" method="get">
+      <input name="q" value="{{ q }}" placeholder="TF, gene, protein, organism, family, motif ID">
+      <select name="evidence">
+        <option value="">Any evidence</option>
+        {% for key, label in evidence_labels.items() %}
+          <option value="{{ key }}" {% if evidence == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="source">
+        <option value="">Any source</option>
+        {% for key, label in source_labels.items() %}
+          <option value="{{ key }}" {% if source == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Search</button>
+    </form>
+  </section>
+
+  <section>
+    <p class="muted">Showing {{ rows|length }} of {{ total }} matching TFs{% if total > limit %}; refine the search to narrow it further{% endif %}.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>TF</th>
+            <th>Gene / protein</th>
+            <th>Organism</th>
+            <th>Families</th>
+            <th>Motif links</th>
+            <th>Active models</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a></td>
+              <td>
+                {% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong><br>{% endif %}
+                <span class="muted">{{ row.protein_name or "" }}</span>
+              </td>
+              <td>
+                {{ row.organism_name or "" }}
+                {% if row.reviewed == 1 %}<span class="status reviewed">reviewed</span>{% endif %}
+              </td>
+              <td>{{ row.family_text }}</td>
+              <td>{{ row.motif_ref_count }}</td>
+              <td>{{ row.active_model_count }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6">No matches.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

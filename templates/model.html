@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ model.model_id }} | 3D Model Viewer{% endblock %}
+{% block content %}
+  <section class="record-head">
+    <div>
+      <p class="eyebrow">{{ source_labels.get(model.source, model.source) }} model</p>
+      <h1 class="mono">{{ model.model_id }}</h1>
+      <p>
+        <a class="mono" href="/tf/{{ model.tf_id|quote }}">{{ model.tf_id }}</a>
+        {% if model.gene_names %} · <strong>{{ model.gene_names.split()[0] }}</strong>{% endif %}
+        {% if model.protein_name %} · {{ model.protein_name }}{% endif %}
+      </p>
+    </div>
+    <div class="actions">
+      <a class="button-link" href="/download/model?id={{ model.id }}">Download PDB</a>
+      {% if model.template_pdb %}
+        <a class="secondary-link" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">Template PDB</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="viewer-shell">
+    <div id="viewer" class="viewer"></div>
+    <div id="viewer-status" class="viewer-status">Loading model...</div>
+  </section>
+
+  <section>
+    <h2>Model details</h2>
+    <div class="annotation-grid">
+      <div><span>TF</span><strong class="mono">{{ model.tf_id }}</strong></div>
+      <div><span>Source</span><strong>{{ source_labels.get(model.source, model.source) }}</strong></div>
+      <div><span>Template</span><strong class="mono">{{ model.template_pdb or "unknown" }}</strong></div>
+      <div><span>Residues</span><strong>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}unknown{% endif %}</strong></div>
+      {% if summary %}
+        <div><span>Protein chain</span><strong class="mono">{{ summary.protein_chain or "unknown" }}</strong></div>
+        <div><span>DNA chain</span><strong class="mono">{{ summary.dna_chain or "unknown" }}</strong></div>
+        <div><span>Coverage</span><strong>{{ summary.coverage or "unknown" }}</strong></div>
+        <div><span>Identity</span><strong>{% if summary.identity_percent is not none %}{{ "%.1f"|format(summary.identity_percent) }}%{% else %}unknown{% endif %}</strong></div>
+        <div><span>Similarity</span><strong>{% if summary.similarity_percent is not none %}{{ "%.1f"|format(summary.similarity_percent) }}%{% else %}unknown{% endif %}</strong></div>
+      {% endif %}
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/ngl@2.0.0-dev.39/dist/ngl.js"></script>
+  <script>
+    const statusEl = document.getElementById("viewer-status");
+    const stage = new NGL.Stage("viewer", { backgroundColor: "white" });
+    window.addEventListener("resize", () => stage.handleResize());
+    stage.loadFile("/model-data?id={{ model.id }}", { ext: "pdb" }).then(component => {
+      component.addRepresentation("cartoon", { sele: "protein", color: "chainindex" });
+      component.addRepresentation("base", { sele: "nucleic", color: "resname" });
+      component.addRepresentation("licorice", { sele: "nucleic", color: "element", radius: 0.18 });
+      component.autoView();
+      statusEl.textContent = "Protein shown as cartoon; DNA shown as bases/licorice.";
+    }).catch(error => {
+      statusEl.textContent = "Could not load 3D model: " + error;
+    });
+  </script>
+{% endblock %}

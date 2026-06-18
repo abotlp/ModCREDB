@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ motif_id }} | TF Motif Database{% endblock %}
+{% block content %}
+  <section class="record-head">
+    <div>
+      <p class="eyebrow">{{ source_labels.get(source, source) }} motif</p>
+      <h1 class="mono">{{ motif_id }}</h1>
+      {% if motif %}
+        <p>Width {{ motif.width or "unknown" }}{% if motif.nsites %}; nsites {{ motif.nsites }}{% endif %}</p>
+      {% else %}
+        <p class="warning">This motif is referenced by the chart but is missing from the local archive.</p>
+      {% endif %}
+    </div>
+    <div class="actions">
+      {% if motif %}
+        <a class="button-link" href="/download/motif?source={{ source|quote }}&id={{ motif_id|quote }}">Download MEME</a>
+        {% if motif.matrix_json %}
+          <a class="secondary-link" href="/scan?source={{ source|quote }}&id={{ motif_id|quote }}">Scan DNA</a>
+        {% endif %}
+      {% endif %}
+      {% set external_links = motif_external_links(source, motif_id) %}
+      {% for link in external_links %}
+        <a class="secondary-link" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% set external_links = motif_external_links(source, motif_id) %}
+  {% if external_links %}
+    <section>
+      <h2>External source</h2>
+      <div class="source-links">
+        {% for link in external_links %}
+          <div>
+            <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
+            <span>{{ link.note }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if motif and motif.matrix_json %}
+    <section>
+      <h2>Sequence logo</h2>
+      <p class="muted">Letter height shows the information content of the PWM at each position.</p>
+      <p class="mono consensus">{{ motif.consensus }}</p>
+      <div class="pwm-panel">{{ motif.matrix_json|pwm_svg|safe }}</div>
+    </section>
+  {% elif motif %}
+    <section>
+      <h2>Sequence logo</h2>
+      <p class="warning">
+        This local MEME file exists, but it contains no probability matrix{% if motif.width == 0 %} (<span class="mono">w=0</span>){% endif %}.
+        There is no PWM logo to draw and FIMO cannot scan it.
+      </p>
+    </section>
+  {% endif %}
+
+  <section>
+    <h2>TF links</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>TF</th>
+            <th>Evidence</th>
+            <th>Identity</th>
+            <th>Families</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ref in refs %}
+            <tr>
+              <td><a class="mono" href="/tf/{{ ref.tf_id|quote }}">{{ ref.tf_id }}</a></td>
+              <td>{{ evidence_labels.get(ref.evidence_type, ref.evidence_type) }}</td>
+              <td>{% if ref.identity_percent is not none %}{{ "%.1f"|format(ref.identity_percent) }}%{% endif %}</td>
+              <td>{{ ref.family_text }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4">No TF links found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Matched structures</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Template</th>
+            <th>Residues</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for model in structures %}
+            <tr>
+              <td class="mono">{{ model.model_id }}</td>
+              <td>
+                {% if model.template_pdb %}
+                  <a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>
+                {% endif %}
+              </td>
+              <td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td>
+              <td>
+                {% if model.file_type == "pdb" %}
+                  <a href="/model?id={{ model.id }}">View 3D</a>
+                {% endif %}
+                <a href="/download/model?id={{ model.id }}">Download model {{ model.file_type|upper }}</a>
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4">No active structure matched directly to this motif.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

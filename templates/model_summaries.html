@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Model summaries for {{ tf.tf_id }} | TF Motif Database{% endblock %}
+{% block content %}
+  <section class="record-head">
+    <div>
+      <p class="eyebrow">Model summaries</p>
+      <h1 class="mono">{{ tf.tf_id }}</h1>
+      {% if tf.gene_names %}
+        <p><strong>{{ tf.gene_names.split()[0] }}</strong>{% if tf.protein_name %}: {{ tf.protein_name }}{% endif %}</p>
+      {% else %}
+        <p>{{ tf.family_text }}</p>
+      {% endif %}
+    </div>
+    <a class="secondary-link" href="/tf/{{ tf.tf_id|quote }}">Back to TF</a>
+  </section>
+
+  <section>
+    <p class="muted">Showing {{ rows|length }} of {{ total }} active summary rows{% if total > limit %}; refine this view later if needed{% endif %}.</p>
+    <div class="table-wrap wide-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>n</th>
+            <th>Template</th>
+            <th>Domain</th>
+            <th>N-tails</th>
+            <th>C-tails</th>
+            <th>Protein chain</th>
+            <th>DNA chain</th>
+            <th>Identities</th>
+            <th>Coverage</th>
+            <th>Template by RMSD</th>
+            <th>% identity</th>
+            <th>% similarity</th>
+            <th>Model file</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr>
+              <td>{{ row.model_rank or "" }}</td>
+              <td>{{ row.n or "" }}</td>
+              <td>
+                {% if row.template_pdb %}
+                  <a class="mono" href="{{ pdb_url(row.template_pdb) }}" target="_blank" rel="noopener">{{ row.template_pdb }}</a>
+                {% endif %}
+              </td>
+              <td class="mono">{{ row.domain or "" }}</td>
+              <td>{{ row.n_tails or "" }}</td>
+              <td>{{ row.c_tails or "" }}</td>
+              <td class="mono">{{ row.protein_chain or "" }}</td>
+              <td class="mono">{{ row.dna_chain or "" }}</td>
+              <td>{{ row.identities or "" }}</td>
+              <td>{{ row.coverage or "" }}</td>
+              <td class="mono">{{ row.template_by_rmsd or "" }}</td>
+              <td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td>
+              <td>{% if row.similarity_percent is not none %}{{ "%.1f"|format(row.similarity_percent) }}%{% endif %}</td>
+              <td>
+                {% if row.matched_file_id %}
+                  {% if row.matched_file_type == "pdb" %}
+                    <a href="/model?id={{ row.matched_file_id }}">View 3D</a>
+                  {% endif %}
+                  <a href="/download/model?id={{ row.matched_file_id }}">{{ row.matched_file_type|upper }}</a>
+                  <span class="muted mono">{{ row.matched_model_id }}</span>
+                {% else %}
+                  <span class="muted">unlinked</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><td colspan="14">No model summaries found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

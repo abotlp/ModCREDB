@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+
+# Local databases and large data artifacts
+data/*.sqlite
+data/*.sqlite.*
+*.tar.gz
+*.zip
+*.pdb
+*.pir
+
+# Local/generated reports
+TF_database_grant_stats_summary.pdf
+TF_database_grant_stats_summary.md
+
+# OS/editor
+.DS_Store
+*.swp

@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Docs | TF Motif Database{% endblock %}
+{% block content %}
+  <section>
+    <p class="eyebrow">Documentation</p>
+    <h1>ModCREDB documentation</h1>
+    <p class="muted">
+      ModCREDB is a searchable database of transcription-factor motif and structural-model evidence.
+      It stores precomputed motif and model files, links them to UniProt TF accessions, and lets users
+      inspect motifs, view available structures, and scan DNA sequences with FIMO.
+    </p>
+  </section>
+
+  <section>
+    <h2>Main Snapshot</h2>
+    <div class="stats">
+      <div><strong>{{ stats.tf_count }}</strong><span>TF entries</span></div>
+      <div><strong>{{ stats.annotated_tf_count }}</strong><span>UniProt-annotated TFs</span></div>
+      <div><strong>{{ stats.tf_with_usable_pwm_count }}</strong><span>TFs with usable PWM</span></div>
+      <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>FIMO-ready PWM matrices</span></div>
+      <div><strong>{{ stats.tf_with_active_model_count }}</strong><span>TFs with active model</span></div>
+      <div><strong>{{ stats.active_model_count }}</strong><span>active PDB model files</span></div>
+      <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif evidence links</span></div>
+    </div>
+  </section>
+
+  <section class="docs-grid">
+    <article class="docs-panel">
+      <h2>What Users Can Do</h2>
+      <ul>
+        <li>Search TFs by UniProt accession, gene/protein annotation, family, or motif evidence.</li>
+        <li>Inspect PWM sequence logos and download MEME motif files.</li>
+        <li>View linked structural models when active PDB model files are available.</li>
+        <li>Scan pasted DNA sequences with FIMO using selected motifs or all motifs linked to a TF.</li>
+        <li>Download FIMO hit tables and binned profile summaries from DNA scans.</li>
+      </ul>
+    </article>
+
+    <article class="docs-panel">
+      <h2>Important Interpretation</h2>
+      <p class="muted">
+        PWM evidence and structural-model evidence are related but not identical. Many TFs have usable
+        JASPAR/CIS-BP or homology-transferred motifs without a local structural model. Some model records
+        have a PDB structure but no usable PWM matrix, so they can be shown as model evidence but cannot
+        be used for FIMO scanning.
+      </p>
+      <p class="muted">
+        A no-matrix motif file is a file-level state. It does not mean that the whole TF failed, and it
+        does not necessarily mean that the structural model is absent.
+      </p>
+    </article>
+  </section>
+
+  <section>
+    <h2>Evidence Sources</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Evidence</th>
+            <th>What it means</th>
+            <th>Used for FIMO?</th>
+            <th>Structure/model?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>JASPAR</strong></td>
+            <td>Curated public TF binding motifs imported from the local JASPAR archive.</td>
+            <td>Yes, when the matrix is present.</td>
+            <td>No local model required.</td>
+          </tr>
+          <tr>
+            <td><strong>CIS-BP</strong></td>
+            <td>Public TF motif evidence, often from experimental or curated motif datasets.</td>
+            <td>Yes, when the matrix is present.</td>
+            <td>No local model required.</td>
+          </tr>
+          <tr>
+            <td><strong>Identical / Homologous PWM</strong></td>
+            <td>Motif evidence assigned directly to the TF or transferred from a similar TF.</td>
+            <td>Yes, when the local motif file is present.</td>
+            <td>No local model required.</td>
+          </tr>
+          <tr>
+            <td><strong>ModCRE</strong></td>
+            <td>Structure-based predicted PWM/model evidence from the precomputed ModCRE/ModCRElib-related dataset provided for this DB.</td>
+            <td>Only when the MEME file contains a usable matrix.</td>
+            <td>Often yes; linked model PDBs are shown when available.</td>
+          </tr>
+          <tr>
+            <td><strong>AlphaFold/AF3</strong></td>
+            <td>Predicted PWM/model evidence derived from AF3-related structural predictions in the provided dataset.</td>
+            <td>Only when the MEME file contains a usable matrix.</td>
+            <td>Often yes; linked model PDBs are shown when available.</td>
+          </tr>
+          <tr>
+            <td><strong>FIMO scan</strong></td>
+            <td>MEME/FIMO is used to scan user-provided DNA with selected PWM matrices.</td>
+            <td>This is the scan engine.</td>
+            <td>It scans motifs; it does not create new models.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="docs-grid">
+    <article class="docs-panel">
+      <h2>PWM Availability</h2>
+      <p class="muted">
+        These counts are motif-file counts. One TF may contribute many motif files.
+      </p>
+      <div class="bar-list">
+        {% for row in motif_files_by_source %}
+          <div class="bar-row">
+            <div>
+              <strong>{{ source_labels.get(row.source, row.source) }}</strong>
+              <span>
+                {{ row.with_matrix or 0 }} FIMO-ready of {{ row.count }} files
+                {% if row.without_matrix %}; {{ row.without_matrix }} without usable matrix{% endif %}
+              </span>
+            </div>
+            <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="docs-panel">
+      <h2>UniProt Annotation</h2>
+      <p class="muted">
+        UniProt annotations provide gene names, protein names, organism names, review status, and sequence length.
+      </p>
+      <div class="bar-list">
+        {% for row in annotation_status %}
+          <div class="bar-row">
+            <div>
+              <strong>{{ row.label }}</strong>
+              <span>{{ row.count }} TFs</span>
+            </div>
+            <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <details class="docs-panel">
+      <summary>Advanced Data Quality Notes</summary>
+      <p class="muted">
+        This section is for data import and debugging. It is kept separate from the main snapshot because
+        debug/intermediate folders should not be interpreted as public biological failure counts.
+      </p>
+
+      <h2>How To Read No-Matrix Counts</h2>
+      <p class="muted">
+        A no-matrix file means that a specific MEME/motif file has no usable PWM probability matrix.
+        It is not a TF-level failure. A TF with one no-matrix file may still have other usable PWMs.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr>
+              <th>File-level count</th>
+              <td>How many individual MEME/motif files cannot be used by FIMO.</td>
+            </tr>
+            <tr>
+              <th>TF-level count</th>
+              <td>How many TF accessions have at least one of those files.</td>
+            </tr>
+            <tr>
+              <th><span class="mono">w=0</span></th>
+              <td>The MEME file explicitly reports zero matrix width. These files are kept for provenance, but not used for logos or FIMO scanning.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Motif Links By Evidence</h2>
+      <div class="bar-list">
+        {% for row in motif_links_by_evidence %}
+          <div class="bar-row">
+            <div>
+              <strong>{{ evidence_labels.get(row.evidence_type, row.evidence_type) }}</strong>
+              <span>{{ row.count }} links{% if row.missing_count %}; {{ row.missing_count }} missing local files{% endif %}</span>
+            </div>
+            <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <h2>Internal Model File Inventory</h2>
+      <p class="muted">
+        Rows labelled failed come from retained failed/debug folders in the provided archive. They are stored
+        for provenance and troubleshooting; normal TF pages show active model files.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Folder status</th>
+              <th>File type</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in model_files_by_group %}
+              <tr>
+                <td>{{ source_labels.get(row.source, row.source) }}</td>
+                <td>{{ row.status }}</td>
+                <td>{{ row.file_type }}</td>
+                <td>{{ row.count }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Model Summary Rows</h2>
+      <div class="bar-list">
+        {% for row in model_summary_by_status %}
+          <div class="bar-row">
+            <div>
+              <strong>{{ row.status }}</strong>
+              <span>{{ row.count }} rows; {{ row.linked_count or 0 }} linked to model files</span>
+            </div>
+            <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <h2>Missing Local Motif IDs</h2>
+      <p class="muted">
+        These IDs are referenced by the TF chart but absent from the local motif archives.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Motif ID</th>
+              <th>Links affected</th>
+              <th>Example TF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in missing_motifs %}
+              <tr>
+                <td>{{ source_labels.get(row.source, row.source) }}</td>
+                <td class="mono">{{ row.motif_id }}</td>
+                <td>{{ row.count }}</td>
+                <td><a class="mono" href="/tf/{{ row.example_tf_id|quote }}">{{ row.example_tf_id }}</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan="4">No missing motif IDs.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Import Metadata</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            {% for row in metadata %}
+              <tr><th>{{ row.key }}</th><td>{{ row.value }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Debug | TF Motif Database{% endblock %}
+{% block content %}
+  <section>
+    <h1>Debug</h1>
+    <p class="muted">This page is for local curation checks. Failed model files are indexed here, but not shown on normal TF pages.</p>
+  </section>
+
+  <section>
+    <h2>Import metadata</h2>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          {% for row in metadata %}
+            <tr><th>{{ row.key }}</th><td>{{ row.value }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Missing local motif files</h2>
+    <p class="muted">
+      These are motif IDs mentioned in <span class="mono">TF_PWM_chart_final.tsv</span>, but no matching MEME file was found in the local motif archives.
+      The TF links are kept, but the app cannot show a logo, download the MEME file, or scan with that motif until the file is provided or remapped.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Source</th><th>Motif</th><th>Links affected</th><th>Example TF</th></tr></thead>
+        <tbody>
+          {% for row in issues %}
+            <tr>
+              <td>{{ source_labels.get(row.source, row.source) }}</td>
+              <td class="mono">{{ row.motif_id }}</td>
+              <td>{{ row.count }}</td>
+              <td class="mono">{{ row.example_tf_id }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4">No import issues recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Failed model files stored for debugging</h2>
+    <p class="muted">
+      These files came from archive folders named <span class="mono">models_failed</span> or <span class="mono">MODELS_AF3_failed</span>.
+      The importer did not decide they failed; it preserves the source classification and hides them from normal TF pages.
+      To know the exact computational reason, we would need the original ModCRE/AlphaFold job logs.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Source</th><th>File type</th><th>Count</th><th>Example archive member</th></tr></thead>
+        <tbody>
+          {% for row in failed_counts %}
+            <tr>
+              <td>{{ source_labels.get(row.source, row.source) }}</td>
+              <td>{{ row.file_type }}</td>
+              <td>{{ row.count }}</td>
+              <td class="mono">{{ row.example_member_path }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4">No failed files indexed.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}
