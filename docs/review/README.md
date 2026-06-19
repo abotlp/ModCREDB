@@ -18,3 +18,11 @@ Generated artifacts include:
 - a small representative sample SQLite DB under `tests/fixtures/`
 
 The sample DB preserves the real table layout but contains only representative TFs and redacted path fields.
+
+PR3 evidence-semantics exports add:
+
+- `mapping_type_counts.tsv`
+- `curation_status_counts.tsv`
+- `source_by_mapping_type_counts.tsv`
+
+These files describe how TF-motif links are interpreted without collapsing evidence to one best annotation.

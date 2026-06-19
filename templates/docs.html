@@ -107,6 +107,82 @@
   </section>
 
   <section>
+    <h2>Evidence Semantics</h2>
+    <p class="muted">
+      ModCREDB keeps source, evidence type, mapping type, and curation status separate.
+      This lets the database preserve all evidence without choosing one best motif too early.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Concept</th>
+            <th>Meaning</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Source</strong></td>
+            <td>Where the motif/model record came from.</td>
+            <td>JASPAR, CisBP, HOCOMOCO, ModCRE, AlphaFold/AF3</td>
+          </tr>
+          <tr>
+            <td><strong>Evidence type</strong></td>
+            <td>Why the TF is linked to this motif in the imported chart.</td>
+            <td>Identical PWM, Homologous PWM, ModCRE, AlphaFold</td>
+          </tr>
+          <tr>
+            <td><strong>Mapping type</strong></td>
+            <td>How the TF-to-motif relationship should be interpreted.</td>
+            <td>Direct/identical, close homolog, distant homolog, structure-predicted</td>
+          </tr>
+          <tr>
+            <td><strong>Curation status</strong></td>
+            <td>Whether the public wording is imported, confirmed, or pending confirmation.</td>
+            <td>HOCOMOCO mappings are kept as pending until exact semantics are confirmed.</td>
+          </tr>
+          <tr>
+            <td><strong>Display priority</strong></td>
+            <td>Presentation order only. It does not delete or override evidence.</td>
+            <td>Distant homologs appear lower/closed by default but remain available.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="docs-grid semantic-counts">
+      <article class="docs-panel">
+        <h3>Mapping Types</h3>
+        <div class="bar-list">
+          {% for row in mapping_type_counts %}
+            <div class="bar-row">
+              <div>
+                <strong>{{ mapping_type_label(row.label) }}</strong>
+                <span>{{ row.count }} links</span>
+              </div>
+              <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+            </div>
+          {% endfor %}
+        </div>
+      </article>
+      <article class="docs-panel">
+        <h3>Curation Status</h3>
+        <div class="bar-list">
+          {% for row in curation_status_counts %}
+            <div class="bar-row">
+              <div>
+                <strong>{{ curation_status_label(row.label) }}</strong>
+                <span>{{ row.count }} links</span>
+              </div>
+              <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+            </div>
+          {% endfor %}
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section>
     <h2>Evidence Sources</h2>
     <div class="table-wrap">
       <table>

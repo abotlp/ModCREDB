@@ -137,6 +137,30 @@ MATRIX_STATUS_INFO = {
         "description": "The motif has not yet been classified by the matrix QC importer.",
     },
 }
+MAPPING_TYPE_LABELS = {
+    "direct_or_identical": "Direct/identical",
+    "close_homolog": "Close homolog",
+    "distant_homolog": "Distant homolog",
+    "structure_predicted": "Structure-predicted",
+    "af3_structure_predicted": "AF3 structure-predicted",
+    "public_database_mapping_unconfirmed": "Public DB mapping pending",
+    "unknown": "Unknown",
+}
+CURATION_STATUS_LABELS = {
+    "imported": "Imported",
+    "pending_confirmation": "Pending confirmation",
+    "confirmed": "Confirmed",
+    "internal_qc": "Internal QC",
+}
+MAPPING_TYPE_INFO = {
+    "direct_or_identical": "The motif is linked as direct or identical evidence from the source table; exact meaning still needs PI/Baldo confirmation.",
+    "close_homolog": "The motif is transferred from a close homolog; threshold and method need PI/Baldo confirmation.",
+    "distant_homolog": "The motif is transferred from a more distant homolog and should be interpreted cautiously.",
+    "structure_predicted": "The motif/model link comes from the provided ModCRE/ModCRElib-derived predicted dataset.",
+    "af3_structure_predicted": "The motif/model link comes from the provided AF3-derived predicted dataset.",
+    "public_database_mapping_unconfirmed": "The motif comes from a public database import, but exact TF mapping semantics are pending PI/Baldo confirmation.",
+    "unknown": "The TF-motif mapping method has not been classified yet.",
+}
 BASE_COLORS = {
     "A": "#23845b",
     "C": "#2f65d9",
@@ -211,6 +235,42 @@ def fetch_source_releases(conn: sqlite3.Connection, source: str | None = None) -
         ).fetchall()
     except sqlite3.OperationalError:
         return []
+
+
+def row_value(row: object, key: str, default: object = "") -> object:
+    if row is None:
+        return default
+    try:
+        value = row[key]  # type: ignore[index]
+    except (KeyError, IndexError, TypeError):
+        try:
+            value = getattr(row, key)
+        except AttributeError:
+            return default
+    return default if value is None else value
+
+
+def evidence_display_label(row: object) -> str:
+    source = str(row_value(row, "source", ""))
+    evidence_type = str(row_value(row, "evidence_type", ""))
+    mapping_type = str(row_value(row, "mapping_type", ""))
+    curation_status = str(row_value(row, "curation_status", ""))
+    if source == "hocomoco" and (
+        mapping_type == "public_database_mapping_unconfirmed"
+        or curation_status == "pending_confirmation"
+    ):
+        return "Public motif evidence (mapping pending)"
+    return EVIDENCE_LABELS.get(evidence_type, evidence_type or "Unknown")
+
+
+def mapping_type_label(mapping_type: object) -> str:
+    key = str(mapping_type or "unknown")
+    return MAPPING_TYPE_LABELS.get(key, key)
+
+
+def curation_status_label(curation_status: object) -> str:
+    key = str(curation_status or "imported")
+    return CURATION_STATUS_LABELS.get(key, key)
 
 
 def motif_external_links(source: str, motif_id: str) -> list[dict[str, str]]:
@@ -1216,6 +1276,9 @@ class TFWebApp:
         self.templates.globals["motif_external_links"] = motif_external_links
         self.templates.globals["pdb_url"] = pdb_url
         self.templates.globals["motif_spec"] = motif_spec
+        self.templates.globals["evidence_display_label"] = evidence_display_label
+        self.templates.globals["mapping_type_label"] = mapping_type_label
+        self.templates.globals["curation_status_label"] = curation_status_label
 
     def stats(self, conn: sqlite3.Connection) -> dict[str, int | str]:
         return {
@@ -1239,6 +1302,9 @@ class TFWebApp:
         context.setdefault("source_labels", SOURCE_LABELS)
         context.setdefault("matrix_status_labels", MATRIX_STATUS_LABELS)
         context.setdefault("matrix_status_info", MATRIX_STATUS_INFO)
+        context.setdefault("mapping_type_labels", MAPPING_TYPE_LABELS)
+        context.setdefault("mapping_type_info", MAPPING_TYPE_INFO)
+        context.setdefault("curation_status_labels", CURATION_STATUS_LABELS)
         context.setdefault("debug_enabled", self.enable_debug)
         html_text = template.render(**context)
         return html_text.encode("utf-8")
@@ -1372,7 +1438,7 @@ class TFWebApp:
                     GROUP BY ms.motif_ref_id
                 ) AS region ON region.motif_ref_id = mr.id
                 WHERE mr.tf_id = ?
-                ORDER BY mr.evidence_type, mr.identity_percent DESC, mr.motif_id
+                ORDER BY COALESCE(mr.display_priority, 99), mr.evidence_type, mr.identity_percent DESC, mr.motif_id
                 """,
                 (tf_id,),
             ).fetchall()
@@ -1457,7 +1523,7 @@ class TFWebApp:
                 FROM motif_ref AS mr
                 JOIN tf ON tf.tf_id = mr.tf_id
                 WHERE mr.source = ? AND mr.motif_id = ?
-                ORDER BY mr.evidence_type, mr.identity_percent DESC, mr.tf_id
+                ORDER BY COALESCE(mr.display_priority, 99), mr.evidence_type, mr.identity_percent DESC, mr.tf_id
                 LIMIT 100
                 """,
                 (source, motif_id),
@@ -1885,6 +1951,26 @@ class TFWebApp:
                 ).fetchall()
             )
             matrix_status_count_map = {row["label"]: row["count"] for row in matrix_status_counts}
+            mapping_type_counts = rows_with_percent(
+                conn.execute(
+                    """
+                    SELECT mapping_type AS label, COUNT(*) AS count
+                    FROM motif_ref
+                    GROUP BY mapping_type
+                    ORDER BY MIN(COALESCE(display_priority, 99)), mapping_type
+                    """
+                ).fetchall()
+            )
+            curation_status_counts = rows_with_percent(
+                conn.execute(
+                    """
+                    SELECT curation_status AS label, COUNT(*) AS count
+                    FROM motif_ref
+                    GROUP BY curation_status
+                    ORDER BY curation_status
+                    """
+                ).fetchall()
+            )
             source_releases = fetch_source_releases(conn)
             metadata = [
                 {"key": row["key"], "value": redact_public_value(row["value"])}
@@ -1904,6 +1990,8 @@ class TFWebApp:
                 missing_motifs=missing_motifs,
                 matrix_status_counts=matrix_status_counts,
                 matrix_status_count_map=matrix_status_count_map,
+                mapping_type_counts=mapping_type_counts,
+                curation_status_counts=curation_status_counts,
                 source_releases=source_releases,
                 metadata=metadata,
             ),

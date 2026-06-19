@@ -15,7 +15,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-from import_db import load_source_releases, parse_meme_qc, split_list_field
+from import_db import ensure_motif_ref_semantics_columns, load_source_releases, motif_ref_semantics, parse_meme_qc, split_list_field
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -110,6 +110,7 @@ def import_hocomoco(
             "INSERT OR IGNORE INTO source (source, label, description) VALUES (?, ?, ?)",
             (HOCOMOCO_SOURCE, "HOCOMOCO", "HOCOMOCO v11 CORE human mononucleotide motifs"),
         )
+        ensure_motif_ref_semantics_columns(conn)
         load_source_releases(conn)
 
         imported_motifs = 0
@@ -195,13 +196,15 @@ def import_hocomoco(
                     """,
                     (tf_id, HOCOMOCO_EVIDENCE, HOCOMOCO_SOURCE, motif_id),
                 ).fetchone()
+                semantics = motif_ref_semantics(HOCOMOCO_EVIDENCE, HOCOMOCO_SOURCE, "HOCOMOCO")
                 if existing_ref is None:
                     conn.execute(
                         """
                         INSERT INTO motif_ref
                             (tf_id, evidence_type, source, motif_id, original_value,
-                             identity_percent, missing_local_file)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                             identity_percent, missing_local_file, original_column, mapping_type,
+                             curation_status, evidence_note, display_priority)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             tf_id,
@@ -211,9 +214,37 @@ def import_hocomoco(
                             motif_id,
                             None,
                             missing,
+                            semantics["original_column"],
+                            semantics["mapping_type"],
+                            semantics["curation_status"],
+                            semantics["evidence_note"],
+                            semantics["display_priority"],
                         ),
                     )
                     hocomoco_refs += 1
+                else:
+                    conn.execute(
+                        """
+                        UPDATE motif_ref
+                           SET original_column = ?,
+                               mapping_type = ?,
+                               curation_status = ?,
+                               evidence_note = ?,
+                               display_priority = ?
+                         WHERE tf_id = ? AND evidence_type = ? AND source = ? AND motif_id = ?
+                        """,
+                        (
+                            semantics["original_column"],
+                            semantics["mapping_type"],
+                            semantics["curation_status"],
+                            semantics["evidence_note"],
+                            semantics["display_priority"],
+                            tf_id,
+                            HOCOMOCO_EVIDENCE,
+                            HOCOMOCO_SOURCE,
+                            motif_id,
+                        ),
+                    )
                 if missing:
                     missing_refs += 1
                     conn.execute(

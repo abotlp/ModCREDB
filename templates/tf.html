@@ -94,7 +94,7 @@
                 {% for row in region.motifs[:8] %}
                   <li>
                     <a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a>
-                    <span>{{ source_labels.get(row.source, row.source) }} · {{ evidence_labels[row.evidence_type] }}</span>
+                    <span>{{ source_labels.get(row.source, row.source) }} · {{ evidence_display_label(row) }}</span>
                   </li>
                 {% endfor %}
               </ul>
@@ -149,14 +149,28 @@
                       <span class="matrix-badge model-only">Model-only/no usable PWM</span>
                     {% endif %}
                   {% endif %}
+                  {% if row.mapping_type == "public_database_mapping_unconfirmed" %}
+                    <span class="matrix-badge pending">Mapping pending</span>
+                  {% endif %}
+                  {% if row.curation_status == "pending_confirmation" %}
+                    <span class="matrix-badge pending">Pending confirmation</span>
+                  {% endif %}
+                </div>
+                <div class="semantic-grid">
+                  <div><span>Source</span><strong>{{ source_labels.get(row.source, row.source) }}</strong></div>
+                  <div><span>Evidence</span><strong>{{ evidence_display_label(row) }}</strong></div>
+                  <div><span>Mapping</span><strong>{{ mapping_type_label(row.mapping_type) }}</strong></div>
+                  <div><span>Curation</span><strong>{{ curation_status_label(row.curation_status) }}</strong></div>
+                  <div><span>Matrix</span><strong>{{ matrix_status_labels.get(row.matrix_status, row.matrix_status or "Unknown") }}</strong></div>
+                  <div><span>Linked model?</span><strong>{% if row.region_model_count %}Yes{% else %}No{% endif %}</strong></div>
+                  {% if row.identity_percent is not none %}
+                    <div><span>Identity</span><strong>{{ "%.1f"|format(row.identity_percent) }}%</strong></div>
+                  {% endif %}
                 </div>
                 {% if row.matrix_status == "usable" and not row.missing_local_file %}
                   <div class="external-links">
                     <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan DNA</a>
                   </div>
-                {% endif %}
-                {% if row.identity_percent is not none %}
-                  <p class="muted">Identity: {{ "%.1f"|format(row.identity_percent) }}%</p>
                 {% endif %}
                 {% if row.missing_local_file %}
                   <p class="warning">Referenced in chart, but missing from local motif archive.</p>

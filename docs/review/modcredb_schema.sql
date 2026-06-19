@@ -58,7 +58,7 @@ CREATE TABLE motif_ref (
     original_value TEXT NOT NULL,
     identity_percent REAL,
     missing_local_file INTEGER NOT NULL DEFAULT 0
-);
+, original_column TEXT, mapping_type TEXT NOT NULL DEFAULT 'unknown', curation_status TEXT NOT NULL DEFAULT 'imported', evidence_note TEXT, display_priority INTEGER);
 
 CREATE TABLE motif_structure (
     motif_ref_id INTEGER NOT NULL REFERENCES motif_ref(id) ON DELETE CASCADE,
@@ -146,7 +146,13 @@ CREATE INDEX idx_model_summary_template ON model_summary(template_pdb);
 
 CREATE INDEX idx_model_summary_tf ON model_summary(tf_id);
 
+CREATE INDEX idx_motif_ref_curation ON motif_ref(curation_status);
+
+CREATE INDEX idx_motif_ref_display_priority ON motif_ref(display_priority);
+
 CREATE INDEX idx_motif_ref_evidence ON motif_ref(evidence_type);
+
+CREATE INDEX idx_motif_ref_mapping ON motif_ref(mapping_type);
 
 CREATE INDEX idx_motif_ref_motif ON motif_ref(motif_id);
 

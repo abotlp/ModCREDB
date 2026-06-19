@@ -21,6 +21,31 @@
   </section>
 
   <section>
+    <h2>Source, Evidence, Mapping</h2>
+    <p class="muted">
+      These labels answer different questions. Source is where the record came from; evidence type is the imported chart category; mapping type is how the TF-to-motif link should be interpreted; curation status says whether that wording is still pending confirmation.
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mapping type</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, description in mapping_type_info.items() %}
+            <tr>
+              <td><strong>{{ mapping_type_label(key) }}</strong><br><span class="mono">{{ key }}</span></td>
+              <td>{{ description }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
     <h2>Practical interpretation</h2>
     <div class="table-wrap">
       <table>

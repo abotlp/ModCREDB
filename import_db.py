@@ -51,6 +51,79 @@ SOURCE_RELEASE_COLUMNS = (
     "notes",
 )
 
+MAPPING_PRIORITY = {
+    "direct_or_identical": 10,
+    "public_database_mapping_unconfirmed": 20,
+    "close_homolog": 30,
+    "structure_predicted": 40,
+    "af3_structure_predicted": 50,
+    "distant_homolog": 80,
+    "unknown": 99,
+}
+
+MOTIF_REF_SEMANTICS = {
+    "identical": {
+        "original_column": "Identical_PWM",
+        "mapping_type": "direct_or_identical",
+        "curation_status": "pending_confirmation",
+        "evidence_note": "Exact meaning of Identical_PWM needs PI/Baldo confirmation.",
+    },
+    "homologous": {
+        "original_column": "Homologous_PWM",
+        "mapping_type": "close_homolog",
+        "curation_status": "pending_confirmation",
+        "evidence_note": "Homology threshold/method needs PI/Baldo confirmation.",
+    },
+    "relative_homologous": {
+        "original_column": "Relatively_Homologous_PWM",
+        "mapping_type": "distant_homolog",
+        "curation_status": "pending_confirmation",
+        "evidence_note": "Relative homology threshold/method needs PI/Baldo confirmation.",
+    },
+    "modcre": {
+        "original_column": "ModCRE",
+        "mapping_type": "structure_predicted",
+        "curation_status": "imported",
+        "evidence_note": "Structure-derived predicted PWM/model evidence from provided ModCRE/ModCRElib-related dataset; exact generation settings pending confirmation.",
+    },
+    "alphafold": {
+        "original_column": "AlphaFold",
+        "mapping_type": "af3_structure_predicted",
+        "curation_status": "imported",
+        "evidence_note": "AF3-derived predicted PWM/model evidence from provided dataset; exact generation workflow pending confirmation.",
+    },
+}
+
+HOCOMOCO_SEMANTICS = {
+    "original_column": "HOCOMOCO",
+    "mapping_type": "public_database_mapping_unconfirmed",
+    "curation_status": "pending_confirmation",
+    "evidence_note": "HOCOMOCO v11 human CORE mononucleotide motif imported as public motif evidence; exact TF mapping semantics require PI/Baldo confirmation.",
+}
+
+MOTIF_REF_SEMANTICS_COLUMNS = {
+    "original_column": "TEXT",
+    "mapping_type": "TEXT NOT NULL DEFAULT 'unknown'",
+    "curation_status": "TEXT NOT NULL DEFAULT 'imported'",
+    "evidence_note": "TEXT",
+    "display_priority": "INTEGER",
+}
+
+
+def motif_ref_semantics(evidence_type: str, source: str, original_column: str | None = None) -> dict[str, object]:
+    if source == "hocomoco":
+        semantics = dict(HOCOMOCO_SEMANTICS)
+    else:
+        semantics = dict(MOTIF_REF_SEMANTICS.get(evidence_type, {}))
+    semantics.setdefault("original_column", original_column or "unknown")
+    if original_column and source != "hocomoco":
+        semantics["original_column"] = original_column
+    semantics.setdefault("mapping_type", "unknown")
+    semantics.setdefault("curation_status", "imported")
+    semantics.setdefault("evidence_note", None)
+    semantics["display_priority"] = MAPPING_PRIORITY.get(str(semantics["mapping_type"]), 99)
+    return semantics
+
 
 def table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     return (
@@ -85,6 +158,20 @@ def ensure_source_release_table(conn: sqlite3.Connection) -> None:
         """
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_source_release_source ON source_release(source)")
+
+
+def existing_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    return {row[1] for row in conn.execute(f"PRAGMA table_info({table_name})")}
+
+
+def ensure_motif_ref_semantics_columns(conn: sqlite3.Connection) -> None:
+    columns = existing_columns(conn, "motif_ref")
+    for column, definition in MOTIF_REF_SEMANTICS_COLUMNS.items():
+        if column not in columns:
+            conn.execute(f"ALTER TABLE motif_ref ADD COLUMN {column} {definition}")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_motif_ref_mapping ON motif_ref(mapping_type)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_motif_ref_curation ON motif_ref(curation_status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_motif_ref_display_priority ON motif_ref(display_priority)")
 
 
 def load_source_releases(
@@ -229,7 +316,12 @@ CREATE TABLE motif_ref (
     motif_id TEXT NOT NULL,
     original_value TEXT NOT NULL,
     identity_percent REAL,
-    missing_local_file INTEGER NOT NULL DEFAULT 0
+    missing_local_file INTEGER NOT NULL DEFAULT 0,
+    original_column TEXT,
+    mapping_type TEXT NOT NULL DEFAULT 'unknown',
+    curation_status TEXT NOT NULL DEFAULT 'imported',
+    evidence_note TEXT,
+    display_priority INTEGER
 );
 
 CREATE TABLE structure_file (
@@ -292,6 +384,9 @@ CREATE INDEX idx_tf_annotation_organism_name ON tf_annotation(organism_name);
 CREATE INDEX idx_motif_ref_tf ON motif_ref(tf_id);
 CREATE INDEX idx_motif_ref_motif ON motif_ref(motif_id);
 CREATE INDEX idx_motif_ref_evidence ON motif_ref(evidence_type);
+CREATE INDEX idx_motif_ref_mapping ON motif_ref(mapping_type);
+CREATE INDEX idx_motif_ref_curation ON motif_ref(curation_status);
+CREATE INDEX idx_motif_ref_display_priority ON motif_ref(display_priority);
 CREATE INDEX idx_structure_file_tf ON structure_file(tf_id);
 CREATE INDEX idx_structure_file_model ON structure_file(source, model_id);
 CREATE INDEX idx_structure_file_status ON structure_file(status);
@@ -805,12 +900,14 @@ def insert_chart_rows(
                 motif_id, identity_percent = normalize_motif_token(raw_token)
                 source = source_for_motif_id(motif_id, evidence_type)
                 missing = 0 if (source, motif_id) in present_motifs else 1
+                semantics = motif_ref_semantics(evidence_type, source, column)
                 conn.execute(
                     """
                     INSERT INTO motif_ref
                         (tf_id, evidence_type, source, motif_id, original_value,
-                         identity_percent, missing_local_file)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                         identity_percent, missing_local_file, original_column, mapping_type,
+                         curation_status, evidence_note, display_priority)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         tf_id,
@@ -820,6 +917,11 @@ def insert_chart_rows(
                         raw_token,
                         identity_percent,
                         missing,
+                        semantics["original_column"],
+                        semantics["mapping_type"],
+                        semantics["curation_status"],
+                        semantics["evidence_note"],
+                        semantics["display_priority"],
                     ),
                 )
                 if missing:

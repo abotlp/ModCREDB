@@ -183,7 +183,10 @@
         <thead>
           <tr>
             <th>TF</th>
+            <th>Source</th>
             <th>Evidence</th>
+            <th>Mapping</th>
+            <th>Curation status</th>
             <th>Identity</th>
             <th>Families</th>
           </tr>
@@ -192,12 +195,20 @@
           {% for ref in refs %}
             <tr>
               <td><a class="mono" href="/tf/{{ ref.tf_id|quote }}">{{ ref.tf_id }}</a></td>
-              <td>{{ evidence_labels.get(ref.evidence_type, ref.evidence_type) }}</td>
+              <td>{{ source_labels.get(ref.source, ref.source) }}</td>
+              <td>
+                {{ evidence_display_label(ref) }}
+                {% if ref.mapping_type == "public_database_mapping_unconfirmed" %}
+                  <span class="inline-badge pending">Mapping pending</span>
+                {% endif %}
+              </td>
+              <td>{{ mapping_type_label(ref.mapping_type) }}</td>
+              <td>{{ curation_status_label(ref.curation_status) }}</td>
               <td>{% if ref.identity_percent is not none %}{{ "%.1f"|format(ref.identity_percent) }}%{% endif %}</td>
               <td>{{ ref.family_text }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="4">No TF links found.</td></tr>
+            <tr><td colspan="7">No TF links found.</td></tr>
           {% endfor %}
         </tbody>
       </table>

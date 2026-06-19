@@ -1,10 +1,10 @@
-source	stored_evidence_type	review_evidence_type	link_count	note
-alphafold	alphafold	alphafold	3360	
-cisbp	homologous	homologous	3706	
-cisbp	identical	identical	762	
-cisbp	relative_homologous	relative_homologous	74491	
-hocomoco	identical	public_database_motif_unconfirmed	401	Stored in staging as identical; review label keeps HOCOMOCO separate pending mapping confirmation.
-jaspar	homologous	homologous	2810	
-jaspar	identical	identical	1336	
-jaspar	relative_homologous	relative_homologous	18909	
-modcre	modcre	modcre	7319	
+source	evidence_type	mapping_type	curation_status	link_count
+alphafold	alphafold	af3_structure_predicted	imported	3360
+cisbp	homologous	close_homolog	pending_confirmation	3706
+cisbp	identical	direct_or_identical	pending_confirmation	762
+cisbp	relative_homologous	distant_homolog	pending_confirmation	74491
+hocomoco	identical	public_database_mapping_unconfirmed	pending_confirmation	401
+jaspar	homologous	close_homolog	pending_confirmation	2810
+jaspar	identical	direct_or_identical	pending_confirmation	1336
+jaspar	relative_homologous	distant_homolog	pending_confirmation	18909
+modcre	modcre	structure_predicted	imported	7319
