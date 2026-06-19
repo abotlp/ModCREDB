@@ -6,6 +6,7 @@ The exports intentionally preserve all evidence types. They do not collapse TFs 
 
 Generated artifacts include:
 
+- final HOCOMOCO hierarchical chart provenance (`final_hierarchical_chart_provenance.md`)
 - schema SQL
 - table/source/evidence inventories
 - source-release provenance inventory
