@@ -30,11 +30,41 @@
       Supporting motif/model evidence remains preserved below.
     </p>
     {% if primary_annotation %}
+      {% set raw_primary = primary_annotation.best_pwm_or_model|default("", true)|trim %}
+      {% if raw_primary %}
+        {% set primary_entries = raw_primary.split(";") %}
+      {% else %}
+        {% set primary_entries = [] %}
+      {% endif %}
       <div class="annotation-grid">
         <div><span>Final label</span><strong>{{ primary_annotation_label(primary_annotation.best_annotation_level) }}</strong></div>
-        <div><span>Primary PWM/model</span><strong class="mono">{{ primary_annotation.best_pwm_or_model or "none" }}</strong></div>
+        {% if primary_entries|length == 0 %}
+          <div><span>Primary PWM/model</span><strong>None selected</strong></div>
+        {% elif primary_entries|length == 1 %}
+          <div><span>Primary PWM/model</span><strong class="mono">{{ primary_entries[0]|trim }}</strong></div>
+        {% else %}
+          <div><span>Primary PWM/model</span><strong>{{ primary_entries|length }} candidate PWM/model entries</strong></div>
+        {% endif %}
         <div><span>Non-empty evidence columns</span><strong>{{ primary_annotation.n_nonempty_annotation_columns }}</strong></div>
       </div>
+      {% if primary_entries|length > 1 %}
+        <div class="docs-panel">
+          <h3>Primary PWM/model preview</h3>
+          <ul class="mono">
+            {% for entry in primary_entries[:3] %}
+              <li>{{ entry|trim }}</li>
+            {% endfor %}
+          </ul>
+          <details>
+            <summary>Show full primary PWM/model list</summary>
+            <ul class="mono">
+              {% for entry in primary_entries %}
+                <li>{{ entry|trim }}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        </div>
+      {% endif %}
     {% else %}
       <p class="warning">No primary hierarchical annotation is available for this TF in the current database snapshot.</p>
     {% endif %}
