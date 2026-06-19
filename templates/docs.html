@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Docs | TF Motif Database{% endblock %}
+{% block title %}Docs | ModCREDB{% endblock %}
 {% block content %}
   <section>
     <p class="eyebrow">Documentation</p>
@@ -21,6 +21,46 @@
       <div><strong>{{ stats.tf_with_active_model_count }}</strong><span>TFs with active model</span></div>
       <div><strong>{{ stats.active_model_count }}</strong><span>active PDB model files</span></div>
       <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif evidence links</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Primary Annotation Versus Supporting Evidence</h2>
+    <div class="docs-grid">
+      <article class="docs-panel">
+        <h3>Primary annotation</h3>
+        <p class="muted">
+          The table <span class="mono">tf_primary_annotation</span> stores one final hierarchical annotation per TF.
+          It records the selected label, the primary PWM/model, and how many annotation columns were non-empty.
+        </p>
+        {% if primary_annotation_counts %}
+          <div class="bar-list">
+            {% for row in primary_annotation_counts %}
+              <div class="bar-row">
+                <div>
+                  <strong>{{ row.label }}</strong>
+                  <span>{{ row.count }} TFs{% if row.percent %}; {{ row.percent }}%{% endif %}</span>
+                </div>
+                <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </article>
+      <article class="docs-panel">
+        <h3>Supporting evidence</h3>
+        <p class="muted">
+          The table <span class="mono">motif_ref</span> preserves all supporting motif/model evidence links.
+          These records are not removed just because one primary hierarchical label was selected.
+        </p>
+        <div class="annotation-grid">
+          <div><span>TF-motif links</span><strong>{{ stats.motif_ref_count }}</strong></div>
+          <div><span>Motif files</span><strong>{{ stats.motif_file_count }}</strong></div>
+          <div><span>FIMO-ready matrices</span><strong>{{ stats.fimo_ready_motif_count }}</strong></div>
+          <div><span>Active models</span><strong>{{ stats.active_model_count }}</strong></div>
+          <div><span>Motif-structure links</span><strong>{{ stats.motif_structure_count }}</strong></div>
+        </div>
+      </article>
     </div>
   </section>
 
@@ -125,12 +165,12 @@
           <tr>
             <td><strong>Source</strong></td>
             <td>Where the motif/model record came from.</td>
-            <td>JASPAR, CisBP, HOCOMOCO, ModCRE, AlphaFold/AF3</td>
+            <td>JASPAR, CisBP, HOCOMOCO, ModCRE, AlphaFold3-assisted ModCRE</td>
           </tr>
           <tr>
             <td><strong>Evidence type</strong></td>
             <td>Why the TF is linked to this motif in the imported chart.</td>
-            <td>Identical PWM, Homologous PWM, ModCRE, AlphaFold</td>
+            <td>Identical PWM, Homologous PWM, ModCRE, raw AlphaFold chart column</td>
           </tr>
           <tr>
             <td><strong>Mapping type</strong></td>
@@ -220,8 +260,8 @@
             <td>Often yes; linked model PDBs are shown when available.</td>
           </tr>
           <tr>
-            <td><strong>AlphaFold/AF3</strong></td>
-            <td>Predicted PWM/model evidence derived from AF3-related structural predictions in the provided dataset.</td>
+            <td><strong>AlphaFold3-assisted ModCRE</strong></td>
+            <td>Predicted PWM/model evidence derived from AlphaFold3-assisted ModCRE structural predictions in the provided dataset.</td>
             <td>Only when the MEME file contains a usable matrix.</td>
             <td>Often yes; linked model PDBs are shown when available.</td>
           </tr>

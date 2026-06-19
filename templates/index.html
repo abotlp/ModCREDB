@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}TF Motif Database{% endblock %}
+{% block title %}ModCREDB{% endblock %}
 {% block content %}
   <section class="hero">
     <div>
@@ -12,18 +12,42 @@
     </form>
   </section>
 
-  <section class="stats">
-    <div><strong>{{ stats.tf_count }}</strong><span>TFs</span></div>
-    <div><strong>{{ stats.annotated_tf_count }}</strong><span>UniProt annotations</span></div>
-    <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif links</span></div>
-    <div><strong>{{ stats.motif_file_count }}</strong><span>local MEME files</span></div>
-    <div><strong>{{ stats.active_model_count }}</strong><span>active PDB models</span></div>
-    <div><strong>{{ stats.model_summary_count }}</strong><span>model summary rows</span></div>
+  <section>
+    <div class="section-head">
+      <h2>Primary annotation coverage</h2>
+      <span class="muted">One final hierarchical label per TF</span>
+    </div>
+    {% if primary_annotation_counts %}
+      <div class="stats">
+        {% for row in primary_annotation_counts %}
+          <div>
+            <strong>{{ row.count }}</strong>
+            <span>{{ row.label }}{% if row.percent %} · {{ row.percent }}%{% endif %}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="warning">Primary hierarchical annotation has not been loaded for this database snapshot.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Supporting evidence</h2>
+      <span class="muted">All motif/model links preserved for review</span>
+    </div>
+    <div class="stats">
+      <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif links</span></div>
+      <div><strong>{{ stats.motif_file_count }}</strong><span>motif files</span></div>
+      <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>FIMO-ready matrices</span></div>
+      <div><strong>{{ stats.active_model_count }}</strong><span>active models</span></div>
+      <div><strong>{{ stats.motif_structure_count }}</strong><span>motif-structure links</span></div>
+    </div>
   </section>
 
   <section class="legend-strip">
     <div class="section-head">
-      <h2>Evidence levels</h2>
+      <h2>Evidence layers</h2>
       <a href="/evidence">Full explanation</a>
     </div>
     <div class="legend-grid">

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Evidence Guide | TF Motif Database{% endblock %}
+{% block title %}Evidence Guide | ModCREDB{% endblock %}
 {% block content %}
   <section>
     <p class="eyebrow">Interpretation guide</p>
-    <h1>Evidence levels</h1>
+    <h1>Evidence layers</h1>
     <p class="muted">The same TF can have several possible motifs. The evidence type tells users where each PWM came from and how cautiously it should be interpreted.</p>
   </section>
 
@@ -58,7 +58,7 @@
         <tbody>
           <tr>
             <td>Which motif should I trust first?</td>
-            <td>Prefer identical known motifs, then close homologs, then more distant homologs, then predicted ModCRE/AlphaFold motifs.</td>
+            <td>Prefer identical known motifs, then close homologs, then more distant homologs, then predicted ModCRE and AlphaFold3-assisted ModCRE motifs.</td>
           </tr>
           <tr>
             <td>Can predicted motifs be useful?</td>

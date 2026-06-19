@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Debug | TF Motif Database{% endblock %}
+{% block title %}Debug | ModCREDB{% endblock %}
 {% block content %}
   <section>
     <h1>Debug</h1>
@@ -49,7 +49,7 @@
     <p class="muted">
       These files came from archive folders named <span class="mono">models_failed</span> or <span class="mono">MODELS_AF3_failed</span>.
       The importer did not decide they failed; it preserves the source classification and hides them from normal TF pages.
-      To know the exact computational reason, we would need the original ModCRE/AlphaFold job logs.
+      To know the exact computational reason, we would need the original ModCRE or AlphaFold3-assisted ModCRE job logs.
     </p>
     <div class="table-wrap">
       <table>

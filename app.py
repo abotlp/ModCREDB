@@ -38,7 +38,7 @@ EVIDENCE_LABELS = {
     "homologous": "Homologous PWM",
     "relative_homologous": "Relatively Homologous PWM",
     "modcre": "ModCRE",
-    "alphafold": "AlphaFold",
+    "alphafold": "AlphaFold3-assisted ModCRE",
 }
 EVIDENCE_INFO = {
     "identical": {
@@ -63,7 +63,7 @@ EVIDENCE_INFO = {
     },
     "alphafold": {
         "trust": "Predicted",
-        "description": "PWM predicted from AlphaFold-derived TF-DNA models.",
+        "description": "PWM/model evidence from AlphaFold3-assisted ModCRE structural predictions.",
         "use": "Useful exploratory evidence; needs structural and biological validation.",
     },
 }
@@ -74,9 +74,19 @@ SOURCE_LABELS = {
     "cisbp": "CisBP",
     "hocomoco": "HOCOMOCO",
     "modcre": "ModCRE",
-    "alphafold": "AlphaFold",
+    "alphafold": "AlphaFold3-assisted ModCRE",
     "uniprot": "UniProt",
 }
+PRIMARY_ANNOTATION_ORDER = [
+    "Identical_PWM",
+    "Homologous_PWM",
+    "Relatively_Homologous_PWM",
+    "ModCRE",
+    "AlphaFold",
+    "Unannotated",
+]
+PRIMARY_ANNOTATION_LABELS = {level: level for level in PRIMARY_ANNOTATION_ORDER}
+
 SOURCE_HOME_URLS = {
     "jaspar": "https://jaspar2024.elixir.no/",
     "cisbp": "https://cisbp.ccbr.utoronto.ca/",
@@ -195,6 +205,74 @@ def safe_count(conn: sqlite3.Connection, sql: str) -> int:
         return conn.execute(sql).fetchone()[0]
     except sqlite3.OperationalError:
         return 0
+
+
+def db_table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+            (table_name,),
+        ).fetchone()
+        is not None
+    )
+
+
+def primary_annotation_label(level: object) -> str:
+    key = str(level or "")
+    return PRIMARY_ANNOTATION_LABELS.get(key, key or "Unknown")
+
+
+def fetch_primary_annotation_counts(conn: sqlite3.Connection) -> list[dict[str, object]]:
+    if not db_table_exists(conn, "tf_primary_annotation"):
+        return []
+    raw_counts = {
+        row["best_annotation_level"]: row["count"]
+        for row in conn.execute(
+            """
+            SELECT best_annotation_level, COUNT(*) AS count
+            FROM tf_primary_annotation
+            GROUP BY best_annotation_level
+            """
+        ).fetchall()
+    }
+    total = sum(int(value or 0) for value in raw_counts.values())
+    rows = []
+    for level in PRIMARY_ANNOTATION_ORDER:
+        count = int(raw_counts.get(level, 0) or 0)
+        rows.append(
+            {
+                "level": level,
+                "label": primary_annotation_label(level),
+                "count": count,
+                "percent": 0 if total == 0 else round((count / total) * 100, 1),
+            }
+        )
+    for level, count_value in sorted(raw_counts.items()):
+        if level in PRIMARY_ANNOTATION_ORDER:
+            continue
+        count = int(count_value or 0)
+        rows.append(
+            {
+                "level": level,
+                "label": primary_annotation_label(level),
+                "count": count,
+                "percent": 0 if total == 0 else round((count / total) * 100, 1),
+            }
+        )
+    return rows
+
+
+def fetch_primary_annotation(conn: sqlite3.Connection, tf_id: str) -> sqlite3.Row | None:
+    if not db_table_exists(conn, "tf_primary_annotation"):
+        return None
+    return conn.execute(
+        """
+        SELECT *
+        FROM tf_primary_annotation
+        WHERE tf_id = ?
+        """,
+        (tf_id,),
+    ).fetchone()
 
 
 def redact_public_value(value: object) -> str:
@@ -1290,6 +1368,9 @@ class TFWebApp:
                 "SELECT COUNT(*) FROM structure_file WHERE status = 'active' AND file_type = 'pdb'"
             ).fetchone()[0],
             "model_summary_count": safe_count(conn, "SELECT COUNT(*) FROM model_summary"),
+            "fimo_ready_motif_count": safe_count(conn, "SELECT COUNT(*) FROM motif_file WHERE matrix_status = 'usable'"),
+            "motif_structure_count": safe_count(conn, "SELECT COUNT(*) FROM motif_structure"),
+            "primary_annotation_count": safe_count(conn, "SELECT COUNT(*) FROM tf_primary_annotation"),
             "missing_motif_count": conn.execute(
                 "SELECT COUNT(*) FROM motif_ref WHERE missing_local_file = 1"
             ).fetchone()[0],
@@ -1305,6 +1386,8 @@ class TFWebApp:
         context.setdefault("mapping_type_labels", MAPPING_TYPE_LABELS)
         context.setdefault("mapping_type_info", MAPPING_TYPE_INFO)
         context.setdefault("curation_status_labels", CURATION_STATUS_LABELS)
+        context.setdefault("primary_annotation_labels", PRIMARY_ANNOTATION_LABELS)
+        context.setdefault("primary_annotation_label", primary_annotation_label)
         context.setdefault("debug_enabled", self.enable_debug)
         html_text = template.render(**context)
         return html_text.encode("utf-8")
@@ -1312,6 +1395,7 @@ class TFWebApp:
     def index(self) -> tuple[bytes, str, int]:
         with connect(self.db_path) as conn:
             stats = self.stats(conn)
+            primary_annotation_counts = fetch_primary_annotation_counts(conn)
             examples = conn.execute(
                 """
                 SELECT tf.tf_id, tf.family_text, tf.motif_ref_count, tf.active_model_count,
@@ -1323,7 +1407,16 @@ class TFWebApp:
                 LIMIT 8
                 """
             ).fetchall()
-        return self.render("index.html", stats=stats, examples=examples), "text/html", 200
+        return (
+            self.render(
+                "index.html",
+                stats=stats,
+                primary_annotation_counts=primary_annotation_counts,
+                examples=examples,
+            ),
+            "text/html",
+            200,
+        )
 
     def search(self, params: dict[str, list[str]]) -> tuple[bytes, str, int]:
         q = params.get("q", [""])[0].strip()
@@ -1411,6 +1504,7 @@ class TFWebApp:
             )
             if not tf:
                 return self.not_found(f"Unknown TF: {html.escape(tf_id)}")
+            primary_annotation = fetch_primary_annotation(conn, tf_id)
             families = conn.execute(
                 "SELECT family FROM tf_family WHERE tf_id = ? ORDER BY family", (tf_id,)
             ).fetchall()
@@ -1493,6 +1587,7 @@ class TFWebApp:
             self.render(
                 "tf.html",
                 tf=tf,
+                primary_annotation=primary_annotation,
                 families=families,
                 grouped=grouped,
                 region_groups=region_groups,
@@ -1800,6 +1895,7 @@ class TFWebApp:
     def docs(self) -> tuple[bytes, str, int]:
         with connect(self.db_path) as conn:
             stats = self.stats(conn)
+            primary_annotation_counts = fetch_primary_annotation_counts(conn)
             stats["unique_missing_motif_count"] = safe_count(
                 conn,
                 """
@@ -1980,6 +2076,7 @@ class TFWebApp:
             self.render(
                 "docs.html",
                 stats=stats,
+                primary_annotation_counts=primary_annotation_counts,
                 motif_files_by_source=motif_files_by_source,
                 motif_links_by_evidence=motif_links_by_evidence,
                 motif_links_by_source=motif_links_by_source,
@@ -2215,7 +2312,7 @@ def make_handler(app: TFWebApp):
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the local TF web database.")
+    parser = argparse.ArgumentParser(description="Run the local ModCREDB web database.")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8090)
@@ -2232,7 +2329,7 @@ def main() -> None:
     app = TFWebApp(args.db, enable_debug=args.enable_debug, show_errors=args.show_errors)
     server = ThreadingHTTPServer((args.host, args.port), make_handler(app))
     server.max_post_bytes = args.max_post_bytes
-    print(f"TF web database running at http://{args.host}:{args.port}/")
+    print(f"ModCREDB running at http://{args.host}:{args.port}/")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

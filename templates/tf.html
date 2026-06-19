@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ tf.tf_id }} | TF Motif Database{% endblock %}
+{% block title %}{{ tf.tf_id }} | ModCREDB{% endblock %}
 {% block content %}
   <section class="record-head">
     <div>
@@ -21,6 +21,23 @@
   </section>
   <section class="actions">
     <a class="button-link" href="/scan?tf_id={{ tf.tf_id|quote }}">Scan DNA with this TF</a>
+  </section>
+
+  <section>
+    <h2>Primary annotation</h2>
+    <p class="muted">
+      This is the single hierarchical annotation selected for this TF in the integrated HOCOMOCO table.
+      Supporting motif/model evidence remains preserved below.
+    </p>
+    {% if primary_annotation %}
+      <div class="annotation-grid">
+        <div><span>Final label</span><strong>{{ primary_annotation_label(primary_annotation.best_annotation_level) }}</strong></div>
+        <div><span>Primary PWM/model</span><strong class="mono">{{ primary_annotation.best_pwm_or_model or "none" }}</strong></div>
+        <div><span>Non-empty evidence columns</span><strong>{{ primary_annotation.n_nonempty_annotation_columns }}</strong></div>
+      </div>
+    {% else %}
+      <p class="warning">No primary hierarchical annotation is available for this TF in the current database snapshot.</p>
+    {% endif %}
   </section>
 
   <section>
