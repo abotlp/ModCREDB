@@ -69,6 +69,7 @@ EVIDENCE_INFO = {
 }
 TF_SCAN_DEFAULT_EVIDENCE = ["identical", "homologous", "modcre", "alphafold"]
 TF_SCAN_MAX_MOTIFS = 500
+MATRIX_DISPLAY_MAX_POSITIONS = 30
 SOURCE_LABELS = {
     "jaspar": "JASPAR",
     "cisbp": "CisBP",
@@ -336,6 +337,151 @@ def primary_evidence_guidance(primary_level: object, fimo_ready_pwm_count: int) 
     if level == "AlphaFold":
         return True, "Yes", "Use as exploratory AlphaFold3-assisted ModCRE evidence.", "This combines predicted structure and predicted motif inference."
     return True, "Yes", "A FIMO-ready motif is available, but no primary hierarchy label is assigned.", "Interpret the supporting evidence and mapping status carefully."
+
+
+def is_gene_symbol_like(query: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", query or ""))
+
+
+def has_exact_gene_token(gene_names: object, query: str) -> bool:
+    query_upper = (query or "").upper()
+    if not query_upper:
+        return False
+    return any(token.upper() == query_upper for token in str(gene_names or "").split())
+
+
+def primary_evidence_sort_priority(level: object) -> int:
+    priorities = {
+        "Identical_PWM": 0,
+        "Homologous_PWM": 1,
+        "Relatively_Homologous_PWM": 2,
+        "ModCRE": 3,
+        "AlphaFold": 4,
+        "Unannotated": 5,
+    }
+    return priorities.get(normalize_primary_evidence(level), 6)
+
+
+def tf_search_sort_key(row: dict[str, object], query: str) -> tuple[object, ...]:
+    query_upper = (query or "").upper()
+    return (
+        0 if str(row.get("tf_id") or "").upper() == query_upper else 1,
+        0 if has_exact_gene_token(row.get("gene_names"), query) else 1,
+        0 if int(row.get("reviewed") or 0) == 1 else 1,
+        primary_evidence_sort_priority(row.get("primary_evidence_raw")),
+        0 if bool(row.get("can_scan")) else 1,
+        -int(row.get("fimo_ready_pwm_count") or 0),
+        -int(row.get("active_model_count") or 0),
+        str(row.get("tf_id") or ""),
+    )
+
+
+def fetch_gene_summaries(conn: sqlite3.Connection, query: str) -> list[dict[str, object]]:
+    if not is_gene_symbol_like(query):
+        return []
+    token_pattern = f"% {query.upper()} %"
+    raw_rows = conn.execute(
+        """
+        SELECT tf.tf_id, tf.family_text, tf.motif_ref_count, tf.active_model_count,
+               ta.gene_names, ta.protein_name, ta.organism_name, ta.reviewed
+        FROM tf
+        JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
+        WHERE (' ' || UPPER(COALESCE(ta.gene_names, '')) || ' ') LIKE ?
+        """,
+        (token_pattern,),
+    ).fetchall()
+    if not raw_rows:
+        return []
+    statuses = fetch_tf_statuses(conn, [row["tf_id"] for row in raw_rows])
+    records: list[dict[str, object]] = []
+    for raw_row in raw_rows:
+        record = dict(raw_row)
+        record.update(statuses[record["tf_id"]])
+        records.append(record)
+    records.sort(key=lambda row: tf_search_sort_key(row, query))
+    preferred = records[0]
+    return [
+        {
+            "gene": query.upper(),
+            "preferred": preferred,
+            "record_count": len(records),
+        }
+    ]
+
+
+def fetch_search_motif_rows(
+    conn: sqlite3.Connection,
+    query: str,
+    source: str,
+    evidence: str,
+    limit: int = 100,
+) -> tuple[list[dict[str, object]], int]:
+    if not query:
+        return [], 0
+    like = f"%{query}%"
+    where = [
+        """
+        (
+            mf.motif_id LIKE ?
+            OR mf.source LIKE ?
+            OR EXISTS (
+                SELECT 1
+                FROM motif_ref AS mr_match
+                LEFT JOIN tf_annotation AS ta_match ON ta_match.tf_id = mr_match.tf_id
+                WHERE mr_match.source = mf.source
+                  AND mr_match.motif_id = mf.motif_id
+                  AND (
+                      ta_match.gene_names LIKE ?
+                      OR ta_match.protein_name LIKE ?
+                  )
+            )
+        )
+        """
+    ]
+    args: list[object] = [like, like, like, like]
+    if source:
+        where.append("mf.source = ?")
+        args.append(source)
+    if evidence:
+        where.append(
+            """
+            EXISTS (
+                SELECT 1
+                FROM motif_ref AS mr_filter
+                WHERE mr_filter.source = mf.source
+                  AND mr_filter.motif_id = mf.motif_id
+                  AND mr_filter.evidence_type = ?
+            )
+            """
+        )
+        args.append(evidence)
+    where_sql = " AND ".join(where)
+    total = conn.execute(
+        f"SELECT COUNT(*) FROM motif_file AS mf WHERE {where_sql}",
+        args,
+    ).fetchone()[0]
+    rows = conn.execute(
+        f"""
+        SELECT mf.source, mf.motif_id, mf.matrix_status, mf.consensus, mf.width,
+               COUNT(DISTINCT mr.tf_id) AS linked_tf_count,
+               GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types
+        FROM motif_file AS mf
+        LEFT JOIN motif_ref AS mr
+          ON mr.source = mf.source
+         AND mr.motif_id = mf.motif_id
+        WHERE {where_sql}
+        GROUP BY mf.source, mf.motif_id
+        ORDER BY
+          CASE WHEN UPPER(mf.motif_id) = UPPER(?) THEN 0 ELSE 1 END,
+          CASE WHEN UPPER(mf.source) = UPPER(?) THEN 0 ELSE 1 END,
+          CASE WHEN mf.matrix_status = 'usable' THEN 0 ELSE 1 END,
+          mf.source,
+          mf.motif_id
+        LIMIT ?
+        """,
+        [*args, query, query, limit],
+    ).fetchall()
+    return [dict(row) for row in rows], int(total)
 
 
 def model_link_status(exact_active_model_count: object, tf_active_model_count: object) -> str:
@@ -1683,28 +1829,26 @@ class TFWebApp:
                 FROM tf
                 {joins}
                 {where_sql}
-                ORDER BY tf.active_model_count DESC, tf.motif_ref_count DESC, tf.tf_id
-                LIMIT ?
                 """,
-                [*args, limit],
+                args,
             ).fetchall()
             statuses = fetch_tf_statuses(conn, [row["tf_id"] for row in raw_rows])
-            rows = []
+            all_rows: list[dict[str, object]] = []
             for raw_row in raw_rows:
                 row = dict(raw_row)
                 row.update(statuses[row["tf_id"]])
-                rows.append(row)
-            total = conn.execute(
-                f"""
-                SELECT COUNT(*) FROM (
-                    SELECT DISTINCT tf.tf_id
-                    FROM tf
-                    {joins}
-                    {where_sql}
-                )
-                """,
-                args,
-            ).fetchone()[0]
+                all_rows.append(row)
+            all_rows.sort(key=lambda row: tf_search_sort_key(row, q))
+            total = len(all_rows)
+            rows = all_rows[:limit]
+            gene_summaries = fetch_gene_summaries(conn, q)
+            motif_limit = 100
+            motif_rows, motif_total = fetch_search_motif_rows(conn, q, source, evidence, limit=motif_limit)
+            motif_search_is_direct = any(
+                str(row["motif_id"]).upper() == q.upper()
+                or str(row["source"]).upper() == q.upper()
+                for row in motif_rows
+            )
         return (
             self.render(
                 "search.html",
@@ -1714,6 +1858,11 @@ class TFWebApp:
                 rows=rows,
                 total=total,
                 limit=limit,
+                gene_summaries=gene_summaries,
+                motif_rows=motif_rows,
+                motif_total=motif_total,
+                motif_limit=motif_limit,
+                motif_search_is_direct=motif_search_is_direct,
             ),
             "text/html",
             200,
@@ -1902,11 +2051,23 @@ class TFWebApp:
                 (source, motif_id),
             ).fetchall()
             source_releases = fetch_source_releases(conn, source)
-        matrix_preview: list[dict[str, object]] = []
+        matrix_acgt_rows: list[dict[str, object]] = []
+        matrix_position_rows: list[dict[str, object]] = []
+        matrix_positions: list[int] = []
+        matrix_hidden_positions = 0
         if motif and motif.get("matrix_json"):
             try:
                 matrix = json.loads(str(motif["matrix_json"]))
-                matrix_preview = [
+                visible_matrix = matrix[:MATRIX_DISPLAY_MAX_POSITIONS]
+                matrix_positions = list(range(1, len(visible_matrix) + 1))
+                matrix_acgt_rows = [
+                    {
+                        "base": base,
+                        "probabilities": [row[base_index] for row in visible_matrix],
+                    }
+                    for base_index, base in enumerate(("A", "C", "G", "T"))
+                ]
+                matrix_position_rows = [
                     {
                         "position": index + 1,
                         "A": row[0],
@@ -1914,10 +2075,14 @@ class TFWebApp:
                         "G": row[2],
                         "T": row[3],
                     }
-                    for index, row in enumerate(matrix[:8])
+                    for index, row in enumerate(visible_matrix)
                 ]
+                matrix_hidden_positions = max(0, len(matrix) - len(visible_matrix))
             except (TypeError, ValueError, IndexError):
-                matrix_preview = []
+                matrix_acgt_rows = []
+                matrix_position_rows = []
+                matrix_positions = []
+                matrix_hidden_positions = 0
         if not motif and not refs:
             return self.not_found(f"Unknown motif: {html.escape(source)} / {html.escape(motif_id)}")
         return (
@@ -1928,7 +2093,10 @@ class TFWebApp:
                 structures=structures,
                 source=source,
                 motif_id=motif_id,
-                matrix_preview=matrix_preview,
+                matrix_acgt_rows=matrix_acgt_rows,
+                matrix_position_rows=matrix_position_rows,
+                matrix_positions=matrix_positions,
+                matrix_hidden_positions=matrix_hidden_positions,
                 source_release=source_releases[0] if source_releases else None,
             ),
             "text/html",

@@ -1,5 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Search ModCREDB{% endblock %}
+{% macro motif_records_table(rows) %}
+  <div class="table-wrap wide-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Motif ID</th>
+          <th>Source</th>
+          <th>Matrix status</th>
+          <th>Consensus</th>
+          <th>Width</th>
+          <th>Linked TF records</th>
+          <th>Evidence types</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td><a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
+            <td>{{ source_labels.get(row.source, row.source) }}</td>
+            <td>
+              {% if row.matrix_status == "usable" %}
+                <span class="matrix-badge ready">FIMO-ready</span>
+              {% else %}
+                <span class="matrix-badge blocked">{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}</span>
+              {% endif %}
+            </td>
+            <td class="mono">{{ row.consensus or "" }}</td>
+            <td>{{ row.width or "" }}</td>
+            <td>{{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %} in ModCREDB</td>
+            <td>{{ (row.evidence_types or "").replace(",", ", ") or "none" }}</td>
+            <td>
+              <a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif page</a>
+              {% if row.matrix_status == "usable" %} · <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endmacro %}
 {% block content %}
   <section>
     <p class="eyebrow">TF-to-motif evidence search</p>
@@ -22,8 +63,48 @@
     </form>
   </section>
 
+  {% if gene_summaries %}
+    <section>
+      <div class="section-head">
+        <h2>Gene summary results</h2>
+        <span class="muted">Navigation aids, not separate database records</span>
+      </div>
+      <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; evidence remains stored at the UniProt-record level.</p>
+      <div class="table-wrap wide-table">
+        <table>
+          <thead><tr><th>Gene</th><th>Preferred reviewed record</th><th>UniProt records</th><th>Best primary evidence</th><th>Can scan DNA</th><th>FIMO-ready PWM count</th><th>Active model count</th><th>Caveat / action</th></tr></thead>
+          <tbody>
+            {% for summary in gene_summaries %}
+              {% set preferred = summary.preferred %}
+              <tr>
+                <td><strong>{{ summary.gene }}</strong></td>
+                <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed Swiss-Prot</span>{% endif %}</td>
+                <td>{{ summary.record_count }}</td>
+                <td>{{ preferred.primary_evidence_label }}</td>
+                <td><span class="scan-status {% if preferred.can_scan %}yes{% else %}no{% endif %}">{{ preferred.can_scan_label }}</span></td>
+                <td>{{ preferred.fimo_ready_pwm_count }}</td>
+                <td>{{ preferred.active_model_count }}</td>
+                <td>{{ preferred.recommended_use }}<br><span class="muted">{{ preferred.main_caveat }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if motif_rows and motif_search_is_direct %}
+    <section>
+      <div class="section-head"><h2>Motif records</h2><span class="muted">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></div>
+      {{ motif_records_table(motif_rows) }}
+    </section>
+  {% endif %}
+
   <section>
-    <p class="muted">Showing {{ rows|length }} of {{ total }} matching TF records{% if total > limit %}; refine the search to narrow it further{% endif %}.</p>
+    <div class="section-head">
+      <h2>UniProt sequence-record results</h2>
+      <span class="muted">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span>
+    </div>
     <div class="table-wrap wide-table">
       <table>
         <thead>
@@ -43,7 +124,7 @@
           {% for row in rows %}
             <tr>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
-              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a></td>
+              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}</td>
               <td>{{ row.protein_name or "" }}</td>
               <td>{{ row.family_text }}</td>
               <td>{{ row.primary_evidence_label }}</td>
@@ -53,10 +134,17 @@
               <td>{{ row.main_caveat }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="9">No matches.</td></tr>
+            <tr><td colspan="9">No matching UniProt sequence records.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </section>
+
+  {% if motif_rows and not motif_search_is_direct %}
+    <section>
+      <div class="section-head"><h2>Motif records</h2><span class="muted">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></div>
+      {{ motif_records_table(motif_rows) }}
+    </section>
+  {% endif %}
 {% endblock %}

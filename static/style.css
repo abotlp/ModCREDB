@@ -1210,3 +1210,27 @@ tr:last-child td {
   border: 1px solid #ffd6c2;
   color: #9b3412;
 }
+
+.matrix-acgt-table {
+  min-width: max-content;
+  width: auto;
+}
+
+.matrix-acgt-table th,
+.matrix-acgt-table td {
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.matrix-acgt-table th:first-child,
+.matrix-acgt-table tbody th {
+  position: sticky;
+  left: 0;
+  text-align: left;
+  z-index: 1;
+}
+
+.matrix-acgt-table tbody th {
+  background: var(--panel);
+}

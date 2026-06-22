@@ -134,29 +134,54 @@
       <p class="muted">Letter height shows the information content of the PWM at each position.</p>
       <p class="mono consensus">{{ motif.consensus }}</p>
       <div class="pwm-panel">{{ motif.matrix_json|pwm_svg|safe }}</div>
-      {% if matrix_preview %}
-        <h3>Matrix preview</h3>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Position</th><th>A</th><th>C</th><th>G</th><th>T</th></tr></thead>
+    </section>
+
+    {% if matrix_acgt_rows %}
+      <section>
+        <h2>MEME letter-probability matrix</h2>
+        <p class="muted">This is the normalized MEME letter-probability matrix stored in ModCREDB and used for logo rendering and FIMO-ready scanning. Rows in the default view are A/C/G/T; columns are motif positions. Other resources may display raw frequency/count matrices, log-odds PWMs, contribution-weight matrices, or reverse-complement views.</p>
+        {% if motif.matrix_row_sum_min is not none and motif.matrix_row_sum_max is not none %}
+          <p class="muted">Probability rows are expected to sum to approximately 1.0. Observed row-sum range: {{ "%.3f"|format(motif.matrix_row_sum_min) }}-{{ "%.3f"|format(motif.matrix_row_sum_max) }}. Parsed rows: {{ motif.matrix_row_count }}; expected width: {{ motif.matrix_expected_width }}.</p>
+        {% endif %}
+        <div class="table-wrap wide-table matrix-acgt-wrap">
+          <table class="matrix-acgt-table">
+            <thead>
+              <tr><th>Base</th>{% for position in matrix_positions %}<th>{{ position }}</th>{% endfor %}</tr>
+            </thead>
             <tbody>
-              {% for row in matrix_preview %}
+              {% for base_row in matrix_acgt_rows %}
                 <tr>
-                  <td>{{ row.position }}</td>
-                  <td>{{ "%.4f"|format(row.A) }}</td>
-                  <td>{{ "%.4f"|format(row.C) }}</td>
-                  <td>{{ "%.4f"|format(row.G) }}</td>
-                  <td>{{ "%.4f"|format(row.T) }}</td>
+                  <th>{{ base_row.base }}</th>
+                  {% for probability in base_row.probabilities %}<td>{{ "%.4f"|format(probability) }}</td>{% endfor %}
                 </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        {% if motif.matrix_row_count and motif.matrix_row_count > matrix_preview|length %}
-          <p class="muted">Showing first {{ matrix_preview|length }} of {{ motif.matrix_row_count }} matrix rows.</p>
+        {% if matrix_hidden_positions %}
+          <p class="muted">Showing the first {{ matrix_positions|length }} of {{ motif.matrix_row_count }} motif positions; {{ matrix_hidden_positions }} position{% if matrix_hidden_positions != 1 %}s{% endif %} are hidden in this display.</p>
         {% endif %}
-      {% endif %}
-    </section>
+        <details class="evidence-group">
+          <summary>Position-row MEME view</summary>
+          <div class="table-wrap wide-table">
+            <table>
+              <thead><tr><th>Position</th><th>A</th><th>C</th><th>G</th><th>T</th></tr></thead>
+              <tbody>
+                {% for row in matrix_position_rows %}
+                  <tr>
+                    <td>{{ row.position }}</td>
+                    <td>{{ "%.4f"|format(row.A) }}</td>
+                    <td>{{ "%.4f"|format(row.C) }}</td>
+                    <td>{{ "%.4f"|format(row.G) }}</td>
+                    <td>{{ "%.4f"|format(row.T) }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+    {% endif %}
   {% elif motif %}
     <section>
       <h2>Sequence logo</h2>
