@@ -116,7 +116,7 @@ def motif_ref_semantics(evidence_type: str, source: str, original_column: str | 
     else:
         semantics = dict(MOTIF_REF_SEMANTICS.get(evidence_type, {}))
     semantics.setdefault("original_column", original_column or "unknown")
-    if original_column and source != "hocomoco":
+    if original_column:
         semantics["original_column"] = original_column
     semantics.setdefault("mapping_type", "unknown")
     semantics.setdefault("curation_status", "imported")

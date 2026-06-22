@@ -23,7 +23,21 @@ DEFAULT_INPUT_DB = APP_DIR / "data" / "tf_webdb.sqlite"
 DEFAULT_OUTPUT_DB = APP_DIR / "data" / "tf_webdb_hocomoco_staging.sqlite"
 
 HOCOMOCO_SOURCE = "hocomoco"
-HOCOMOCO_EVIDENCE = "identical"
+HOCOMOCO_EVIDENCE_COLUMNS = (
+    ("Identical_PWM", "identical"),
+    ("Homologous_PWM", "homologous"),
+    ("Relatively_Homologous_PWM", "relative_homologous"),
+    ("ModCRE", "modcre"),
+    ("AlphaFold", "alphafold"),
+)
+PRIMARY_LEVEL_TO_EVIDENCE = {
+    "Identical_PWM": "identical",
+    "Homologous_PWM": "homologous",
+    "Relatively_Homologous_PWM": "relative_homologous",
+    "ModCRE": "modcre",
+    "AlphaFold": "alphafold",
+    "AlphaFold_ModCRE": "alphafold",
+}
 
 
 def read_tsv(path: Path) -> list[dict[str, str]]:
@@ -56,20 +70,33 @@ def split_meme_file(path: Path) -> tuple[str, dict[str, str]]:
     return header, motifs
 
 
-def hocomoco_tokens(row: dict[str, str]) -> list[str]:
-    tokens: list[str] = []
-    for column in (
-        "Identical_PWM",
-        "Homologous_PWM",
-        "Relatively_Homologous_PWM",
-        "ModCRE",
-        "AlphaFold",
-        "Best_PWM_or_model",
-    ):
+def hocomoco_tokens(row: dict[str, str]) -> list[tuple[str, str | None, str]]:
+    """Return HOCOMOCO motif IDs together with their evidence provenance.
+
+    Evidence columns are authoritative. Best_PWM_or_model is a summary field,
+    so it is only used when a HOCOMOCO token is absent from every evidence
+    column and Best_annotation_level unambiguously supplies its tier.
+    """
+    tokens: list[tuple[str, str | None, str]] = []
+    seen_evidence_tokens: set[tuple[str, str, str]] = set()
+    evidence_motif_ids: set[str] = set()
+    for column, evidence_type in HOCOMOCO_EVIDENCE_COLUMNS:
         for token in split_list_field(row.get(column, "")):
             token = token.strip()
-            if ".H11MO." in token and token not in tokens:
-                tokens.append(token)
+            if ".H11MO." not in token:
+                continue
+            key = (token, evidence_type, column)
+            if key not in seen_evidence_tokens:
+                tokens.append(key)
+                seen_evidence_tokens.add(key)
+            evidence_motif_ids.add(token)
+
+    best_evidence_type = PRIMARY_LEVEL_TO_EVIDENCE.get(row.get("Best_annotation_level", ""))
+    for token in split_list_field(row.get("Best_PWM_or_model", "")):
+        token = token.strip()
+        if ".H11MO." not in token or token in evidence_motif_ids:
+            continue
+        tokens.append((token, best_evidence_type, "Best_PWM_or_model"))
     return tokens
 
 
@@ -101,7 +128,7 @@ def import_hocomoco(
 
     _, motif_contents = split_meme_file(meme_path)
     rows = read_tsv(hierarchical_tsv)
-    hocomoco_ids = sorted({token for row in rows for token in hocomoco_tokens(row)})
+    hocomoco_ids = sorted({motif_id for row in rows for motif_id, _, _ in hocomoco_tokens(row)})
 
     conn = sqlite3.connect(output_db)
     try:
@@ -186,7 +213,24 @@ def import_hocomoco(
                 ),
             )
 
-            for motif_id in hocomoco_tokens(row):
+            for motif_id, evidence_type, original_column in hocomoco_tokens(row):
+                if evidence_type is None:
+                    conn.execute(
+                        """
+                        INSERT INTO import_issue
+                            (severity, category, message, tf_id, source, motif_id)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            "warning",
+                            "unresolved_hocomoco_evidence_tier",
+                            "Best_PWM_or_model references a HOCOMOCO motif, but Best_annotation_level does not identify an evidence tier.",
+                            tf_id,
+                            HOCOMOCO_SOURCE,
+                            motif_id,
+                        ),
+                    )
+                    continue
                 missing = 0 if motif_id in motif_contents else 1
                 existing_ref = conn.execute(
                     """
@@ -194,9 +238,9 @@ def import_hocomoco(
                     FROM motif_ref
                     WHERE tf_id = ? AND evidence_type = ? AND source = ? AND motif_id = ?
                     """,
-                    (tf_id, HOCOMOCO_EVIDENCE, HOCOMOCO_SOURCE, motif_id),
+                    (tf_id, evidence_type, HOCOMOCO_SOURCE, motif_id),
                 ).fetchone()
-                semantics = motif_ref_semantics(HOCOMOCO_EVIDENCE, HOCOMOCO_SOURCE, "HOCOMOCO")
+                semantics = motif_ref_semantics(evidence_type, HOCOMOCO_SOURCE, original_column)
                 if existing_ref is None:
                     conn.execute(
                         """
@@ -208,7 +252,7 @@ def import_hocomoco(
                         """,
                         (
                             tf_id,
-                            HOCOMOCO_EVIDENCE,
+                            evidence_type,
                             HOCOMOCO_SOURCE,
                             motif_id,
                             motif_id,
@@ -240,7 +284,7 @@ def import_hocomoco(
                             semantics["evidence_note"],
                             semantics["display_priority"],
                             tf_id,
-                            HOCOMOCO_EVIDENCE,
+                            evidence_type,
                             HOCOMOCO_SOURCE,
                             motif_id,
                         ),
