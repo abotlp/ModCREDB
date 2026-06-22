@@ -203,6 +203,17 @@
 
   <section>
     <h2>TF links</h2>
+    <p class="muted">
+      Distinct linked TF records: {{ distinct_linked_tf_count }}.
+      {% if evidence_link_count != distinct_linked_tf_count %}
+        {{ evidence_link_count }} evidence link{% if evidence_link_count != 1 %}s{% endif %} in total.
+      {% endif %}
+      {% if evidence_link_count > ref_limit %}
+        Showing first {{ refs|length }} evidence links.
+      {% else %}
+        Showing all {{ refs|length }} evidence link{% if refs|length != 1 %}s{% endif %}.
+      {% endif %}
+    </p>
     <div class="table-wrap">
       <table>
         <thead>

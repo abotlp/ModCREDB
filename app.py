@@ -414,6 +414,7 @@ def fetch_search_motif_rows(
     query: str,
     source: str,
     evidence: str,
+    preferred_tf_id: str = "",
     limit: int = 100,
 ) -> tuple[list[dict[str, object]], int]:
     if not query:
@@ -464,22 +465,64 @@ def fetch_search_motif_rows(
         f"""
         SELECT mf.source, mf.motif_id, mf.matrix_status, mf.consensus, mf.width,
                COUNT(DISTINCT mr.tf_id) AS linked_tf_count,
-               GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types
+               GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types,
+               MAX(CASE WHEN mr.tf_id = ? THEN 1 ELSE 0 END) AS preferred_tf_link,
+               MAX(
+                   CASE WHEN (' ' || UPPER(COALESCE(ta_link.gene_names, '')) || ' ') LIKE ?
+                        THEN 1 ELSE 0 END
+               ) AS exact_gene_token_link,
+               MIN(
+                   CASE mr.evidence_type
+                     WHEN 'identical' THEN 0
+                     WHEN 'homologous' THEN 1
+                     WHEN 'relative_homologous' THEN 2
+                     WHEN 'modcre' THEN 3
+                     WHEN 'alphafold' THEN 4
+                     ELSE 99
+                   END
+               ) AS evidence_rank,
+               MIN(
+                   CASE mr.mapping_type
+                     WHEN 'direct_or_identical' THEN 0
+                     WHEN 'public_database_mapping_unconfirmed' THEN 1
+                     WHEN 'close_homolog' THEN 2
+                     WHEN 'distant_homolog' THEN 3
+                     WHEN 'structure_predicted' THEN 4
+                     WHEN 'af3_structure_predicted' THEN 5
+                     WHEN 'unknown' THEN 6
+                     ELSE 99
+                   END
+               ) AS mapping_rank,
+               MAX(CASE WHEN ta_link.reviewed = 1 THEN 1 ELSE 0 END) AS reviewed_tf_link
         FROM motif_file AS mf
         LEFT JOIN motif_ref AS mr
           ON mr.source = mf.source
          AND mr.motif_id = mf.motif_id
+        LEFT JOIN tf_annotation AS ta_link ON ta_link.tf_id = mr.tf_id
         WHERE {where_sql}
         GROUP BY mf.source, mf.motif_id
         ORDER BY
           CASE WHEN UPPER(mf.motif_id) = UPPER(?) THEN 0 ELSE 1 END,
-          CASE WHEN UPPER(mf.source) = UPPER(?) THEN 0 ELSE 1 END,
+          preferred_tf_link DESC,
+          exact_gene_token_link DESC,
+          evidence_rank,
           CASE WHEN mf.matrix_status = 'usable' THEN 0 ELSE 1 END,
+          mapping_rank,
+          reviewed_tf_link DESC,
+          linked_tf_count DESC,
+          CASE mf.source
+            WHEN 'jaspar' THEN 0
+            WHEN 'cisbp' THEN 1
+            WHEN 'hocomoco' THEN 2
+            WHEN 'modcre' THEN 3
+            WHEN 'alphafold' THEN 4
+            ELSE 99
+          END,
           mf.source,
           mf.motif_id
         LIMIT ?
         """,
-        [*args, query, query, limit],
+        [preferred_tf_id, f"% {query.upper()} %", *args, query, limit],
     ).fetchall()
     return [dict(row) for row in rows], int(total)
 
@@ -1843,7 +1886,17 @@ class TFWebApp:
             rows = all_rows[:limit]
             gene_summaries = fetch_gene_summaries(conn, q)
             motif_limit = 100
-            motif_rows, motif_total = fetch_search_motif_rows(conn, q, source, evidence, limit=motif_limit)
+            preferred_tf_id = ""
+            if gene_summaries:
+                preferred_tf_id = str(gene_summaries[0]["preferred"]["tf_id"])
+            motif_rows, motif_total = fetch_search_motif_rows(
+                conn,
+                q,
+                source,
+                evidence,
+                preferred_tf_id=preferred_tf_id,
+                limit=motif_limit,
+            )
             motif_search_is_direct = any(
                 str(row["motif_id"]).upper() == q.upper()
                 or str(row["source"]).upper() == q.upper()
@@ -2039,6 +2092,15 @@ class TFWebApp:
                 """,
                 (source, motif_id),
             ).fetchall()
+            ref_counts = conn.execute(
+                """
+                SELECT COUNT(*) AS evidence_link_count,
+                       COUNT(DISTINCT tf_id) AS distinct_tf_count
+                FROM motif_ref
+                WHERE source = ? AND motif_id = ?
+                """,
+                (source, motif_id),
+            ).fetchone()
             structures = conn.execute(
                 """
                 SELECT DISTINCT sf.*
@@ -2093,6 +2155,9 @@ class TFWebApp:
                 structures=structures,
                 source=source,
                 motif_id=motif_id,
+                evidence_link_count=int(ref_counts["evidence_link_count"] or 0),
+                distinct_linked_tf_count=int(ref_counts["distinct_tf_count"] or 0),
+                ref_limit=100,
                 matrix_acgt_rows=matrix_acgt_rows,
                 matrix_position_rows=matrix_position_rows,
                 matrix_positions=matrix_positions,
