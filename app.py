@@ -85,7 +85,14 @@ PRIMARY_ANNOTATION_ORDER = [
     "AlphaFold",
     "Unannotated",
 ]
-PRIMARY_ANNOTATION_LABELS = {level: level for level in PRIMARY_ANNOTATION_ORDER}
+PRIMARY_ANNOTATION_LABELS = {
+    "Identical_PWM": "Identical_PWM",
+    "Homologous_PWM": "Homologous_PWM",
+    "Relatively_Homologous_PWM": "Relatively_Homologous_PWM",
+    "ModCRE": "ModCRE",
+    "AlphaFold": "AlphaFold3-assisted ModCRE",
+    "Unannotated": "Unannotated",
+}
 
 SOURCE_HOME_URLS = {
     "jaspar": "https://jaspar2024.elixir.no/",
@@ -1514,7 +1521,8 @@ class TFWebApp:
                        COALESCE(mf.matrix_status, CASE WHEN mr.missing_local_file = 1 THEN 'missing_local_file' ELSE 'unknown' END) AS matrix_status,
                        mf.matrix_row_count, mf.matrix_expected_width, mf.matrix_row_sum_min,
                        mf.matrix_row_sum_max, mf.matrix_warning,
-                       region.region_start, region.region_end, region.region_model_count
+                       region.region_start, region.region_end, region.region_model_count,
+                       region.exact_active_model_count
                 FROM motif_ref AS mr
                 LEFT JOIN motif_file AS mf
                   ON mf.source = mr.source
@@ -1523,12 +1531,16 @@ class TFWebApp:
                     SELECT ms.motif_ref_id,
                            MIN(sf.residue_start) AS region_start,
                            MAX(sf.residue_end) AS region_end,
-                           COUNT(DISTINCT sf.id) AS region_model_count
+                           COUNT(DISTINCT CASE
+                               WHEN sf.residue_start IS NOT NULL
+                                AND sf.residue_end IS NOT NULL
+                               THEN sf.id
+                           END) AS region_model_count,
+                           COUNT(DISTINCT sf.id) AS exact_active_model_count
                     FROM motif_structure AS ms
                     JOIN structure_file AS sf ON sf.id = ms.structure_file_id
                     WHERE sf.status = 'active'
-                      AND sf.residue_start IS NOT NULL
-                      AND sf.residue_end IS NOT NULL
+                      AND sf.file_type = 'pdb'
                     GROUP BY ms.motif_ref_id
                 ) AS region ON region.motif_ref_id = mr.id
                 WHERE mr.tf_id = ?
@@ -1556,6 +1568,18 @@ class TFWebApp:
                 """,
                 (tf_id,),
             ).fetchall()
+            tf_fimo_ready_count = conn.execute(
+                """
+                SELECT COUNT(DISTINCT mr.source || '|' || mr.motif_id)
+                FROM motif_ref AS mr
+                JOIN motif_file AS mf
+                  ON mf.source = mr.source
+                 AND mf.motif_id = mr.motif_id
+                WHERE mr.tf_id = ?
+                  AND mf.matrix_status = 'usable'
+                """,
+                (tf_id,),
+            ).fetchone()[0]
             active_models = conn.execute(
                 """
                 SELECT * FROM structure_file
@@ -1594,6 +1618,7 @@ class TFWebApp:
                 active_models=active_models,
                 model_summaries=model_summaries,
                 matrix_status_counts=matrix_status_counts,
+                tf_fimo_ready_count=tf_fimo_ready_count,
                 visible_limit=100,
             ),
             "text/html",

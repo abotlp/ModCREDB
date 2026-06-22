@@ -20,7 +20,11 @@
     </div>
   </section>
   <section class="actions">
-    <a class="button-link" href="/scan?tf_id={{ tf.tf_id|quote }}">Scan DNA with this TF</a>
+    {% if tf_fimo_ready_count %}
+      <a class="button-link" href="/scan?tf_id={{ tf.tf_id|quote }}">Scan DNA with this TF</a>
+    {% else %}
+      <p class="muted">No FIMO-ready PWM is available for this TF.</p>
+    {% endif %}
   </section>
 
   <section>
@@ -209,7 +213,18 @@
                   <div><span>Evidence</span><strong>{{ evidence_display_label(row) }}</strong></div>
                   <div><span>Mapping</span><strong>{{ mapping_type_label(row.mapping_type) }}</strong></div>
                   <div><span>Curation</span><strong>{{ curation_status_label(row.curation_status) }}</strong></div>
-                  <div><span>Linked model?</span><strong>{% if row.region_model_count %}Yes{% else %}No{% endif %}</strong></div>
+                  <div>
+                    <span>Linked model?</span>
+                    <strong>
+                      {% if row.exact_active_model_count %}
+                        Yes{% if row.exact_active_model_count > 1 %} ({{ row.exact_active_model_count }}){% endif %}
+                      {% elif tf.active_model_count %}
+                        TF has active models
+                      {% else %}
+                        No active model
+                      {% endif %}
+                    </strong>
+                  </div>
                   {% if row.identity_percent is not none %}
                     <div><span>Identity</span><strong>{{ "%.1f"|format(row.identity_percent) }}%</strong></div>
                   {% endif %}
