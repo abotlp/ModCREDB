@@ -91,8 +91,27 @@ PRIMARY_ANNOTATION_LABELS = {
     "Relatively_Homologous_PWM": "Relatively_Homologous_PWM",
     "ModCRE": "ModCRE",
     "AlphaFold": "AlphaFold3-assisted ModCRE",
+    "AlphaFold_ModCRE": "AlphaFold3-assisted ModCRE",
+    "AlphaFold3-assisted ModCRE": "AlphaFold3-assisted ModCRE",
     "Unannotated": "Unannotated",
 }
+PRIMARY_EVIDENCE_INFO = {
+    "Identical_PWM": "Direct PWM evidence assigned to this TF record.",
+    "Homologous_PWM": "PWM transferred from a close homolog.",
+    "Relatively_Homologous_PWM": "Candidate PWM transferred from a more distant homolog.",
+    "ModCRE": "Structure-based predicted motif/model evidence.",
+    "AlphaFold": "AlphaFold3-assisted ModCRE predicted motif/model evidence.",
+    "AlphaFold_ModCRE": "AlphaFold3-assisted ModCRE predicted motif/model evidence.",
+    "Unannotated": "No final hierarchical PWM annotation was selected.",
+}
+CURATED_EXAMPLE_SPECS = (
+    ("Direct PWM", "Identical_PWM", "A0PJY2"),
+    ("Close homologous PWM", "Homologous_PWM", "Q16124"),
+    ("Distant homologous candidate", "Relatively_Homologous_PWM", "A0A0S2Z4K5"),
+    ("ModCRE predicted", "ModCRE", "A0A1W2PPM1"),
+    ("AlphaFold3-assisted ModCRE", "AlphaFold", "A0A087WUK2"),
+    ("Unannotated / no usable PWM", "Unannotated", "A0A087WX29"),
+)
 
 SOURCE_HOME_URLS = {
     "jaspar": "https://jaspar2024.elixir.no/",
@@ -230,26 +249,33 @@ def primary_annotation_label(level: object) -> str:
 
 
 def fetch_primary_annotation_counts(conn: sqlite3.Connection) -> list[dict[str, object]]:
-    if not db_table_exists(conn, "tf_primary_annotation"):
-        return []
-    raw_counts = {
-        row["best_annotation_level"]: row["count"]
-        for row in conn.execute(
-            """
-            SELECT best_annotation_level, COUNT(*) AS count
-            FROM tf_primary_annotation
-            GROUP BY best_annotation_level
-            """
-        ).fetchall()
-    }
+    if db_table_exists(conn, "tf_primary_annotation"):
+        raw_counts = {
+            row["best_annotation_level"]: row["count"]
+            for row in conn.execute(
+                """
+                SELECT best_annotation_level, COUNT(*) AS count
+                FROM tf_primary_annotation
+                GROUP BY best_annotation_level
+                """
+            ).fetchall()
+        }
+    else:
+        tf_ids = [row["tf_id"] for row in conn.execute("SELECT tf_id FROM tf").fetchall()]
+        raw_counts: dict[str, int] = {}
+        for status in fetch_tf_statuses(conn, tf_ids).values():
+            level = str(status["primary_evidence_raw"])
+            raw_counts[level] = raw_counts.get(level, 0) + 1
+
     total = sum(int(value or 0) for value in raw_counts.values())
-    rows = []
+    rows: list[dict[str, object]] = []
     for level in PRIMARY_ANNOTATION_ORDER:
         count = int(raw_counts.get(level, 0) or 0)
         rows.append(
             {
                 "level": level,
                 "label": primary_annotation_label(level),
+                "description": PRIMARY_EVIDENCE_INFO.get(level, "Primary evidence classification."),
                 "count": count,
                 "percent": 0 if total == 0 else round((count / total) * 100, 1),
             }
@@ -262,12 +288,12 @@ def fetch_primary_annotation_counts(conn: sqlite3.Connection) -> list[dict[str, 
             {
                 "level": level,
                 "label": primary_annotation_label(level),
+                "description": PRIMARY_EVIDENCE_INFO.get(level, "Primary evidence classification."),
                 "count": count,
                 "percent": 0 if total == 0 else round((count / total) * 100, 1),
             }
         )
     return rows
-
 
 def fetch_primary_annotation(conn: sqlite3.Connection, tf_id: str) -> sqlite3.Row | None:
     if not db_table_exists(conn, "tf_primary_annotation"):
@@ -281,6 +307,192 @@ def fetch_primary_annotation(conn: sqlite3.Connection, tf_id: str) -> sqlite3.Ro
         (tf_id,),
     ).fetchone()
 
+
+
+def normalize_primary_evidence(level: object) -> str:
+    value = str(level or "").strip()
+    if value in {"AlphaFold", "AlphaFold_ModCRE", "AlphaFold3-assisted ModCRE"}:
+        return "AlphaFold"
+    return value or "Unannotated"
+
+
+def primary_evidence_guidance(primary_level: object, fimo_ready_pwm_count: int) -> tuple[bool, str, str, str]:
+    level = normalize_primary_evidence(primary_level)
+    if fimo_ready_pwm_count <= 0:
+        caveat = (
+            "No reliable FIMO-ready motif was recovered for this record."
+            if level == "Unannotated"
+            else "Evidence may exist as model/provenance records, but no usable PWM passed matrix QC."
+        )
+        return False, "No", "Do not scan DNA with this TF in the current database build.", caveat
+    if level == "Identical_PWM":
+        return True, "Yes", "Use direct FIMO-ready motifs as primary motif evidence.", "Check source and mapping status before publication."
+    if level == "Homologous_PWM":
+        return True, "Yes", "Use as a close-homology candidate motif and report the source/identity.", "This is transferred evidence, not a direct motif for this exact record."
+    if level == "Relatively_Homologous_PWM":
+        return True, "Yes", "Use cautiously as distant-homology candidate evidence.", "Prefer direct or close-homology motifs when available."
+    if level == "ModCRE":
+        return True, "Yes", "Use as a structure-based predicted motif.", "Inspect model/template evidence before strong biological claims."
+    if level == "AlphaFold":
+        return True, "Yes", "Use as exploratory AlphaFold3-assisted ModCRE evidence.", "This combines predicted structure and predicted motif inference."
+    return True, "Yes", "A FIMO-ready motif is available, but no primary hierarchy label is assigned.", "Interpret the supporting evidence and mapping status carefully."
+
+
+def model_link_status(exact_active_model_count: object, tf_active_model_count: object) -> str:
+    exact_count = int(exact_active_model_count or 0)
+    tf_count = int(tf_active_model_count or 0)
+    if exact_count > 0:
+        return "Yes" if exact_count == 1 else f"Yes ({exact_count})"
+    if tf_count > 0:
+        return "TF model only"
+    return "No"
+
+
+def fetch_tf_statuses(conn: sqlite3.Connection, tf_ids: list[str]) -> dict[str, dict[str, object]]:
+    ids = list(dict.fromkeys(tf_id for tf_id in tf_ids if tf_id))
+    if not ids:
+        return {}
+    placeholders = ", ".join("?" for _ in ids)
+    fimo_counts = {
+        row["tf_id"]: int(row["count"] or 0)
+        for row in conn.execute(
+            f"""
+            SELECT mr.tf_id, COUNT(DISTINCT mr.source || '|' || mr.motif_id) AS count
+            FROM motif_ref AS mr
+            JOIN motif_file AS mf ON mf.source = mr.source AND mf.motif_id = mr.motif_id
+            WHERE mr.tf_id IN ({placeholders})
+              AND mr.missing_local_file = 0
+              AND mf.matrix_status = 'usable'
+            GROUP BY mr.tf_id
+            """,
+            ids,
+        ).fetchall()
+    }
+    active_model_counts = {
+        row["tf_id"]: int(row["count"] or 0)
+        for row in conn.execute(
+            f"""
+            SELECT tf_id, COUNT(*) AS count
+            FROM structure_file
+            WHERE tf_id IN ({placeholders})
+              AND status = 'active'
+              AND file_type = 'pdb'
+            GROUP BY tf_id
+            """,
+            ids,
+        ).fetchall()
+    }
+    primary_by_tf: dict[str, sqlite3.Row] = {}
+    if db_table_exists(conn, "tf_primary_annotation"):
+        primary_by_tf = {
+            row["tf_id"]: row
+            for row in conn.execute(
+                f"""
+                SELECT tf_id, best_annotation_level, best_pwm_or_model, n_nonempty_annotation_columns
+                FROM tf_primary_annotation
+                WHERE tf_id IN ({placeholders})
+                """,
+                ids,
+            ).fetchall()
+        }
+
+    priority = {
+        "identical": (10, "Identical_PWM"),
+        "homologous": (20, "Homologous_PWM"),
+        "relative_homologous": (30, "Relatively_Homologous_PWM"),
+        "modcre": (40, "ModCRE"),
+        "alphafold": (50, "AlphaFold"),
+    }
+    fallback_by_tf: dict[str, tuple[int, str]] = {}
+    for row in conn.execute(f"SELECT tf_id, evidence_type FROM motif_ref WHERE tf_id IN ({placeholders})", ids).fetchall():
+        candidate = priority.get(row["evidence_type"])
+        if candidate and (row["tf_id"] not in fallback_by_tf or candidate[0] < fallback_by_tf[row["tf_id"]][0]):
+            fallback_by_tf[row["tf_id"]] = candidate
+    for row in conn.execute(
+        f"""
+        SELECT tf_id, source FROM structure_file
+        WHERE tf_id IN ({placeholders}) AND status = 'active' AND file_type = 'pdb'
+        """,
+        ids,
+    ).fetchall():
+        if row["tf_id"] not in fallback_by_tf:
+            fallback_by_tf[row["tf_id"]] = (50, "AlphaFold") if row["source"] == "alphafold" else (40, "ModCRE")
+
+    statuses: dict[str, dict[str, object]] = {}
+    for tf_id in ids:
+        primary = primary_by_tf.get(tf_id)
+        fallback = fallback_by_tf.get(tf_id, (99, "Unannotated"))[1]
+        raw_primary = (str(primary["best_annotation_level"] or "").strip() if primary is not None else "") or fallback
+        fimo_count = fimo_counts.get(tf_id, 0)
+        active_count = active_model_counts.get(tf_id, 0)
+        can_scan, can_scan_label, recommended_use, main_caveat = primary_evidence_guidance(raw_primary, fimo_count)
+        statuses[tf_id] = {
+            "tf_id": tf_id,
+            "primary_evidence_raw": raw_primary,
+            "primary_evidence_label": primary_annotation_label(raw_primary),
+            "best_pwm_or_model": primary["best_pwm_or_model"] if primary is not None else "",
+            "n_nonempty_annotation_columns": primary["n_nonempty_annotation_columns"] if primary is not None else 0,
+            "fimo_ready_pwm_count": fimo_count,
+            "active_model_count": active_count,
+            "can_scan": can_scan,
+            "can_scan_label": can_scan_label,
+            "recommended_use": recommended_use,
+            "main_caveat": main_caveat,
+        }
+    return statuses
+
+
+def fetch_curated_examples(conn: sqlite3.Connection) -> list[dict[str, object]]:
+    requested_ids = [spec[2] for spec in CURATED_EXAMPLE_SPECS]
+    placeholders = ", ".join("?" for _ in requested_ids)
+    records = {
+        row["tf_id"]: dict(row)
+        for row in conn.execute(
+            f"""
+            SELECT tf.tf_id, tf.family_text, ta.gene_names, ta.protein_name
+            FROM tf
+            LEFT JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
+            WHERE tf.tf_id IN ({placeholders})
+            """,
+            requested_ids,
+        ).fetchall()
+    }
+    selected_ids = list(records)
+    if len(records) < len(CURATED_EXAMPLE_SPECS) and db_table_exists(conn, "tf_primary_annotation"):
+        for _, level, requested_id in CURATED_EXAMPLE_SPECS:
+            if requested_id in records:
+                continue
+            levels = ("AlphaFold", "AlphaFold_ModCRE", "AlphaFold3-assisted ModCRE") if level == "AlphaFold" else (level,)
+            level_placeholders = ", ".join("?" for _ in levels)
+            replacement = conn.execute(
+                f"""
+                SELECT tf.tf_id, tf.family_text, ta.gene_names, ta.protein_name
+                FROM tf
+                JOIN tf_primary_annotation AS tpa ON tpa.tf_id = tf.tf_id
+                LEFT JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
+                WHERE tpa.best_annotation_level IN ({level_placeholders})
+                ORDER BY tf.tf_id
+                LIMIT 1
+                """,
+                levels,
+            ).fetchone()
+            if replacement:
+                records[requested_id] = dict(replacement)
+                selected_ids.append(replacement["tf_id"])
+    statuses = fetch_tf_statuses(conn, selected_ids)
+    examples: list[dict[str, object]] = []
+    for tier, _, requested_id in CURATED_EXAMPLE_SPECS:
+        record = records.get(requested_id)
+        if not record:
+            continue
+        tf_id = str(record["tf_id"])
+        example = dict(record)
+        example.update(statuses[tf_id])
+        example["evidence_tier"] = tier
+        example["requested_tf_id"] = requested_id
+        example["replacement_used"] = tf_id != requested_id
+        examples.append(example)
+    return examples
 
 def redact_public_value(value: object) -> str:
     text = str(value or "")
@@ -1364,6 +1576,7 @@ class TFWebApp:
         self.templates.globals["evidence_display_label"] = evidence_display_label
         self.templates.globals["mapping_type_label"] = mapping_type_label
         self.templates.globals["curation_status_label"] = curation_status_label
+        self.templates.globals["model_link_status"] = model_link_status
 
     def stats(self, conn: sqlite3.Connection) -> dict[str, int | str]:
         return {
@@ -1376,6 +1589,17 @@ class TFWebApp:
             ).fetchone()[0],
             "model_summary_count": safe_count(conn, "SELECT COUNT(*) FROM model_summary"),
             "fimo_ready_motif_count": safe_count(conn, "SELECT COUNT(*) FROM motif_file WHERE matrix_status = 'usable'"),
+            "tf_with_fimo_ready_pwm_count": safe_count(
+                conn,
+                """
+                SELECT COUNT(*) FROM (
+                    SELECT DISTINCT mr.tf_id
+                    FROM motif_ref AS mr
+                    JOIN motif_file AS mf ON mf.source = mr.source AND mf.motif_id = mr.motif_id
+                    WHERE mr.missing_local_file = 0 AND mf.matrix_status = 'usable'
+                )
+                """,
+            ),
             "motif_structure_count": safe_count(conn, "SELECT COUNT(*) FROM motif_structure"),
             "primary_annotation_count": safe_count(conn, "SELECT COUNT(*) FROM tf_primary_annotation"),
             "missing_motif_count": conn.execute(
@@ -1403,17 +1627,14 @@ class TFWebApp:
         with connect(self.db_path) as conn:
             stats = self.stats(conn)
             primary_annotation_counts = fetch_primary_annotation_counts(conn)
-            examples = conn.execute(
-                """
-                SELECT tf.tf_id, tf.family_text, tf.motif_ref_count, tf.active_model_count,
-                       ta.gene_names, ta.protein_name, ta.organism_name, ta.reviewed
-                FROM tf
-                LEFT JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
-                WHERE motif_ref_count > 0
-                ORDER BY tf.active_model_count DESC, tf.motif_ref_count DESC, tf.tf_id
-                LIMIT 8
-                """
-            ).fetchall()
+            counts = {str(row["level"]): int(row["count"] or 0) for row in primary_annotation_counts}
+            if primary_annotation_counts:
+                stats["records_with_pwm_annotation"] = sum(count for level, count in counts.items() if level != "Unannotated")
+                stats["unannotated_record_count"] = counts.get("Unannotated", 0)
+            else:
+                stats["records_with_pwm_annotation"] = safe_count(conn, "SELECT COUNT(DISTINCT tf_id) FROM motif_ref")
+                stats["unannotated_record_count"] = max(int(stats["tf_count"]) - int(stats["records_with_pwm_annotation"]), 0)
+            examples = fetch_curated_examples(conn)
         return (
             self.render(
                 "index.html",
@@ -1455,7 +1676,7 @@ class TFWebApp:
         where_sql = "WHERE " + " AND ".join(where) if where else ""
 
         with connect(self.db_path) as conn:
-            rows = conn.execute(
+            raw_rows = conn.execute(
                 f"""
                 SELECT DISTINCT tf.tf_id, tf.family_text, tf.motif_ref_count, tf.active_model_count,
                        ta.gene_names, ta.protein_name, ta.organism_name, ta.reviewed
@@ -1467,6 +1688,12 @@ class TFWebApp:
                 """,
                 [*args, limit],
             ).fetchall()
+            statuses = fetch_tf_statuses(conn, [row["tf_id"] for row in raw_rows])
+            rows = []
+            for raw_row in raw_rows:
+                row = dict(raw_row)
+                row.update(statuses[row["tf_id"]])
+                rows.append(row)
             total = conn.execute(
                 f"""
                 SELECT COUNT(*) FROM (
@@ -1512,6 +1739,7 @@ class TFWebApp:
             if not tf:
                 return self.not_found(f"Unknown TF: {html.escape(tf_id)}")
             primary_annotation = fetch_primary_annotation(conn, tf_id)
+            tf_status = fetch_tf_statuses(conn, [tf_id])[tf_id]
             families = conn.execute(
                 "SELECT family FROM tf_family WHERE tf_id = ? ORDER BY family", (tf_id,)
             ).fetchall()
@@ -1568,18 +1796,7 @@ class TFWebApp:
                 """,
                 (tf_id,),
             ).fetchall()
-            tf_fimo_ready_count = conn.execute(
-                """
-                SELECT COUNT(DISTINCT mr.source || '|' || mr.motif_id)
-                FROM motif_ref AS mr
-                JOIN motif_file AS mf
-                  ON mf.source = mr.source
-                 AND mf.motif_id = mr.motif_id
-                WHERE mr.tf_id = ?
-                  AND mf.matrix_status = 'usable'
-                """,
-                (tf_id,),
-            ).fetchone()[0]
+            tf_fimo_ready_count = int(tf_status["fimo_ready_pwm_count"])
             active_models = conn.execute(
                 """
                 SELECT * FROM structure_file
@@ -1606,14 +1823,25 @@ class TFWebApp:
         for row in sorted(motif_rows, key=evidence_sort_key):
             grouped.setdefault(row["evidence_type"], []).append(row)
         region_groups = build_region_groups(tf, list(motif_rows), list(active_models), list(model_summaries))
+        fimo_ready_rows = [row for row in motif_rows if row["matrix_status"] == "usable" and row["missing_local_file"] == 0]
+        audit_rows = [row for row in motif_rows if row not in fimo_ready_rows]
+        audit_status_counts: dict[str, int] = {}
+        for row in audit_rows:
+            status = str(row["matrix_status"] or "unknown")
+            audit_status_counts[status] = audit_status_counts.get(status, 0) + 1
+        audit_summary = [{"matrix_status": status, "count": count} for status, count in sorted(audit_status_counts.items())]
 
         return (
             self.render(
                 "tf.html",
                 tf=tf,
+                tf_status=tf_status,
                 primary_annotation=primary_annotation,
                 families=families,
                 grouped=grouped,
+                fimo_ready_rows=fimo_ready_rows,
+                audit_rows=audit_rows,
+                audit_summary=audit_summary,
                 region_groups=region_groups,
                 active_models=active_models,
                 model_summaries=model_summaries,

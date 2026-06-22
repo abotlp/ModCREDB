@@ -1,61 +1,44 @@
 {% extends "base.html" %}
 {% block title %}ModCREDB{% endblock %}
 {% block content %}
-  <section class="hero">
+  <section class="hero scientific-hero">
     <div>
-      <h1>Transcription factor motif and model database</h1>
-      <p>Search TF accessions, motif IDs, TF families, predicted PWMs, and indexed TF-DNA models.</p>
+      <p class="eyebrow">Human TF evidence database</p>
+      <h1>ModCREDB</h1>
+      <p>Human transcription-factor motif and structural-model evidence with confidence levels.</p>
     </div>
     <form class="search-box" action="/search" method="get">
-      <input name="q" placeholder="TF accession, family, motif ID..." autofocus>
+      <input name="q" placeholder="Gene, UniProt accession, motif ID, or family" autofocus>
       <button type="submit">Search</button>
     </form>
   </section>
 
   <section>
     <div class="section-head">
-      <h2>Primary annotation coverage</h2>
-      <span class="muted">One final hierarchical label per TF</span>
-    </div>
-    {% if primary_annotation_counts %}
-      <div class="stats">
-        {% for row in primary_annotation_counts %}
-          <div>
-            <strong>{{ row.count }}</strong>
-            <span>{{ row.label }}{% if row.percent %} · {{ row.percent }}%{% endif %}</span>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="warning">Primary hierarchical annotation has not been loaded for this database snapshot.</p>
-    {% endif %}
-  </section>
-
-  <section>
-    <div class="section-head">
-      <h2>Supporting evidence</h2>
-      <span class="muted">All motif/model links preserved for review</span>
+      <h2>Database Snapshot</h2>
+      <span class="muted">These are UniProt sequence records, not a human TF-gene census.</span>
     </div>
     <div class="stats">
-      <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif links</span></div>
-      <div><strong>{{ stats.motif_file_count }}</strong><span>motif files</span></div>
-      <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>FIMO-ready matrices</span></div>
-      <div><strong>{{ stats.active_model_count }}</strong><span>active models</span></div>
-      <div><strong>{{ stats.motif_structure_count }}</strong><span>motif-structure links</span></div>
+      <div><strong>{{ stats.tf_count }}</strong><span>TF sequence records</span></div>
+      <div><strong>{{ stats.records_with_pwm_annotation }}</strong><span>records with PWM-related annotation</span></div>
+      <div><strong>{{ stats.tf_with_fimo_ready_pwm_count }}</strong><span>TF records with FIMO-ready PWM</span></div>
+      <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>FIMO-ready PWM matrices</span></div>
+      <div><strong>{{ stats.active_model_count }}</strong><span>active TF-DNA model files</span></div>
+      <div><strong>{{ stats.unannotated_record_count }}</strong><span>unannotated records</span></div>
     </div>
   </section>
 
   <section class="legend-strip">
     <div class="section-head">
-      <h2>Evidence layers</h2>
-      <a href="/evidence">Full explanation</a>
+      <h2>Evidence Hierarchy</h2>
+      <a href="/evidence">Evidence layers</a>
     </div>
     <div class="legend-grid">
-      {% for key, info in evidence_info.items() %}
+      {% for row in primary_annotation_counts %}
         <div>
-          <strong>{{ evidence_labels[key] }}</strong>
-          <span>{{ info.trust }}</span>
-          <p>{{ info.description }}</p>
+          <strong>{{ row.label }}</strong>
+          <span>{{ row.count }} records{% if row.percent %} · {{ row.percent }}%{% endif %}</span>
+          <p>{{ row.description }}</p>
         </div>
       {% endfor %}
     </div>
@@ -63,34 +46,41 @@
 
   <section>
     <div class="section-head">
-      <h2>Example entries</h2>
-      <a href="/search">Browse all</a>
+      <h2>Curated Examples by Evidence Tier</h2>
+      <a href="/search">Browse all records</a>
     </div>
-    <div class="table-wrap">
+    <div class="table-wrap wide-table">
       <table>
         <thead>
           <tr>
-            <th>TF</th>
-            <th>Gene / protein</th>
-            <th>Organism</th>
-            <th>Families</th>
-            <th>Motifs</th>
+            <th>Gene</th>
+            <th>UniProt</th>
+            <th>Primary evidence</th>
+            <th>Can scan</th>
+            <th>FIMO-ready PWMs</th>
             <th>Active models</th>
+            <th>Recommended use</th>
           </tr>
         </thead>
         <tbody>
           {% for row in examples %}
             <tr>
-              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a></td>
+              <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td>
-                {% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong><br>{% endif %}
-                <span class="muted">{{ row.protein_name or "" }}</span>
+                <a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>
+                {% if row.replacement_used %}<br><span class="muted">replacement for {{ row.requested_tf_id }}</span>{% endif %}
               </td>
-              <td>{{ row.organism_name or "" }}</td>
-              <td>{{ row.family_text }}</td>
-              <td>{{ row.motif_ref_count }}</td>
+              <td>
+                <strong>{{ row.primary_evidence_label }}</strong><br>
+                <span class="muted">{{ row.evidence_tier }}</span>
+              </td>
+              <td><span class="scan-status {% if row.can_scan %}yes{% else %}no{% endif %}">{{ row.can_scan_label }}</span></td>
+              <td>{{ row.fimo_ready_pwm_count }}</td>
               <td>{{ row.active_model_count }}</td>
+              <td>{{ row.recommended_use }}</td>
             </tr>
+          {% else %}
+            <tr><td colspan="7">No curated examples are available in this database snapshot.</td></tr>
           {% endfor %}
         </tbody>
       </table>
