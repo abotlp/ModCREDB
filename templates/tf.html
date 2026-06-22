@@ -116,6 +116,11 @@
       <h2>All Motif/Model Evidence</h2>
       <span class="muted">{{ motif_rows|length }} preserved evidence link{% if motif_rows|length != 1 %}s{% endif %}</span>
     </div>
+    {% if collapse_all_evidence %}
+      <details class="evidence-group">
+        <summary>Show all {{ motif_rows|length }} preserved evidence links</summary>
+        <p class="muted">This full evidence-link table is collapsed to keep a large candidate list from dominating the record page.</p>
+    {% endif %}
     <div class="table-wrap wide-table">
       <table>
         <thead><tr><th>Motif/model ID</th><th>Source</th><th>Evidence</th><th>Mapping</th><th>Identity</th><th>Matrix status</th><th>FIMO-ready</th><th>Linked model</th><th>Actions</th></tr></thead>
@@ -138,6 +143,9 @@
         </tbody>
       </table>
     </div>
+    {% if collapse_all_evidence %}
+      </details>
+    {% endif %}
   </section>
 
   <section id="audit-evidence">

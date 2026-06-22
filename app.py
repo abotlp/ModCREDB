@@ -1823,8 +1823,20 @@ class TFWebApp:
         for row in sorted(motif_rows, key=evidence_sort_key):
             grouped.setdefault(row["evidence_type"], []).append(row)
         region_groups = build_region_groups(tf, list(motif_rows), list(active_models), list(model_summaries))
-        fimo_ready_rows = [row for row in motif_rows if row["matrix_status"] == "usable" and row["missing_local_file"] == 0]
-        audit_rows = [row for row in motif_rows if row not in fimo_ready_rows]
+        # The scan-ready table represents distinct PWM records. The complete
+        # motif_rows list remains the authoritative evidence-link view below.
+        fimo_ready_rows: list[sqlite3.Row] = []
+        seen_fimo_motifs: set[tuple[str, str]] = set()
+        audit_rows: list[sqlite3.Row] = []
+        for row in motif_rows:
+            is_fimo_ready = row["matrix_status"] == "usable" and row["missing_local_file"] == 0
+            if not is_fimo_ready:
+                audit_rows.append(row)
+                continue
+            motif_key = (str(row["source"]), str(row["motif_id"]))
+            if motif_key not in seen_fimo_motifs:
+                seen_fimo_motifs.add(motif_key)
+                fimo_ready_rows.append(row)
         audit_status_counts: dict[str, int] = {}
         for row in audit_rows:
             status = str(row["matrix_status"] or "unknown")
@@ -1839,9 +1851,11 @@ class TFWebApp:
                 primary_annotation=primary_annotation,
                 families=families,
                 grouped=grouped,
+                motif_rows=motif_rows,
                 fimo_ready_rows=fimo_ready_rows,
                 audit_rows=audit_rows,
                 audit_summary=audit_summary,
+                collapse_all_evidence=len(motif_rows) > 30,
                 region_groups=region_groups,
                 active_models=active_models,
                 model_summaries=model_summaries,
