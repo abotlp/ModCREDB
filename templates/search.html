@@ -109,8 +109,8 @@
       <table>
         <thead>
           <tr>
+            <th>UniProt sequence record</th>
             <th>Gene</th>
-            <th>UniProt</th>
             <th>Protein name</th>
             <th>Family</th>
             <th>Primary evidence</th>
@@ -123,8 +123,8 @@
         <tbody>
           {% for row in rows %}
             <tr>
-              <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}</td>
+              <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td>{{ row.protein_name or "" }}</td>
               <td>{{ row.family_text }}</td>
               <td>{{ row.primary_evidence_label }}</td>

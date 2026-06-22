@@ -3,87 +3,118 @@
 {% block content %}
   <section class="hero scientific-hero">
     <div>
-      <p class="eyebrow">Human TF evidence database</p>
+      <p class="eyebrow">Human transcription-factor evidence database</p>
       <h1>ModCREDB</h1>
-      <p>Human transcription-factor motif and structural-model evidence with confidence levels.</p>
+      <p>Find motif and structural evidence for human transcription-factor sequence records.</p>
+      <p class="hero-detail">Search by UniProt accession, gene symbol, motif ID, protein name, or TF family. Results are UniProt sequence records, not one-row-per-gene entries.</p>
     </div>
-    <form class="search-box" action="/search" method="get">
-      <input name="q" placeholder="Gene, UniProt accession, motif ID, or family" autofocus>
-      <button type="submit">Search</button>
-    </form>
-  </section>
-
-  <section>
-    <div class="section-head">
-      <h2>Database Snapshot</h2>
-      <span class="muted">These are UniProt sequence records, not a human TF-gene census.</span>
-    </div>
-    <div class="stats">
-      <div><strong>{{ stats.tf_count }}</strong><span>TF sequence records</span></div>
-      <div><strong>{{ stats.records_with_pwm_annotation }}</strong><span>records with PWM-related annotation</span></div>
-      <div><strong>{{ stats.tf_with_fimo_ready_pwm_count }}</strong><span>TF records with FIMO-ready PWM</span></div>
-      <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>FIMO-ready PWM matrices</span></div>
-      <div><strong>{{ stats.active_model_count }}</strong><span>active TF-DNA model files</span></div>
-      <div><strong>{{ stats.unannotated_record_count }}</strong><span>unannotated records</span></div>
-    </div>
-  </section>
-
-  <section class="legend-strip">
-    <div class="section-head">
-      <h2>Evidence Hierarchy</h2>
-      <a href="/evidence">Evidence layers</a>
-    </div>
-    <div class="legend-grid">
-      {% for row in primary_annotation_counts %}
-        <div>
-          <strong>{{ row.label }}</strong>
-          <span>{{ row.count }} records{% if row.percent %} · {{ row.percent }}%{% endif %}</span>
-          <p>{{ row.description }}</p>
-        </div>
-      {% endfor %}
+    <div class="home-search-area">
+      <form class="search-box" action="/search" method="get">
+        <label class="visually-hidden" for="home-search">Search ModCREDB</label>
+        <input id="home-search" name="q" placeholder="Search accession, gene, motif ID, or family - e.g. P04637, TP53, MA0065.1, C2H2" autofocus>
+        <button type="submit">Search records</button>
+      </form>
+      <div class="home-actions" aria-label="ModCREDB actions">
+        <a class="secondary-link" href="/scan">Scan DNA</a>
+        <a class="secondary-link" href="/evidence">Evidence guide</a>
+      </div>
     </div>
   </section>
 
   <section>
-    <div class="section-head">
-      <h2>Curated Examples by Evidence Tier</h2>
+    <div class="section-head compact-section-head">
+      <h2>What can you do?</h2>
+    </div>
+    <div class="home-card-grid">
+      <article class="home-info-card">
+        <h3>Find TF records</h3>
+        <p>Search UniProt TF sequence records and see their motif evidence.</p>
+      </article>
+      <article class="home-info-card">
+        <h3>Inspect motif evidence</h3>
+        <p>Compare direct, homologous, candidate, ModCRE, and AlphaFold3-assisted evidence.</p>
+      </article>
+      <article class="home-info-card">
+        <h3>Scan DNA</h3>
+        <p>Run FIMO only with motifs that have usable PWM matrices.</p>
+      </article>
+      <article class="home-info-card">
+        <h3>Inspect structures</h3>
+        <p>Open available TF-DNA models and model summaries.</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head compact-section-head">
+      <h2>Primary annotation levels</h2>
+      <a href="/evidence">Read the evidence guide</a>
+    </div>
+    <p class="section-intro">Each TF sequence record has one primary annotation selected by a hierarchy. All supporting motif and model evidence remains visible on the TF page.</p>
+    <div class="home-card-grid">
+      <article class="home-info-card">
+        <h3>Direct/public PWM</h3>
+        <p>A PWM linked directly to this UniProt sequence record from a public motif collection.</p>
+        <span class="internal-label">Internal label: Identical_PWM</span>
+      </article>
+      <article class="home-info-card">
+        <h3>Close homologous PWM</h3>
+        <p>A PWM transferred from a close homolog.</p>
+        <span class="internal-label">Internal label: Homologous_PWM</span>
+      </article>
+      <article class="home-info-card">
+        <h3>Distant homologous candidate</h3>
+        <p>A candidate PWM transferred from a more distant homolog.</p>
+        <span class="internal-label">Internal label: Relatively_Homologous_PWM</span>
+      </article>
+      <article class="home-info-card">
+        <h3>ModCRE predicted motif</h3>
+        <p>A motif predicted from a precomputed protein-DNA structural model.</p>
+        <span class="internal-label">Internal label: ModCRE</span>
+      </article>
+      <article class="home-info-card">
+        <h3>AlphaFold3-assisted ModCRE</h3>
+        <p>A motif predicted using an AlphaFold3-assisted structural model.</p>
+        <span class="internal-label">Internal label: AlphaFold</span>
+      </article>
+      <article class="home-info-card">
+        <h3>No primary motif selected</h3>
+        <p>No primary annotation was selected in the final hierarchy.</p>
+        <span class="internal-label">Internal label: Unannotated</span>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head compact-section-head">
+      <h2>Try example searches</h2>
       <a href="/search">Browse all records</a>
     </div>
-    <div class="table-wrap wide-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Gene</th>
-            <th>UniProt</th>
-            <th>Primary evidence</th>
-            <th>Can scan</th>
-            <th>FIMO-ready PWMs</th>
-            <th>Active models</th>
-            <th>Recommended use</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in examples %}
-            <tr>
-              <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
-              <td>
-                <a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>
-                {% if row.replacement_used %}<br><span class="muted">replacement for {{ row.requested_tf_id }}</span>{% endif %}
-              </td>
-              <td>
-                <strong>{{ row.primary_evidence_label }}</strong><br>
-                <span class="muted">{{ row.evidence_tier }}</span>
-              </td>
-              <td><span class="scan-status {% if row.can_scan %}yes{% else %}no{% endif %}">{{ row.can_scan_label }}</span></td>
-              <td>{{ row.fimo_ready_pwm_count }}</td>
-              <td>{{ row.active_model_count }}</td>
-              <td>{{ row.recommended_use }}</td>
-            </tr>
-          {% else %}
-            <tr><td colspan="7">No curated examples are available in this database snapshot.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="home-card-grid home-example-grid">
+      <article class="home-info-card">
+        <h3><a href="/tf/P04637">TP53 / P04637</a></h3>
+        <p>Reviewed TP53 sequence record with usable public HOCOMOCO motif evidence.</p>
+      </article>
+      <article class="home-info-card">
+        <h3><a href="/tf/P37231">PPARG / P37231</a></h3>
+        <p>Reviewed PPARG sequence record with usable JASPAR MA0065.1 and HOCOMOCO motifs.</p>
+      </article>
+      <article class="home-info-card">
+        <h3><a href="/tf/P49711">CTCF / P49711</a></h3>
+        <p>Reviewed CTCF sequence record with usable public HOCOMOCO motif evidence.</p>
+      </article>
+      <article class="home-info-card">
+        <h3><a href="/search?q=MA0065.1">MA0065.1</a></h3>
+        <p>Browse the JASPAR motif record and its linked TF sequence records.</p>
+      </article>
+      <article class="home-info-card">
+        <h3><a href="/search?q=C2H2">C2H2 family</a></h3>
+        <p>Browse C2H2 zinc-finger TF sequence records.</p>
+      </article>
     </div>
+  </section>
+
+  <section class="release-note" aria-label="Release information">
+    <p>About this release: {{ stats.tf_count }} UniProt TF sequence records with motif, model, and evidence-tier annotations. <a href="/docs">View documentation for full statistics and provenance.</a></p>
   </section>
 {% endblock %}
