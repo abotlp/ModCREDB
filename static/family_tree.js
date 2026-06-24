@@ -3,12 +3,22 @@
 
   const byId = (id) => document.getElementById(id);
   const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
+  let nodes = [];
+  let nodeById = new Map();
+  let selectedFamilyId = null;
 
-  // Compact HOCOMOCO-like layout: three columns, dense leaves, no printed counts.
-  const X = { root: 120, branch: 330, leaf: 560 };
-  const TOP = 28;
-  const ROW = 24;
-  const RIGHT_PAD = 360;
+  const childPriority = {
+    "1": ["1.1", "1.2", "1.3"],
+    "2": ["2.3", "2.1", "2.2", "2.5", "2.6", "2.7", "2.8", "2.9"],
+    "3": ["3.1", "3.3", "3.2", "3.4", "3.5", "3.6", "3.7"],
+    "4": ["4.1", "4.2"],
+    "5": ["5.1", "5.3"],
+    "6": ["6.2", "6.3", "6.1", "6.5", "6.4", "6.6", "6.7"],
+    "7": ["7.1", "7.2"],
+    "8": ["8.1", "8.2"],
+    "9": ["9.1"],
+    "0": ["0.0", "0.5", "0.4", "0.1", "0.2", "0.3", "0.6"]
+  };
 
   function readEmbeddedTree() {
     const node = byId("family-tree-data");
@@ -29,160 +39,119 @@
     return fallback;
   }
 
-  function tfCount(node) { return num(node.tf_count || node.count); }
-  function countLabel(node) {
-    const count = tfCount(node);
-    return count ? `${count.toLocaleString()} records` : "count pending";
+  function tfCount(node) { return num(node && (node.tf_count || node.count)); }
+  function fmt(value) { return num(value).toLocaleString(); }
+  function searchUrl(node) {
+    const q = node && (node.search_query || node.short_label || node.label || "");
+    return q ? `/search?q=${encodeURIComponent(q)}` : "/search";
   }
-  function childMap(nodes) {
-    const out = new Map();
-    nodes.forEach((node) => {
-      const parent = node.parent_id || null;
-      if (!out.has(parent)) out.set(parent, []);
-      out.get(parent).push(node);
+  function displayLabel(node) {
+    if (!node) return "TF family";
+    return node.short_label || String(node.label || "TF family")
+      .replace(" DNA-binding domains", "")
+      .replace(" domains", "")
+      .replace(" factors", "");
+  }
+  function childrenOf(parentId) {
+    const raw = nodes.filter((node) => node.parent_id === parentId);
+    const priority = childPriority[parentId] || [];
+    return raw.sort((a, b) => {
+      const ia = priority.indexOf(a.family_id);
+      const ib = priority.indexOf(b.family_id);
+      if (ia !== -1 || ib !== -1) return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      const ca = tfCount(a);
+      const cb = tfCount(b);
+      if (ca || cb) return cb - ca;
+      return num(a.display_order) - num(b.display_order) || displayLabel(a).localeCompare(displayLabel(b));
     });
-    out.forEach((children) => children.sort((a, b) => num(a.display_order) - num(b.display_order) || String(a.label).localeCompare(String(b.label))));
-    return out;
-  }
-
-  function computeLayout(nodes) {
-    const children = childMap(nodes);
-    const byFamily = new Map(nodes.map((node) => [node.family_id, node]));
-    let y = TOP;
-
-    function layoutNode(node, depth) {
-      const nodeChildren = children.get(node.family_id) || [];
-      node._depth = depth;
-      node._x = depth === 0 ? X.root : depth === 1 ? X.branch : X.leaf;
-      if (!nodeChildren.length) {
-        node._y = y;
-        y += ROW;
-        return node._y;
-      }
-      const childYs = nodeChildren.map((child) => layoutNode(child, depth + 1));
-      node._y = (Math.min(...childYs) + Math.max(...childYs)) / 2;
-      return node._y;
-    }
-
-    const roots = children.get(null).length ? children.get(null) : [byFamily.get("root") || nodes[0]];
-    roots.filter(Boolean).forEach((root) => layoutNode(root, 0));
-    return { byFamily, height: Math.max(620, y + TOP), width: X.leaf + RIGHT_PAD };
-  }
-
-  function radius(node, maxCount) {
-    if (node.family_id === "root") return 31;
-    const count = tfCount(node);
-    if (!count || !maxCount) return 4.5;
-    return Math.max(4.5, Math.min(23, 4.5 + Math.sqrt(count / maxCount) * 22));
-  }
-  function innerRadius(node, outer) {
-    const total = tfCount(node);
-    const pwm = num(node.generated_pwm_tf_count);
-    if (!total || !pwm) return Math.max(1.5, outer * 0.30);
-    return outer * Math.sqrt(Math.min(pwm / total, 1));
-  }
-  function pathD(parent, child) {
-    const mx = (parent._x + child._x) / 2;
-    return `M${parent._x},${parent._y} C${mx},${parent._y} ${mx},${child._y} ${child._x},${child._y}`;
   }
   function setText(id, value) {
-    const node = byId(id);
-    if (node) node.textContent = value;
+    const element = byId(id);
+    if (element) element.textContent = value;
   }
-  function setMetric(id, value) { setText(id, num(value).toLocaleString()); }
-  function updatePanel(node) {
-    setText("selected-family-eyebrow", node.parent_id ? "Selected family" : "Database root");
-    setText("selected-family-label", node.label || node.short_label || "Family");
-    setMetric("selected-family-count", tfCount(node));
-    setMetric("selected-known-count", node.known_count);
-    setMetric("selected-homologous-count", node.homologous_count);
-    setMetric("selected-relative-count", node.relative_homologous_count);
-    setMetric("selected-predicted-count", node.predicted_low_count || (num(node.modcre_count) + num(node.alphafold_count)));
-    setMetric("selected-generated-count", node.generated_pwm_tf_count);
-    setMetric("selected-model-count", node.model_tf_count || node.active_model_tf_count);
-    setMetric("selected-monomer-count", node.monomer_model_tf_count);
-    setMetric("selected-dimer-count", node.dimer_model_tf_count);
-    const open = byId("selected-family-open");
-    if (open) open.href = node.open_url || (node.search_query ? `/search?q=${encodeURIComponent(node.search_query)}` : "/search");
-    const search = byId("selected-family-search");
-    if (search) {
-      const q = node.search_query || node.short_label || node.label || "";
-      search.href = q ? `/search?q=${encodeURIComponent(q)}` : "/search";
-      search.textContent = q ? `Search ${q}` : "Search records";
+  function showHome() {
+    const home = byId("home-view");
+    const browse = byId("family-browse-view");
+    if (home) home.classList.remove("hidden");
+    if (browse) browse.classList.add("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function showBrowse() {
+    const home = byId("home-view");
+    const browse = byId("family-browse-view");
+    if (home) home.classList.add("hidden");
+    if (browse) browse.classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function metricSpan(label, value) {
+    const count = num(value);
+    if (!count) return "";
+    return `<span>${label} ${fmt(count)}</span>`;
+  }
+  function updateSelectedSubfamily(node) {
+    if (!node) return;
+    setText("selected-subfamily-title", displayLabel(node));
+    const metrics = [
+      metricSpan("Records", tfCount(node)),
+      metricSpan("Known", node.known_count),
+      metricSpan("Nearest Neighbor", node.homologous_count),
+      metricSpan("50-70%", node.relative_homologous_count),
+      metricSpan("Generated PWM", node.generated_pwm_tf_count),
+      metricSpan("3D models", node.model_tf_count || node.active_model_tf_count)
+    ].filter(Boolean).join("") || "<span>Open matching records in search</span>";
+    const metricsNode = byId("selected-subfamily-metrics");
+    if (metricsNode) metricsNode.innerHTML = metrics;
+    const open = byId("selected-subfamily-open");
+    if (open) open.href = searchUrl(node);
+    const input = byId("family-browse-q");
+    if (input) input.value = node.search_query || node.short_label || node.label || "";
+    document.querySelectorAll(".subfamily-card").forEach((card) => {
+      card.classList.toggle("is-selected", card.getAttribute("data-family-id") === node.family_id);
+    });
+  }
+  function renderSubfamilies(parentId) {
+    const grid = byId("subfamily-grid");
+    if (!grid) return;
+    grid.textContent = "";
+    const children = childrenOf(parentId);
+    children.forEach((child) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "subfamily-card";
+      button.setAttribute("data-family-id", child.family_id);
+      const count = tfCount(child);
+      button.innerHTML = `<strong>${displayLabel(child)}</strong><span class="badge">${count ? fmt(count) : "Open"}</span>`;
+      button.addEventListener("click", () => updateSelectedSubfamily(child));
+      grid.appendChild(button);
+    });
+    updateSelectedSubfamily(children[0] || nodeById.get(parentId));
+  }
+  function openFamily(parentId) {
+    const parent = nodeById.get(parentId);
+    if (!parent) return;
+    selectedFamilyId = parentId;
+    setText("family-browse-title", displayLabel(parent));
+    setText("family-browse-description", "Choose a subfamily, then filter matching records.");
+    const input = byId("family-browse-q");
+    if (input) {
+      input.value = parent.search_query || "";
+      input.placeholder = `Search within ${displayLabel(parent)}`;
     }
+    renderSubfamilies(parentId);
+    showBrowse();
   }
-  function addText(svg, text, x, y, className, anchor) {
-    const element = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    element.setAttribute("x", x);
-    element.setAttribute("y", y);
-    element.setAttribute("class", className);
-    if (anchor) element.setAttribute("text-anchor", anchor);
-    element.textContent = text;
-    svg.appendChild(element);
-  }
-  function select(nodes, familyId) {
-    const selected = nodes.find((node) => node.family_id === familyId);
-    if (!selected) return;
-    document.querySelectorAll(".family-tree-node").forEach((node) => {
-      node.classList.toggle("is-selected", node.getAttribute("data-family-id") === familyId);
+  function bindFamilyCards() {
+    document.querySelectorAll(".home-family-card[data-family-id]").forEach((card) => {
+      card.addEventListener("click", () => openFamily(card.getAttribute("data-family-id")));
     });
-    updatePanel(selected);
-  }
-  function render(nodes) {
-    const svg = byId("family-tree-svg");
-    if (!svg || !nodes.length) return;
-    svg.textContent = "";
-    const { byFamily, height, width } = computeLayout(nodes);
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.style.height = `${height}px`;
-    const maxCount = Math.max(...nodes.map(tfCount), 1);
-    const tooltip = byId("family-tree-tooltip");
-
-    nodes.forEach((node) => {
-      const parent = byFamily.get(node.parent_id);
-      if (!parent) return;
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("class", "family-tree-link");
-      path.setAttribute("d", pathD(parent, node));
-      svg.appendChild(path);
-    });
-
-    nodes.forEach((node) => {
-      const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      group.setAttribute("class", "family-tree-node");
-      group.setAttribute("data-family-id", node.family_id);
-      group.setAttribute("tabindex", "0");
-      group.setAttribute("role", "button");
-      group.setAttribute("transform", `translate(${node._x},${node._y})`);
-      const outerRadius = radius(node, maxCount);
-      const outer = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      outer.setAttribute("class", "family-tree-node-ring");
-      outer.setAttribute("r", outerRadius);
-      group.appendChild(outer);
-      const inner = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-      inner.setAttribute("class", "family-tree-node-fill");
-      inner.setAttribute("r", innerRadius(node, outerRadius));
-      group.appendChild(inner);
-      group.addEventListener("click", () => select(nodes, node.family_id));
-      group.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(nodes, node.family_id); }
-      });
-      group.addEventListener("mousemove", (event) => {
-        if (!tooltip) return;
-        tooltip.hidden = false;
-        tooltip.style.left = `${event.offsetX + 16}px`;
-        tooltip.style.top = `${event.offsetY + 16}px`;
-        tooltip.innerHTML = `<strong>${node.label}</strong><br>${countLabel(node)}<br>Known: ${num(node.known_count).toLocaleString()}<br>Nearest Neighbor: ${num(node.homologous_count).toLocaleString()}<br>Generated PWM TFs: ${num(node.generated_pwm_tf_count).toLocaleString()}<br>3D model TFs: ${num(node.model_tf_count).toLocaleString()}`;
-      });
-      group.addEventListener("mouseleave", () => { if (tooltip) tooltip.hidden = true; });
-      svg.appendChild(group);
-      const anchor = node._depth < 2 ? "end" : "start";
-      const labelX = node._x + (anchor === "end" ? -(outerRadius + 8) : outerRadius + 10);
-      addText(svg, node.short_label || node.label, labelX, node._y + 4, "family-tree-node-label", anchor);
-    });
-    const first = nodes.find((node) => node.family_id === "2.3") || nodes.find((node) => tfCount(node) > 0) || nodes[0];
-    if (first) select(nodes, first.family_id);
+    const back = byId("back-to-home");
+    if (back) back.addEventListener("click", showHome);
   }
 
-  document.addEventListener("DOMContentLoaded", async () => render(await loadTreeData()));
+  document.addEventListener("DOMContentLoaded", async () => {
+    nodes = await loadTreeData();
+    nodeById = new Map(nodes.map((node) => [node.family_id, node]));
+    bindFamilyCards();
+    if (selectedFamilyId) openFamily(selectedFamilyId);
+  });
 })();
