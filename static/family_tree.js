@@ -2,7 +2,11 @@
   "use strict";
 
   const byId = (id) => document.getElementById(id);
-  const num = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
+  const X = { root: 90, branch: 330, leaf: 650 };
+  const TOP = 48;
+  const ROW = 70;
+  const RIGHT_PAD = 520;
 
   function readEmbeddedTree() {
     const node = byId("family-tree-data");
@@ -24,33 +28,66 @@
   }
 
   function tfCount(node) { return num(node.tf_count || node.count); }
-  function radius(node, maxCount) {
-    if (node.family_id === "root") return 43;
+  function countLabel(node) {
     const count = tfCount(node);
-    if (!count || !maxCount) return 10;
-    return Math.max(9, Math.min(40, 8 + Math.sqrt(count / maxCount) * 36));
+    return count ? `${count.toLocaleString()} records` : "count pending";
+  }
+  function childMap(nodes) {
+    const out = new Map();
+    nodes.forEach((node) => {
+      const parent = node.parent_id || null;
+      if (!out.has(parent)) out.set(parent, []);
+      out.get(parent).push(node);
+    });
+    out.forEach((children) => children.sort((a, b) => num(a.display_order) - num(b.display_order) || String(a.label).localeCompare(String(b.label))));
+    return out;
+  }
+
+  function computeLayout(nodes) {
+    const children = childMap(nodes);
+    const byFamily = new Map(nodes.map((node) => [node.family_id, node]));
+    let y = TOP;
+
+    function layoutNode(node, depth) {
+      const nodeChildren = children.get(node.family_id) || [];
+      node._depth = depth;
+      node._x = depth === 0 ? X.root : depth === 1 ? X.branch : X.leaf;
+      if (!nodeChildren.length) {
+        node._y = y;
+        y += ROW;
+        return node._y;
+      }
+      const childYs = nodeChildren.map((child) => layoutNode(child, depth + 1));
+      node._y = (Math.min(...childYs) + Math.max(...childYs)) / 2;
+      return node._y;
+    }
+
+    const roots = children.get(null).length ? children.get(null) : [byFamily.get("root") || nodes[0]];
+    roots.filter(Boolean).forEach((root) => layoutNode(root, 0));
+    return { byFamily, height: Math.max(700, y + TOP), width: X.leaf + RIGHT_PAD };
+  }
+
+  function radius(node, maxCount) {
+    if (node.family_id === "root") return 38;
+    const count = tfCount(node);
+    if (!count || !maxCount) return 9;
+    return Math.max(8, Math.min(34, 7 + Math.sqrt(count / maxCount) * 31));
   }
   function innerRadius(node, outer) {
     const total = tfCount(node);
     const pwm = num(node.generated_pwm_tf_count);
-    if (!total || !pwm) return Math.max(2, outer * 0.32);
+    if (!total || !pwm) return Math.max(2, outer * 0.30);
     return outer * Math.sqrt(Math.min(pwm / total, 1));
   }
   function pathD(parent, child) {
-    const mx = (num(parent.x) + num(child.x)) / 2;
-    return `M${num(parent.x)},${num(parent.y)} C${mx},${num(parent.y)} ${mx},${num(child.y)} ${num(child.x)},${num(child.y)}`;
-  }
-  function countLabel(node) {
-    const count = tfCount(node);
-    return count ? `${count.toLocaleString()} records` : "count pending";
+    const mx = (parent._x + child._x) / 2;
+    return `M${parent._x},${parent._y} C${mx},${parent._y} ${mx},${child._y} ${child._x},${child._y}`;
   }
   function setText(id, value) {
     const node = byId(id);
     if (node) node.textContent = value;
   }
-  function setMetric(id, value) {
-    setText(id, num(value).toLocaleString());
-  }
+  function setMetric(id, value) { setText(id, num(value).toLocaleString()); }
   function updatePanel(node) {
     setText("selected-family-eyebrow", node.parent_id ? "Selected family" : "Database root");
     setText("selected-family-label", node.label || node.short_label || "Family");
@@ -93,7 +130,10 @@
     const svg = byId("family-tree-svg");
     if (!svg || !nodes.length) return;
     svg.textContent = "";
-    const byFamily = new Map(nodes.map((node) => [node.family_id, node]));
+    const { byFamily, height, width } = computeLayout(nodes);
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.style.height = `${height}px`;
+    svg.style.width = `${width}px`;
     const maxCount = Math.max(...nodes.map(tfCount), 1);
     const tooltip = byId("family-tree-tooltip");
 
@@ -112,7 +152,7 @@
       group.setAttribute("data-family-id", node.family_id);
       group.setAttribute("tabindex", "0");
       group.setAttribute("role", "button");
-      group.setAttribute("transform", `translate(${num(node.x)},${num(node.y)})`);
+      group.setAttribute("transform", `translate(${node._x},${node._y})`);
       const outerRadius = radius(node, maxCount);
       const outer = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       outer.setAttribute("class", "family-tree-node-ring");
@@ -135,14 +175,14 @@
       });
       group.addEventListener("mouseleave", () => { if (tooltip) tooltip.hidden = true; });
       svg.appendChild(group);
-      const anchor = num(node.x) < 410 ? "end" : "start";
-      const x = num(node.x) + (anchor === "end" ? -(outerRadius + 8) : outerRadius + 8);
-      const y = num(node.y) + 4;
-      addText(svg, node.short_label || node.label, x, y, "family-tree-node-label", anchor);
-      addText(svg, countLabel(node), x, y + 15, "family-tree-node-count", anchor);
+      const anchor = node._depth < 2 ? "end" : "start";
+      const labelX = node._x + (anchor === "end" ? -(outerRadius + 10) : outerRadius + 12);
+      addText(svg, node.short_label || node.label, labelX, node._y - 2, "family-tree-node-label", anchor);
+      addText(svg, countLabel(node), labelX, node._y + 15, "family-tree-node-count", anchor);
     });
     const first = nodes.find((node) => node.family_id === "2.3") || nodes.find((node) => tfCount(node) > 0) || nodes[0];
     if (first) select(nodes, first.family_id);
   }
+
   document.addEventListener("DOMContentLoaded", async () => render(await loadTreeData()));
 })();
