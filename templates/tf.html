@@ -10,32 +10,36 @@
       {% else %}
         <p>{{ tf.family_text }}</p>
       {% endif %}
+      {% if tf.reviewed != 1 %}
+        <p class="record-note">Unreviewed UniProt sequence record. Evidence belongs to this accession and should not automatically be generalized to every record with the same gene symbol.</p>
+      {% endif %}
     </div>
     <div class="record-stats">
-      <div><strong>{{ tf_status.fimo_ready_pwm_count }}</strong><span>FIMO-ready PWMs</span></div>
+      <div><strong>{{ tf_status.fimo_ready_pwm_count }}</strong><span>distinct FIMO-ready matrices</span></div>
       <div><strong>{{ tf_status.active_model_count }}</strong><span>active models</span></div>
-      <div><strong>{{ tf.motif_ref_count }}</strong><span>evidence links</span></div>
+      <div><strong>{{ evidence_link_count }}</strong><span>preserved evidence links</span></div>
     </div>
   </section>
 
   <section class="decision-card">
     {% set decision_primary_entries = tf_status.best_pwm_or_model.split(";") if tf_status.best_pwm_or_model else [] %}
     <div class="section-head">
-      <h2>Primary Annotation and Scan Decision</h2>
-      <span class="scan-status {% if tf_status.can_scan %}yes{% else %}no{% endif %}">Can scan DNA: {{ tf_status.can_scan_label }}</span>
+      <h2>Evidence and Scan Summary</h2>
+      <span class="scan-status {% if tf_status.can_scan %}yes{% else %}no{% endif %}">FIMO scan: {% if tf_status.can_scan %}Available{% else %}Unavailable{% endif %}</span>
     </div>
     <div class="decision-grid">
-      <div><span>Primary evidence tier</span><strong>{{ tf_status.primary_evidence_label }}</strong></div>
-      <div><span>Primary PWM/model</span><strong>{% if decision_primary_entries|length > 1 %}{{ decision_primary_entries|length }} listed records{% elif decision_primary_entries %}<span class="mono">{{ decision_primary_entries[0]|trim }}</span>{% else %}Not assigned{% endif %}</strong></div>
-      <div><span>Non-empty annotation columns</span><strong>{{ tf_status.n_nonempty_annotation_columns }}</strong></div>
-      <div><span>FIMO-ready PWM count</span><strong>{{ tf_status.fimo_ready_pwm_count }}</strong></div>
+      <div><span>Primary annotation</span><strong>{{ tf_status.primary_evidence_label }}</strong></div>
+      <div><span>Selected hierarchy entries</span><strong>{% if decision_primary_entries|length > 1 %}{{ decision_primary_entries|length }} candidate links{% elif decision_primary_entries %}<span class="mono">{{ decision_primary_entries[0]|trim }}</span>{% else %}Not assigned{% endif %}</strong></div>
+      <div><span>Distinct usable matrices</span><strong>{{ tf_status.fimo_ready_pwm_count }}</strong></div>
+      <div><span>Scan-ready evidence links</span><strong>{{ fimo_ready_evidence_link_count }}</strong></div>
+      <div><span>Preserved evidence links</span><strong>{{ evidence_link_count }}</strong></div>
       <div><span>Active model count</span><strong>{{ tf_status.active_model_count }}</strong></div>
     </div>
-    <p><strong>Recommended use:</strong> {{ tf_status.recommended_use }}</p>
+    <p><strong>Interpretation:</strong> {{ tf_status.recommended_use }}</p>
     <p class="decision-caveat"><strong>Main caveat:</strong> {{ tf_status.main_caveat }}</p>
     <div class="actions">
       {% if tf_status.can_scan %}
-        <a class="button-link" href="/scan?tf_id={{ tf.tf_id|quote }}">Scan DNA with this TF</a>
+        <a class="button-link" href="/scan?tf_id={{ tf.tf_id|quote }}">Scan DNA with linked motifs</a>
       {% else %}
         <p class="muted">No FIMO-ready PWM is available for this TF in the current database build.</p>
       {% endif %}
@@ -49,17 +53,17 @@
       {% set primary_entries = raw_primary.split(";") if raw_primary else [] %}
       <div class="annotation-grid">
         <div><span>Final hierarchical label</span><strong>{{ tf_status.primary_evidence_label }}</strong></div>
-        <div><span>Primary PWM/model</span><strong>{% if primary_entries|length > 1 %}{{ primary_entries|length }} entries{% elif primary_entries %}<span class="mono">{{ primary_entries[0]|trim }}</span>{% else %}None selected{% endif %}</strong></div>
+        <div><span>Selected hierarchy entries</span><strong>{% if primary_entries|length > 1 %}{{ primary_entries|length }} candidate links{% elif primary_entries %}<span class="mono">{{ primary_entries[0]|trim }}</span>{% else %}None selected{% endif %}</strong></div>
         <div><span>Non-empty annotation columns</span><strong>{{ primary_annotation.n_nonempty_annotation_columns }}</strong></div>
       </div>
       {% if primary_entries|length > 1 %}
         <div class="primary-list-preview">
-          <p><strong>Primary PWM/model preview</strong> · <a href="#all-evidence">see all motif/model evidence</a></p>
+          <p><strong>Selected hierarchy preview</strong> · <a href="#all-evidence">see all preserved evidence</a></p>
           <ul class="mono">
             {% for entry in primary_entries[:3] %}<li>{{ entry|trim }}</li>{% endfor %}
           </ul>
           <details>
-            <summary>Show all {{ primary_entries|length }} primary entries</summary>
+            <summary>Show all {{ primary_entries|length }} selected hierarchy entries</summary>
             <ul class="mono">{% for entry in primary_entries %}<li>{{ entry|trim }}</li>{% endfor %}</ul>
           </details>
         </div>
@@ -82,70 +86,144 @@
     {% endif %}
   </section>
 
-  <section id="fimo-evidence">
+  {% if region_groups %}
+    <section id="binding-regions">
+      <div class="section-head">
+        <h2>DNA-binding Regions</h2>
+        <span class="muted">{{ region_groups|length }} region{% if region_groups|length != 1 %}s{% endif %} with explicit residue ranges</span>
+      </div>
+      <p class="muted">Regions come from explicit residue intervals in the local model files. General public or homology motifs without a residue interval remain in the evidence groups below.</p>
+      <div class="region-grid">
+        {% for region in region_groups %}
+          <article class="region-panel">
+            <div class="section-head">
+              <h3>Region {{ region.start }}-{{ region.end }}</h3>
+              <span class="muted">{{ region.width }} aa</span>
+            </div>
+            {% if tf_status.can_scan %}<p><a href="/scan?tf_id={{ tf.tf_id|quote }}&tf_region={{ (region.start ~ '-' ~ region.end)|quote }}">Scan this region</a></p>{% endif %}
+            {% if tf.sequence_length %}
+              <div class="domain-track" aria-label="Region {{ region.start }} to {{ region.end }} on protein length {{ tf.sequence_length }}">
+                <span style="left: {{ region.track_left }}%; width: {{ region.track_width }}%;"></span>
+              </div>
+              <div class="domain-track-labels"><span>1</span><span>{{ tf.sequence_length }} aa</span></div>
+            {% endif %}
+            <div class="region-stats">
+              <span>{{ region.motifs|length }} motif{% if region.motifs|length != 1 %}s{% endif %}</span>
+              <span>{{ region.models|length }} active model{% if region.models|length != 1 %}s{% endif %}</span>
+            </div>
+            {% if region.templates %}
+              <p class="muted">Templates:
+                {% for template in region.templates %}
+                  <a class="mono" href="{{ pdb_url(template) }}" target="_blank" rel="noopener">{{ template }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                {% if region.template_count > region.templates|length %} and {{ region.template_count - region.templates|length }} more{% endif %}
+              </p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section id="motif-evidence">
     <div class="section-head">
-      <h2>FIMO-ready Motif Evidence</h2>
-      <span class="muted">{{ fimo_ready_rows|length }} usable PWM record{% if fimo_ready_rows|length != 1 %}s{% endif %}</span>
+      <h2>Motif Evidence</h2>
+      <span class="muted">{{ fimo_ready_rows|length }} distinct FIMO-ready matrices from {{ fimo_ready_evidence_link_count }} scan-ready evidence link{% if fimo_ready_evidence_link_count != 1 %}s{% endif %}</span>
     </div>
-    <div class="table-wrap wide-table">
-      <table>
-        <thead><tr><th>Motif ID</th><th>Source</th><th>Evidence</th><th>Mapping</th><th>Identity</th><th>Consensus</th><th>Matrix status</th><th>Linked model</th><th>Actions</th></tr></thead>
-        <tbody>
-          {% for row in fimo_ready_rows %}
-            <tr>
-              <td class="mono"><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
-              <td>{{ source_labels.get(row.source, row.source) }}</td>
-              <td>{{ evidence_display_label(row) }}</td>
-              <td>{{ mapping_type_label(row.mapping_type) }}</td>
-              <td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td>
-              <td class="mono">{{ row.consensus or "" }}</td>
-              <td>{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}</td>
-              <td>{{ model_link_status(row.exact_active_model_count, tf_status.active_model_count) }}</td>
-              <td><a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a> · <a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif</a></td>
-            </tr>
-          {% else %}
-            <tr><td colspan="9">No FIMO-ready PWM is available for this TF.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <p class="muted">Cards show only usable PWM records, grouped by evidence layer. Model-only and no-matrix records remain available in the collapsed audit section.</p>
+    <div class="legend-grid compact-legend">
+      {% for key, info in evidence_info.items() %}
+        <div>
+          <strong>{{ evidence_labels[key] }}</strong>
+          <span>{{ info.trust }}</span>
+          <p>{{ info.use }}</p>
+        </div>
+      {% endfor %}
     </div>
+    {% for evidence, rows in grouped.items() %}
+      {% set display_rows = rows|selectattr("matrix_status", "equalto", "usable")|selectattr("missing_local_file", "equalto", 0)|list %}
+      {% set not_shown_count = rows|length - display_rows|length %}
+      <details class="evidence-group" {% if display_rows and evidence == primary_evidence_key %}open{% endif %}>
+        <summary>
+          {{ evidence_labels[evidence] }}
+          <span>{{ display_rows|length }} scan-ready evidence link{% if display_rows|length != 1 %}s{% endif %}{% if not_shown_count > 0 %}; {{ not_shown_count }} audit record{% if not_shown_count != 1 %}s{% endif %}{% endif %}</span>
+        </summary>
+        {% if display_rows %}
+          <div class="motif-grid">
+            {% for row in display_rows[:visible_limit] %}
+              <article class="motif-card">
+                <div class="motif-card-head">
+                  <a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a>
+                  <span>{{ source_labels.get(row.source, row.source) }}</span>
+                </div>
+                {% set external_links = motif_external_links(row.source, row.motif_id) %}
+                {% if external_links %}
+                  <div class="external-links">
+                    {% for link in external_links %}
+                      <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+                <div class="matrix-badges">
+                  <span class="matrix-badge ready">FIMO-ready</span>
+                  {% if row.mapping_type == "public_database_mapping_unconfirmed" %}<span class="matrix-badge pending">Mapping pending</span>{% endif %}
+                  {% if row.curation_status == "pending_confirmation" %}<span class="matrix-badge pending">Pending confirmation</span>{% endif %}
+                </div>
+                <div class="semantic-grid">
+                  <div><span>Evidence</span><strong>{{ evidence_display_label(row) }}</strong></div>
+                  <div><span>Mapping</span><strong>{{ mapping_type_label(row.mapping_type) }}</strong></div>
+                  {% if row.identity_percent is not none %}<div><span>Identity</span><strong>{{ "%.1f"|format(row.identity_percent) }}%</strong></div>{% endif %}
+                  <div><span>Structural link</span><strong>{{ model_link_status(row.exact_active_model_count, tf_status.active_model_count) }}</strong></div>
+                </div>
+                {% if row.consensus %}
+                  <p class="mono consensus">{{ row.consensus }}</p>
+                  {{ row.matrix_json|pwm_svg(true)|safe }}
+                {% endif %}
+                <div class="external-links">
+                  <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan DNA</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+          {% if display_rows|length > visible_limit %}<p class="muted">Showing the first {{ visible_limit }} cards. The complete evidence list is available below.</p>{% endif %}
+        {% else %}
+          <p class="muted">No FIMO-ready PWM records in this evidence layer.</p>
+        {% endif %}
+      </details>
+    {% endfor %}
   </section>
 
   <section id="all-evidence">
     <div class="section-head">
-      <h2>All Motif/Model Evidence</h2>
+      <h2>Advanced Evidence Audit</h2>
       <span class="muted">{{ motif_rows|length }} preserved evidence link{% if motif_rows|length != 1 %}s{% endif %}</span>
     </div>
-    {% if collapse_all_evidence %}
-      <details class="evidence-group">
-        <summary>Show all {{ motif_rows|length }} preserved evidence links</summary>
-        <p class="muted">This full evidence-link table is collapsed to keep a large candidate list from dominating the record page.</p>
-    {% endif %}
-    <div class="table-wrap wide-table">
-      <table>
-        <thead><tr><th>Motif/model ID</th><th>Source</th><th>Evidence</th><th>Mapping</th><th>Identity</th><th>Matrix status</th><th>FIMO-ready</th><th>Linked model</th><th>Actions</th></tr></thead>
-        <tbody>
-          {% for row in motif_rows %}
-            <tr>
-              <td class="mono"><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
-              <td>{{ source_labels.get(row.source, row.source) }}</td>
-              <td>{{ evidence_display_label(row) }}</td>
-              <td>{{ mapping_type_label(row.mapping_type) }}</td>
-              <td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td>
-              <td>{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}</td>
-              <td>{% if row.matrix_status == "usable" and row.missing_local_file == 0 %}Yes{% else %}No{% endif %}</td>
-              <td>{{ model_link_status(row.exact_active_model_count, tf_status.active_model_count) }}</td>
-              <td>{% if row.matrix_status == "usable" and row.missing_local_file == 0 %}<a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a> · {% endif %}<a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif</a></td>
-            </tr>
-          {% else %}
-            <tr><td colspan="9">No supporting motif/model evidence links are available.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% if collapse_all_evidence %}
-      </details>
-    {% endif %}
+    <details class="evidence-group">
+      <summary>Show all {{ motif_rows|length }} preserved motif/model evidence links</summary>
+      <p class="muted">This is the complete technical evidence table. It stays collapsed so that model IDs and duplicate candidate links do not dominate the biological record view.</p>
+      <div class="table-wrap wide-table">
+        <table>
+          <thead><tr><th>Motif/model ID</th><th>Source</th><th>Evidence</th><th>Mapping</th><th>Identity</th><th>Matrix status</th><th>FIMO-ready</th><th>Linked model</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for row in motif_rows %}
+              <tr>
+                <td class="mono"><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
+                <td>{{ source_labels.get(row.source, row.source) }}</td>
+                <td>{{ evidence_display_label(row) }}</td>
+                <td>{{ mapping_type_label(row.mapping_type) }}</td>
+                <td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td>
+                <td>{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}</td>
+                <td>{% if row.matrix_status == "usable" and row.missing_local_file == 0 %}Yes{% else %}No{% endif %}</td>
+                <td>{{ model_link_status(row.exact_active_model_count, tf_status.active_model_count) }}</td>
+                <td>{% if row.matrix_status == "usable" and row.missing_local_file == 0 %}<a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a> · {% endif %}<a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif</a></td>
+              </tr>
+            {% else %}
+              <tr><td colspan="9">No supporting motif/model evidence links are available.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
   </section>
 
   <section id="audit-evidence">
@@ -179,49 +257,41 @@
 
   <section id="structural-models">
     <h2>Structural Models</h2>
-    {% if region_groups %}
-      <h3>DNA-binding Regions</h3>
-      <div class="region-grid">
-        {% for region in region_groups %}
-          <article class="region-panel">
-            <div class="section-head"><h3>Region {{ region.start }}-{{ region.end }}</h3><span class="muted">{{ region.width }} aa</span></div>
-            {% if tf_status.can_scan %}<p><a href="/scan?tf_id={{ tf.tf_id|quote }}&tf_region={{ (region.start ~ '-' ~ region.end)|quote }}">Scan this region</a></p>{% endif %}
-            {% if tf.sequence_length %}
-              <div class="domain-track"><span style="left: {{ region.track_left }}%; width: {{ region.track_width }}%;"></span></div>
-              <div class="domain-track-labels"><span>1</span><span>{{ tf.sequence_length }} aa</span></div>
-            {% endif %}
-            <div class="region-stats"><span>{{ region.motifs|length }} motif{% if region.motifs|length != 1 %}s{% endif %}</span><span>{{ region.models|length }} active model{% if region.models|length != 1 %}s{% endif %}</span></div>
-          </article>
-        {% endfor %}
-      </div>
+    {% if active_models %}
+      <p class="muted">{{ active_models|length }} active PDB model file{% if active_models|length != 1 %}s{% endif %}{% if active_model_source_counts %}: {% for source, count in active_model_source_counts|dictsort %}{{ count }} {{ source_labels.get(source, source) }}{% if not loop.last %}; {% endif %}{% endfor %}{% endif %}. Explicit residue intervals are summarized in the DNA-binding regions above.</p>
+      <details class="evidence-group" {% if active_models|length <= 12 %}open{% endif %}>
+        <summary>Show active PDB model files <span>{{ active_models|length }} model{% if active_models|length != 1 %}s{% endif %}</span></summary>
+        <div class="table-wrap wide-table">
+          <table>
+            <thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for model in active_models %}
+                <tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td class="mono">{{ model.template_pdb or "" }}</td><td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td><td><a href="/model?id={{ model.id }}">View 3D</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    {% else %}
+      <p class="muted">No active PDB models are indexed for this TF in the current database release.</p>
     {% endif %}
-    <div class="table-wrap wide-table">
-      <table>
-        <thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues</th><th>Actions</th></tr></thead>
-        <tbody>
-          {% for model in active_models %}
-            <tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td class="mono">{{ model.template_pdb or "" }}</td><td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td><td><a href="/model?id={{ model.id }}">View 3D</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>
-          {% else %}
-            <tr><td colspan="5">No active PDB models indexed for this TF.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
     {% if model_summaries %}
-      <h3>Model Summaries</h3>
-      <div class="table-wrap wide-table">
-        <table>
-          <thead><tr><th>Rank</th><th>Template</th><th>Residues</th><th>Protein chain</th><th>DNA chain</th><th>Coverage</th><th>Identity</th><th>Similarity</th><th>Model</th></tr></thead>
-          <tbody>
-            {% for row in model_summaries %}
-              <tr>
-                <td>{{ row.model_rank or "" }}</td><td>{% if row.template_pdb %}<a class="mono" href="{{ pdb_url(row.template_pdb) }}" target="_blank" rel="noopener">{{ row.template_pdb }}</a>{% endif %}</td><td>{{ row.n_tails or "" }}{% if row.c_tails %}-{{ row.c_tails }}{% endif %}</td><td class="mono">{{ row.protein_chain or "" }}</td><td class="mono">{{ row.dna_chain or "" }}</td><td>{{ row.coverage or "" }}</td><td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td><td>{% if row.similarity_percent is not none %}{{ "%.1f"|format(row.similarity_percent) }}%{% endif %}</td>
-                <td>{% if row.matched_file_id %}{% if row.matched_file_type == "pdb" %}<a href="/model?id={{ row.matched_file_id }}">View 3D</a> · {% endif %}<a href="/download/model?id={{ row.matched_file_id }}">{{ row.matched_file_type|upper }}</a>{% else %}<span class="muted">unlinked</span>{% endif %}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      <details class="evidence-group">
+        <summary>Model summaries <span>{{ model_summaries|length }} row{% if model_summaries|length != 1 %}s{% endif %}</span></summary>
+        <div class="table-wrap wide-table">
+          <table>
+            <thead><tr><th>Rank</th><th>Template</th><th>Residues</th><th>Protein chain</th><th>DNA chain</th><th>Coverage</th><th>Identity</th><th>Similarity</th><th>Model</th></tr></thead>
+            <tbody>
+              {% for row in model_summaries %}
+                <tr>
+                  <td>{{ row.model_rank or "" }}</td><td>{% if row.template_pdb %}<a class="mono" href="{{ pdb_url(row.template_pdb) }}" target="_blank" rel="noopener">{{ row.template_pdb }}</a>{% endif %}</td><td>{{ row.n_tails or "" }}{% if row.c_tails %}-{{ row.c_tails }}{% endif %}</td><td class="mono">{{ row.protein_chain or "" }}</td><td class="mono">{{ row.dna_chain or "" }}</td><td>{{ row.coverage or "" }}</td><td>{% if row.identity_percent is not none %}{{ "%.1f"|format(row.identity_percent) }}%{% endif %}</td><td>{% if row.similarity_percent is not none %}{{ "%.1f"|format(row.similarity_percent) }}%{% endif %}</td>
+                  <td>{% if row.matched_file_id %}{% if row.matched_file_type == "pdb" %}<a href="/model?id={{ row.matched_file_id }}">View 3D</a> · {% endif %}<a href="/download/model?id={{ row.matched_file_id }}">{{ row.matched_file_type|upper }}</a>{% else %}<span class="muted">unlinked</span>{% endif %}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
     {% endif %}
   </section>
 {% endblock %}

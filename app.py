@@ -33,6 +33,11 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_DB = APP_DIR / "data" / "tf_webdb.sqlite"
 DEFAULT_MAX_POST_BYTES = int(os.environ.get("TF_WEBDB_MAX_POST_BYTES", "1000000"))
+MODEL_CACHE_DIR = (
+    Path(os.environ["TF_WEBDB_MODEL_CACHE_DIR"]).expanduser()
+    if os.environ.get("TF_WEBDB_MODEL_CACHE_DIR")
+    else None
+)
 EVIDENCE_LABELS = {
     "identical": "Identical PWM",
     "homologous": "Homologous PWM",
@@ -466,6 +471,8 @@ def fetch_search_motif_rows(
         SELECT mf.source, mf.motif_id, mf.matrix_status, mf.consensus, mf.width,
                COUNT(DISTINCT mr.tf_id) AS linked_tf_count,
                GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types,
+               GROUP_CONCAT(DISTINCT mr.mapping_type) AS mapping_types,
+               GROUP_CONCAT(DISTINCT mr.curation_status) AS curation_statuses,
                MAX(CASE WHEN mr.tf_id = ? THEN 1 ELSE 0 END) AS preferred_tf_link,
                MAX(
                    CASE WHEN (' ' || UPPER(COALESCE(ta_link.gene_names, '')) || ' ') LIKE ?
@@ -531,10 +538,10 @@ def model_link_status(exact_active_model_count: object, tf_active_model_count: o
     exact_count = int(exact_active_model_count or 0)
     tf_count = int(tf_active_model_count or 0)
     if exact_count > 0:
-        return "Yes" if exact_count == 1 else f"Yes ({exact_count})"
+        return "Exact motif-model link" if exact_count == 1 else f"{exact_count} exact motif-model links"
     if tf_count > 0:
-        return "TF model only"
-    return "No"
+        return "TF has active models; no exact motif-model link"
+    return "No active model link"
 
 
 def fetch_tf_statuses(conn: sqlite3.Connection, tf_ids: list[str]) -> dict[str, dict[str, object]]:
@@ -747,6 +754,25 @@ def evidence_display_label(row: object) -> str:
     ):
         return "Public motif evidence (mapping pending)"
     return EVIDENCE_LABELS.get(evidence_type, evidence_type or "Unknown")
+
+
+def search_evidence_summary(row: object) -> str:
+    source = str(row_value(row, "source", ""))
+    mapping_types = str(row_value(row, "mapping_types", ""))
+    curation_statuses = str(row_value(row, "curation_statuses", ""))
+    if source == "hocomoco" and (
+        "public_database_mapping_unconfirmed" in mapping_types
+        or "pending_confirmation" in curation_statuses
+    ):
+        return "Public motif evidence (mapping pending)"
+
+    evidence_types = [
+        value.strip()
+        for value in str(row_value(row, "evidence_types", "")).split(",")
+        if value.strip()
+    ]
+    labels = [EVIDENCE_LABELS.get(value, value) for value in evidence_types]
+    return ", ".join(labels) if labels else "No linked TF evidence"
 
 
 def mapping_type_label(mapping_type: object) -> str:
@@ -1808,6 +1834,7 @@ class TFWebApp:
         context.setdefault("curation_status_labels", CURATION_STATUS_LABELS)
         context.setdefault("primary_annotation_labels", PRIMARY_ANNOTATION_LABELS)
         context.setdefault("primary_annotation_label", primary_annotation_label)
+        context.setdefault("search_evidence_summary", search_evidence_summary)
         context.setdefault("debug_enabled", self.enable_debug)
         html_text = template.render(**context)
         return html_text.encode("utf-8")
@@ -1884,7 +1911,16 @@ class TFWebApp:
             all_rows.sort(key=lambda row: tf_search_sort_key(row, q))
             total = len(all_rows)
             rows = all_rows[:limit]
+            exact_tf_accession_search = bool(
+                q
+                and any(str(row["tf_id"]).upper() == q.upper() for row in all_rows)
+            )
             gene_summaries = fetch_gene_summaries(conn, q)
+            preferred_tf_ids = {
+                str(summary["preferred"]["tf_id"])
+                for summary in gene_summaries
+                if summary.get("preferred")
+            }
             motif_limit = 100
             preferred_tf_id = ""
             if gene_summaries:
@@ -1912,10 +1948,12 @@ class TFWebApp:
                 total=total,
                 limit=limit,
                 gene_summaries=gene_summaries,
+                preferred_tf_ids=preferred_tf_ids,
                 motif_rows=motif_rows,
                 motif_total=motif_total,
                 motif_limit=motif_limit,
                 motif_search_is_direct=motif_search_is_direct,
+                exact_tf_accession_search=exact_tf_accession_search,
             ),
             "text/html",
             200,
@@ -2024,10 +2062,20 @@ class TFWebApp:
         grouped: dict[str, list[sqlite3.Row]] = {key: [] for key in EVIDENCE_LABELS}
         for row in sorted(motif_rows, key=evidence_sort_key):
             grouped.setdefault(row["evidence_type"], []).append(row)
+        primary_evidence_key = {
+            "Identical_PWM": "identical",
+            "Homologous_PWM": "homologous",
+            "Relatively_Homologous_PWM": "relative_homologous",
+            "ModCRE": "modcre",
+            "AlphaFold": "alphafold",
+            "AlphaFold_ModCRE": "alphafold",
+            "AlphaFold3-assisted ModCRE": "alphafold",
+        }.get(str(primary_annotation["best_annotation_level"]) if primary_annotation else "")
         region_groups = build_region_groups(tf, list(motif_rows), list(active_models), list(model_summaries))
         # The scan-ready table represents distinct PWM records. The complete
         # motif_rows list remains the authoritative evidence-link view below.
         fimo_ready_rows: list[sqlite3.Row] = []
+        fimo_ready_evidence_link_count = 0
         seen_fimo_motifs: set[tuple[str, str]] = set()
         audit_rows: list[sqlite3.Row] = []
         for row in motif_rows:
@@ -2035,6 +2083,7 @@ class TFWebApp:
             if not is_fimo_ready:
                 audit_rows.append(row)
                 continue
+            fimo_ready_evidence_link_count += 1
             motif_key = (str(row["source"]), str(row["motif_id"]))
             if motif_key not in seen_fimo_motifs:
                 seen_fimo_motifs.add(motif_key)
@@ -2044,6 +2093,10 @@ class TFWebApp:
             status = str(row["matrix_status"] or "unknown")
             audit_status_counts[status] = audit_status_counts.get(status, 0) + 1
         audit_summary = [{"matrix_status": status, "count": count} for status, count in sorted(audit_status_counts.items())]
+        active_model_source_counts: dict[str, int] = {}
+        for model in active_models:
+            source = str(model["source"])
+            active_model_source_counts[source] = active_model_source_counts.get(source, 0) + 1
 
         return (
             self.render(
@@ -2053,17 +2106,20 @@ class TFWebApp:
                 primary_annotation=primary_annotation,
                 families=families,
                 grouped=grouped,
+                primary_evidence_key=primary_evidence_key,
                 motif_rows=motif_rows,
                 fimo_ready_rows=fimo_ready_rows,
+                evidence_link_count=len(motif_rows),
+                fimo_ready_evidence_link_count=fimo_ready_evidence_link_count,
                 audit_rows=audit_rows,
                 audit_summary=audit_summary,
-                collapse_all_evidence=len(motif_rows) > 30,
                 region_groups=region_groups,
                 active_models=active_models,
+                active_model_source_counts=active_model_source_counts,
                 model_summaries=model_summaries,
                 matrix_status_counts=matrix_status_counts,
                 tf_fimo_ready_count=tf_fimo_ready_count,
-                visible_limit=100,
+                visible_limit=8,
             ),
             "text/html",
             200,
@@ -2222,7 +2278,27 @@ class TFWebApp:
                     tf_region_raw = ""
                 tf, tf_motifs, summary = load_tf_scan_motifs(conn, tf_id, tf_evidence, region=tf_region)
             if not tf:
-                errors.append(f"TF accession not found: {tf_id}")
+                with connect(self.db_path) as conn:
+                    gene_match = conn.execute(
+                        """
+                        SELECT tf_id
+                        FROM tf_annotation
+                        WHERE instr(
+                            ' ' || UPPER(COALESCE(gene_names, '')) || ' ',
+                            ' ' || UPPER(?) || ' '
+                        ) > 0
+                        ORDER BY reviewed DESC, tf_id
+                        LIMIT 1
+                        """,
+                        (tf_id,),
+                    ).fetchone()
+                if gene_match:
+                    errors.append(
+                        f"{tf_id} was not recognized as a UniProt accession. "
+                        f"Try the reviewed accession {gene_match['tf_id']}, or search the TF page first."
+                    )
+                else:
+                    errors.append(f"UniProt accession not found: {tf_id}")
             else:
                 tf_scan_summary = summary
                 for row in tf_motifs:
@@ -2625,12 +2701,18 @@ class TFWebApp:
             row = conn.execute("SELECT * FROM structure_file WHERE id = ?", (int(file_id),)).fetchone()
         if not row:
             return None, None, None
+        member_path = Path(str(row["member_path"]))
+        if MODEL_CACHE_DIR is not None:
+            cache_root = MODEL_CACHE_DIR.resolve()
+            cache_path = (cache_root / member_path).resolve()
+            if cache_root in cache_path.parents and cache_path.is_file():
+                return row, cache_path.read_bytes(), cache_path.name
         with tarfile.open(row["archive_path"], "r:gz") as archive:
             extracted = archive.extractfile(row["member_path"])
             if extracted is None:
                 return row, None, None
             content = extracted.read()
-        return row, content, Path(row["member_path"]).name
+        return row, content, member_path.name
 
     def model_viewer(self, params: dict[str, list[str]]) -> tuple[bytes, str, int]:
         file_id = params.get("id", [""])[0].strip()

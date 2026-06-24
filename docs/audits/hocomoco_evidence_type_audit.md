@@ -1,5 +1,7 @@
 # HOCOMOCO Evidence-Type Audit
 
+> Historical note: this audit predates the current `import_hocomoco.py` correction that preserves the source chart column and evidence tier for each HOCOMOCO token. Its code-risk discussion is retained as historical context, not as a description of the current importer. The current accession-level confirmation is in `hocomoco_official_mapping_audit.md` and `hocomoco_official_mapping_audit.tsv`.
+
 ## Scope and safeguards
 
 This is a read-only audit of the current ModCREDB staging database, the

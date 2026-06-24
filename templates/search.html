@@ -29,8 +29,11 @@
             </td>
             <td class="mono">{{ row.consensus or "" }}</td>
             <td>{{ row.width or "" }}</td>
-            <td>{{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %} in ModCREDB</td>
-            <td>{{ (row.evidence_types or "").replace(",", ", ") or "none" }}</td>
+            <td>
+              {{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %} in ModCREDB
+              {% if row.preferred_tf_link %}<br><span class="matrix-badge ready">Linked to preferred record</span>{% endif %}
+            </td>
+            <td>{{ search_evidence_summary(row) }}</td>
             <td>
               <a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif page</a>
               {% if row.matrix_status == "usable" %} · <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a>{% endif %}
@@ -93,7 +96,7 @@
     </section>
   {% endif %}
 
-  {% if motif_rows and motif_search_is_direct %}
+  {% if motif_rows and motif_search_is_direct and not exact_tf_accession_search %}
     <section>
       <div class="section-head"><h2>Motif records</h2><span class="muted">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></div>
       {{ motif_records_table(motif_rows) }}
@@ -123,7 +126,11 @@
         <tbody>
           {% for row in rows %}
             <tr>
-              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}</td>
+              <td>
+                <a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>
+                {% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred reviewed record</span>
+                {% elif row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}
+              </td>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td>{{ row.protein_name or "" }}</td>
               <td>{{ row.family_text }}</td>
@@ -141,7 +148,18 @@
     </div>
   </section>
 
-  {% if motif_rows and not motif_search_is_direct %}
+  {% if motif_rows and exact_tf_accession_search %}
+    <section id="technical-motif-records">
+      <details class="evidence-group">
+        <summary>Technical motif-file matches <span>{{ motif_total }} record{% if motif_total != 1 %}s{% endif %}</span></summary>
+        <p class="muted">
+          These are archive-level motif records whose technical IDs contain this accession.
+          Open the TF record above for the biological evidence groups, DNA-binding regions, and models.
+        </p>
+        {{ motif_records_table(motif_rows) }}
+      </details>
+    </section>
+  {% elif motif_rows and not motif_search_is_direct %}
     <section>
       <div class="section-head"><h2>Motif records</h2><span class="muted">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></div>
       {{ motif_records_table(motif_rows) }}

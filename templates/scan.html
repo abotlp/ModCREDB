@@ -18,7 +18,10 @@
         then press Scan. A larger p-value such as <span class="mono">0.01</span> is more permissive and may return weaker hits.
       </p>
     </div>
-    <button type="button" class="secondary-button" data-fill-example>Fill test example</button>
+    <div>
+      <button type="button" class="secondary-button" data-fill-example>Fill TEAD1 example</button>
+      <p class="muted">Fill TEAD1 example: scan a short sequence with the direct TEAD1 motif set linked to UniProt <span class="mono">P28347</span>. It illustrates candidate TEAD-like motif matches, not a confirmed binding site.</p>
+    </div>
   </section>
 
   <section>
@@ -26,8 +29,8 @@
       <div class="scan-mode-grid">
         <div class="tf-scan-fields">
           <label>
-            TF accession
-            <input name="tf_id" value="{{ tf_id }}" placeholder="A0A024R0Y4">
+            UniProt accession
+            <input name="tf_id" value="{{ tf_id }}" placeholder="P28347">
           </label>
           <label>
             DNA-binding region
@@ -39,7 +42,7 @@
                 </option>
               {% endfor %}
               {% if not tf_scan_regions and not tf_id %}
-                <option value="" disabled>Enter a TF accession to list regions</option>
+                <option value="" disabled>Enter a UniProt accession to list regions</option>
               {% endif %}
               {% if tf_id and not tf_scan_regions %}
                 <option value="" disabled>No explicit regions with FIMO-ready motifs</option>
@@ -65,14 +68,14 @@
         </fieldset>
       </div>
       <p class="muted">
-        Optional: enter a TF accession to scan with all linked FIMO-ready motifs. Relatively homologous motifs are available,
+        Optional: enter a UniProt accession to scan with all linked FIMO-ready motifs. Relatively homologous motifs are available,
         but are weaker evidence and can make the scan much larger. If a region is selected, only motifs linked to models
         overlapping that residue range are loaded.
       </p>
 
       <label>
         Selected motifs
-        <textarea name="motifs" rows="4" placeholder="jaspar|MA0038.1&#10;cisbp|M04524_2.00" data-motif-input>{{ motifs_text }}</textarea>
+        <textarea name="motifs" rows="4" placeholder="jaspar|MA0090.1&#10;cisbp|M04524_2.00" data-motif-input>{{ motifs_text }}</textarea>
       </label>
       <p class="muted">Optional: add individual motifs one per line as <span class="mono">source|motif_id</span>. Manual motifs are added to the TF motif set if both are used.</p>
 
@@ -372,11 +375,14 @@
       if (exampleButton) {
         exampleButton.addEventListener("click", () => {
           const tfInput = document.querySelector('input[name="tf_id"]');
-          if (tfInput) tfInput.value = "";
-          if (motifInput) motifInput.value = "jaspar|MA0038.1";
-          if (sequenceInput) sequenceInput.value = "TTTTTTCAAATCACTGTTTTTT";
+          if (tfInput) tfInput.value = "P28347";
+          if (motifInput) motifInput.value = "";
+          if (sequenceInput) sequenceInput.value = "TTTTTGCATTCCATTTTT";
           if (pvalueInput) pvalueInput.value = "1e-4";
           if (maxHitsInput) maxHitsInput.value = "20";
+          document.querySelectorAll('input[name="tf_evidence"]').forEach((input) => {
+            input.checked = input.value === "identical";
+          });
         });
       }
 

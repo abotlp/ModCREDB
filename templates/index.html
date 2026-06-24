@@ -1,120 +1,70 @@
 {% extends "base.html" %}
 {% block title %}ModCREDB{% endblock %}
 {% block content %}
-  <section class="hero scientific-hero">
-    <div>
+  <section class="home-hero" aria-labelledby="home-title">
+    <div class="home-hero-copy">
       <p class="eyebrow">Human transcription-factor evidence database</p>
-      <h1>ModCREDB</h1>
-      <p>Find motif and structural evidence for human transcription-factor sequence records.</p>
-      <p class="hero-detail">Search by UniProt accession, gene symbol, motif ID, protein name, or TF family. Results are UniProt sequence records, not one-row-per-gene entries.</p>
+      <h1 id="home-title">ModCREDB</h1>
+      <p class="home-lede">Search motif and structural evidence for human transcription-factor sequence records.</p>
+      <p class="home-context">Search by UniProt accession, gene symbol, motif ID, protein name, or TF family. Results are sequence records, not one-row-per-gene entries.</p>
     </div>
-    <div class="home-search-area">
-      <form class="search-box" action="/search" method="get">
-        <label class="visually-hidden" for="home-search">Search ModCREDB</label>
-        <input id="home-search" name="q" placeholder="Search accession, gene, motif ID, or family - e.g. P04637, TP53, MA0065.1, C2H2" autofocus>
-        <button type="submit">Search records</button>
-      </form>
-      <div class="home-actions" aria-label="ModCREDB actions">
-        <a class="secondary-link" href="/scan">Scan DNA</a>
-        <a class="secondary-link" href="/evidence">Evidence guide</a>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="section-head compact-section-head">
-      <h2>What can you do?</h2>
-    </div>
-    <div class="home-card-grid">
-      <article class="home-info-card">
-        <h3>Find TF records</h3>
-        <p>Search UniProt TF sequence records and see their motif evidence.</p>
-      </article>
-      <article class="home-info-card">
-        <h3>Inspect motif evidence</h3>
-        <p>Compare direct, homologous, candidate, ModCRE, and AlphaFold3-assisted evidence.</p>
-      </article>
-      <article class="home-info-card">
-        <h3>Scan DNA</h3>
-        <p>Run FIMO only with motifs that have usable PWM matrices.</p>
-      </article>
-      <article class="home-info-card">
-        <h3>Inspect structures</h3>
-        <p>Open available TF-DNA models and model summaries.</p>
-      </article>
+    <form class="home-search" action="/search" method="get">
+      <label class="visually-hidden" for="home-search">Search ModCREDB</label>
+      <input id="home-search" name="q" placeholder="Search accession, gene, motif ID, or family" autofocus>
+      <button type="submit">Search</button>
+    </form>
+    <div class="home-search-examples" aria-label="Example searches">
+      <span>Try</span>
+      <a href="/search?q=TP53">TP53</a>
+      <a href="/search?q=P04637">P04637</a>
+      <a href="/search?q=MA0065.1">MA0065.1</a>
+      <a href="/search?q=C2H2">C2H2</a>
     </div>
   </section>
 
-  <section>
-    <div class="section-head compact-section-head">
-      <h2>Primary annotation levels</h2>
-      <a href="/evidence">Read the evidence guide</a>
+  <section class="home-record-explainer" aria-labelledby="record-explainer-title">
+    <p class="eyebrow">How results work</p>
+    <h2 id="record-explainer-title">One sequence record, all available evidence</h2>
+    <p>Each TF page brings together its primary annotation, supporting motif evidence, FIMO-ready PWMs, and available TF-DNA structural models. Evidence is preserved even when it is not the primary annotation.</p>
+  </section>
+
+  <section class="home-start" aria-labelledby="start-title">
+    <div class="section-head home-section-head">
+      <h2 id="start-title">Start here</h2>
     </div>
-    <p class="section-intro">Each TF sequence record has one primary annotation selected by a hierarchy. All supporting motif and model evidence remains visible on the TF page.</p>
-    <div class="home-card-grid">
-      <article class="home-info-card">
-        <h3>Direct/public PWM</h3>
-        <p>A PWM linked directly to this UniProt sequence record from a public motif collection.</p>
-        <span class="internal-label">Internal label: Identical_PWM</span>
-      </article>
-      <article class="home-info-card">
-        <h3>Close homologous PWM</h3>
-        <p>A PWM transferred from a close homolog.</p>
-        <span class="internal-label">Internal label: Homologous_PWM</span>
-      </article>
-      <article class="home-info-card">
-        <h3>Distant homologous candidate</h3>
-        <p>A candidate PWM transferred from a more distant homolog.</p>
-        <span class="internal-label">Internal label: Relatively_Homologous_PWM</span>
-      </article>
-      <article class="home-info-card">
-        <h3>ModCRE predicted motif</h3>
-        <p>A motif predicted from a precomputed protein-DNA structural model.</p>
-        <span class="internal-label">Internal label: ModCRE</span>
-      </article>
-      <article class="home-info-card">
-        <h3>AlphaFold3-assisted ModCRE</h3>
-        <p>A motif predicted using an AlphaFold3-assisted structural model.</p>
-        <span class="internal-label">Internal label: AlphaFold</span>
-      </article>
-      <article class="home-info-card">
-        <h3>No primary motif selected</h3>
-        <p>No primary annotation was selected in the final hierarchy.</p>
-        <span class="internal-label">Internal label: Unannotated</span>
-      </article>
+    <div class="home-route-grid">
+      <a class="home-route" href="/search">
+        <span class="home-route-kicker">Browse</span>
+        <strong>Find TF and motif evidence</strong>
+        <span>Search sequence records, motifs, protein names, and TF families.</span>
+      </a>
+      <a class="home-route" href="/scan">
+        <span class="home-route-kicker">Analyze</span>
+        <strong>Scan a DNA sequence</strong>
+        <span>Use FIMO with selected motifs that have usable PWM matrices.</span>
+      </a>
     </div>
   </section>
 
-  <section>
-    <div class="section-head compact-section-head">
-      <h2>Try example searches</h2>
+  <section class="home-examples" aria-labelledby="examples-title">
+    <div class="section-head home-section-head">
+      <h2 id="examples-title">Example searches</h2>
       <a href="/search">Browse all records</a>
     </div>
-    <div class="home-card-grid home-example-grid">
-      <article class="home-info-card">
-        <h3><a href="/tf/P04637">TP53 / P04637</a></h3>
-        <p>Reviewed TP53 sequence record with usable public HOCOMOCO motif evidence.</p>
-      </article>
-      <article class="home-info-card">
-        <h3><a href="/tf/P37231">PPARG / P37231</a></h3>
-        <p>Reviewed PPARG sequence record with usable JASPAR MA0065.1 and HOCOMOCO motifs.</p>
-      </article>
-      <article class="home-info-card">
-        <h3><a href="/tf/P49711">CTCF / P49711</a></h3>
-        <p>Reviewed CTCF sequence record with usable public HOCOMOCO motif evidence.</p>
-      </article>
-      <article class="home-info-card">
-        <h3><a href="/search?q=MA0065.1">MA0065.1</a></h3>
-        <p>Browse the JASPAR motif record and its linked TF sequence records.</p>
-      </article>
-      <article class="home-info-card">
-        <h3><a href="/search?q=C2H2">C2H2 family</a></h3>
-        <p>Browse C2H2 zinc-finger TF sequence records.</p>
-      </article>
+    <div class="home-example-grid">
+      <a class="home-example" href="/tf/P04637"><strong>TP53 / P04637</strong><span>Reviewed TP53 record with public HOCOMOCO motif evidence.</span></a>
+      <a class="home-example" href="/tf/P37231"><strong>PPARG / P37231</strong><span>Reviewed PPARG record with JASPAR MA0065.1 and HOCOMOCO motifs.</span></a>
+      <a class="home-example" href="/tf/P49711"><strong>CTCF / P49711</strong><span>Reviewed CTCF record with public HOCOMOCO motif evidence.</span></a>
+      <a class="home-example" href="/search?q=MA0065.1"><strong>MA0065.1</strong><span>JASPAR motif record and linked TF sequence records.</span></a>
+      <a class="home-example" href="/search?q=C2H2"><strong>C2H2 family</strong><span>Browse C2H2 zinc-finger TF sequence records.</span></a>
     </div>
   </section>
 
-  <section class="release-note" aria-label="Release information">
+  <section class="home-evidence-note" aria-label="Evidence guide">
+    <p><strong>How are motifs labeled?</strong> Primary annotations can be direct/public, homologous, or structure-predicted. Supporting evidence remains visible on every TF page. <a href="/evidence">Read the evidence guide.</a></p>
+  </section>
+
+  <section class="home-release" aria-label="Release information">
     <p>About this release: {{ stats.tf_count }} UniProt TF sequence records with motif, model, and evidence-tier annotations. <a href="/docs">View documentation for full statistics and provenance.</a></p>
   </section>
 {% endblock %}

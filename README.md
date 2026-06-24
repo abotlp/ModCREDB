@@ -1,4 +1,11 @@
-# TF Motif Web Database
+# ModCREDB
+
+> **Current technical reference:**
+> [`docs/MODCREDB_TECHNICAL_GUIDE.md`](docs/MODCREDB_TECHNICAL_GUIDE.md)
+>
+> This README is a quick-start reference. The technical guide explains the
+> database purpose, input files, SQLite schema, evidence model, search and
+> FIMO behavior, rebuild workflow, validation, and known limitations.
 
 Local first-version web database for transcription factor PWM/model files.
 
