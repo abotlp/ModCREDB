@@ -1,0 +1,1 @@
+Schema fix needed: build_family_tree_data.py assumed structure_file.path, but local DB has no such column. Use PRAGMA table_info(structure_file) and select an available path-like column, or count models without monomer/dimer classification when absent.
