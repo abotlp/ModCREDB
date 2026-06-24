@@ -49,7 +49,7 @@
     <p class="eyebrow">TF-to-motif evidence search</p>
     <h1>Search ModCREDB</h1>
     <form class="filters" action="/search" method="get">
-      <input name="q" value="{{ q }}" placeholder="Gene, UniProt accession, protein, family, or motif ID">
+      <input name="q" value="{{ q }}" placeholder="Gene, UniProt accession, protein, PFAM family/domain, legacy family, or motif ID">
       <select name="evidence">
         <option value="">Any evidence</option>
         {% for key, label in evidence_labels.items() %}
@@ -141,7 +141,7 @@
               <td>{{ row.main_caveat }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="9">No matching UniProt sequence records.</td></tr>
+            <tr><td colspan="10">No matching UniProt sequence records.</td></tr>
           {% endfor %}
         </tbody>
       </table>

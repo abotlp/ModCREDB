@@ -80,8 +80,30 @@
       <div><span>Sequence length</span><strong>{{ tf.sequence_length or "unknown" }}</strong></div>
     </div>
     {% if tf.uniprot_url %}<p><a href="{{ tf.uniprot_url }}" target="_blank" rel="noopener">Open UniProt entry</a></p>{% endif %}
+    {% if pfam_annotations %}
+      <h3>PFAM Families / Domains</h3>
+      <p class="muted">InterPro/PFAM annotations imported by UniProt accession. These are separate from legacy chart-derived family labels.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>PFAM</th><th>Name</th><th>InterPro</th><th>Residues</th><th>Source</th></tr>
+          </thead>
+          <tbody>
+            {% for row in pfam_annotations %}
+              <tr>
+                <td class="mono">{{ row.pfam_id }}</td>
+                <td>{{ row.pfam_name or "" }}</td>
+                <td>{% if row.interpro_id %}<span class="mono">{{ row.interpro_id }}</span>{% if row.interpro_name %} · {{ row.interpro_name }}{% endif %}{% else %}<span class="muted">—</span>{% endif %}</td>
+                <td>{% if row.start and row.end %}{{ row.start }}-{{ row.end }}{% else %}<span class="muted">—</span>{% endif %}</td>
+                <td>{{ row.source_release or row.source or "InterPro/PFAM" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
     {% if families %}
-      <h3>Families</h3>
+      <h3>Legacy TF family labels</h3>
       <div class="chips">{% for row in families %}<span>{{ row.family }}</span>{% endfor %}</div>
     {% endif %}
   </section>

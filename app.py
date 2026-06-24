@@ -249,6 +249,90 @@ def db_table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
     )
 
 
+def ensure_pfam_annotation_table(conn: sqlite3.Connection) -> None:
+    """Provide an empty temp PFAM table when the active DB lacks PFAM annotations.
+
+    This keeps the app compatible with older SQLite builds while allowing the
+    PFAM-enabled candidate DB to expose real InterPro/PFAM annotations.
+    """
+    if db_table_exists(conn, "tf_pfam_annotation"):
+        return
+    conn.execute(
+        """
+        CREATE TEMP TABLE IF NOT EXISTS tf_pfam_annotation (
+            tf_id TEXT,
+            uniprot_accession TEXT,
+            pfam_id TEXT,
+            pfam_name TEXT,
+            pfam_type TEXT,
+            interpro_id TEXT,
+            interpro_name TEXT,
+            start INTEGER,
+            end INTEGER,
+            source TEXT,
+            source_release TEXT,
+            source_url TEXT
+        )
+        """
+    )
+
+
+def fetch_tf_pfam_annotations(
+    conn: sqlite3.Connection,
+    tf_ids: list[str] | tuple[str, ...],
+) -> dict[str, list[dict[str, object]]]:
+    ensure_pfam_annotation_table(conn)
+    clean_ids = sorted({str(tf_id) for tf_id in tf_ids if tf_id})
+    if not clean_ids:
+        return {}
+    placeholders = ",".join("?" for _ in clean_ids)
+    rows = conn.execute(
+        f"""
+        SELECT tf_id, uniprot_accession, pfam_id, pfam_name, pfam_type,
+               interpro_id, interpro_name, start, end, source, source_release,
+               source_url
+        FROM tf_pfam_annotation
+        WHERE tf_id IN ({placeholders})
+        ORDER BY tf_id, COALESCE(start, 999999), COALESCE(end, 999999), pfam_id
+        """,
+        clean_ids,
+    ).fetchall()
+    grouped: dict[str, list[dict[str, object]]] = {tf_id: [] for tf_id in clean_ids}
+    seen: set[tuple[object, ...]] = set()
+    for row in rows:
+        key = (row["tf_id"], row["pfam_id"], row["start"], row["end"])
+        if key in seen:
+            continue
+        seen.add(key)
+        grouped.setdefault(str(row["tf_id"]), []).append(dict(row))
+    return grouped
+
+
+def pfam_match_summary(pfam_rows: list[dict[str, object]], query: str, limit: int = 3) -> str:
+    query_lower = (query or "").strip().lower()
+    if not query_lower:
+        return ""
+    matches = []
+    for row in pfam_rows:
+        fields = [
+            str(row.get("pfam_id") or ""),
+            str(row.get("pfam_name") or ""),
+            str(row.get("interpro_id") or ""),
+            str(row.get("interpro_name") or ""),
+        ]
+        if any(query_lower in field.lower() for field in fields):
+            label = str(row.get("pfam_id") or "")
+            name = str(row.get("pfam_name") or "")
+            if name:
+                label = f"{label} / {name}"
+            if label and label not in matches:
+                matches.append(label)
+    if not matches:
+        return ""
+    suffix = "" if len(matches) <= limit else f"; +{len(matches) - limit} more"
+    return "; ".join(matches[:limit]) + suffix
+
+
 def primary_annotation_label(level: object) -> str:
     key = str(level or "")
     return PRIMARY_ANNOTATION_LABELS.get(key, key or "Unknown")
@@ -1873,16 +1957,19 @@ class TFWebApp:
         joins = """
         LEFT JOIN motif_ref AS mr ON mr.tf_id = tf.tf_id
         LEFT JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
+        LEFT JOIN tf_pfam_annotation AS tpa ON tpa.tf_id = tf.tf_id
         """
         if q:
             like = f"%{q}%"
             where.append(
                 """
                 (tf.tf_id LIKE ? OR tf.family_text LIKE ? OR mr.motif_id LIKE ?
-                 OR ta.gene_names LIKE ? OR ta.protein_name LIKE ? OR ta.organism_name LIKE ?)
+                 OR ta.gene_names LIKE ? OR ta.protein_name LIKE ? OR ta.organism_name LIKE ?
+                 OR tpa.pfam_id LIKE ? OR tpa.pfam_name LIKE ?
+                 OR tpa.interpro_id LIKE ? OR tpa.interpro_name LIKE ?)
                 """
             )
-            args.extend([like, like, like, like, like, like])
+            args.extend([like, like, like, like, like, like, like, like, like, like])
         if evidence:
             where.append("mr.evidence_type = ?")
             args.append(evidence)
@@ -1892,6 +1979,7 @@ class TFWebApp:
         where_sql = "WHERE " + " AND ".join(where) if where else ""
 
         with connect(self.db_path) as conn:
+            ensure_pfam_annotation_table(conn)
             raw_rows = conn.execute(
                 f"""
                 SELECT DISTINCT tf.tf_id, tf.family_text, tf.motif_ref_count, tf.active_model_count,
@@ -1902,11 +1990,15 @@ class TFWebApp:
                 """,
                 args,
             ).fetchall()
-            statuses = fetch_tf_statuses(conn, [row["tf_id"] for row in raw_rows])
+            tf_ids = [row["tf_id"] for row in raw_rows]
+            statuses = fetch_tf_statuses(conn, tf_ids)
+            pfam_by_tf = fetch_tf_pfam_annotations(conn, tf_ids)
             all_rows: list[dict[str, object]] = []
             for raw_row in raw_rows:
                 row = dict(raw_row)
                 row.update(statuses[row["tf_id"]])
+                row["pfam_annotations"] = pfam_by_tf.get(row["tf_id"], [])
+                row["pfam_match_summary"] = pfam_match_summary(row["pfam_annotations"], q)
                 all_rows.append(row)
             all_rows.sort(key=lambda row: tf_search_sort_key(row, q))
             total = len(all_rows)
@@ -1962,6 +2054,7 @@ class TFWebApp:
     def tf_detail(self, tf_id: str) -> tuple[bytes, str, int]:
         tf_id = unquote(tf_id)
         with connect(self.db_path) as conn:
+            ensure_pfam_annotation_table(conn)
             tf = dict_row(
                 conn.execute(
                     """
@@ -1983,6 +2076,7 @@ class TFWebApp:
             families = conn.execute(
                 "SELECT family FROM tf_family WHERE tf_id = ? ORDER BY family", (tf_id,)
             ).fetchall()
+            pfam_annotations = fetch_tf_pfam_annotations(conn, [tf_id]).get(tf_id, [])
             motif_rows = conn.execute(
                 """
                 SELECT mr.*, mf.consensus, mf.width, mf.nsites, mf.matrix_json,
@@ -2105,6 +2199,7 @@ class TFWebApp:
                 tf_status=tf_status,
                 primary_annotation=primary_annotation,
                 families=families,
+                pfam_annotations=pfam_annotations,
                 grouped=grouped,
                 primary_evidence_key=primary_evidence_key,
                 motif_rows=motif_rows,
@@ -2408,6 +2503,7 @@ class TFWebApp:
     def model_summaries(self, tf_id: str) -> tuple[bytes, str, int]:
         tf_id = unquote(tf_id)
         with connect(self.db_path) as conn:
+            ensure_pfam_annotation_table(conn)
             tf = dict_row(
                 conn.execute(
                     """
