@@ -3,10 +3,12 @@
 
   const byId = (id) => document.getElementById(id);
   const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
-  const X = { root: 95, branch: 360, leaf: 690 };
-  const TOP = 46;
-  const ROW = 58;
-  const RIGHT_PAD = 300;
+
+  // Compact HOCOMOCO-like layout: three columns, dense leaves, no printed counts.
+  const X = { root: 120, branch: 330, leaf: 560 };
+  const TOP = 28;
+  const ROW = 24;
+  const RIGHT_PAD = 360;
 
   function readEmbeddedTree() {
     const node = byId("family-tree-data");
@@ -64,19 +66,19 @@
 
     const roots = children.get(null).length ? children.get(null) : [byFamily.get("root") || nodes[0]];
     roots.filter(Boolean).forEach((root) => layoutNode(root, 0));
-    return { byFamily, height: Math.max(660, y + TOP), width: X.leaf + RIGHT_PAD };
+    return { byFamily, height: Math.max(620, y + TOP), width: X.leaf + RIGHT_PAD };
   }
 
   function radius(node, maxCount) {
-    if (node.family_id === "root") return 35;
+    if (node.family_id === "root") return 31;
     const count = tfCount(node);
-    if (!count || !maxCount) return 7;
-    return Math.max(7, Math.min(30, 7 + Math.sqrt(count / maxCount) * 27));
+    if (!count || !maxCount) return 4.5;
+    return Math.max(4.5, Math.min(23, 4.5 + Math.sqrt(count / maxCount) * 22));
   }
   function innerRadius(node, outer) {
     const total = tfCount(node);
     const pwm = num(node.generated_pwm_tf_count);
-    if (!total || !pwm) return Math.max(2, outer * 0.30);
+    if (!total || !pwm) return Math.max(1.5, outer * 0.30);
     return outer * Math.sqrt(Math.min(pwm / total, 1));
   }
   function pathD(parent, child) {
@@ -175,7 +177,7 @@
       group.addEventListener("mouseleave", () => { if (tooltip) tooltip.hidden = true; });
       svg.appendChild(group);
       const anchor = node._depth < 2 ? "end" : "start";
-      const labelX = node._x + (anchor === "end" ? -(outerRadius + 10) : outerRadius + 12);
+      const labelX = node._x + (anchor === "end" ? -(outerRadius + 8) : outerRadius + 10);
       addText(svg, node.short_label || node.label, labelX, node._y + 4, "family-tree-node-label", anchor);
     });
     const first = nodes.find((node) => node.family_id === "2.3") || nodes.find((node) => tfCount(node) > 0) || nodes[0];
