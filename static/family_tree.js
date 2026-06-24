@@ -3,10 +3,10 @@
 
   const byId = (id) => document.getElementById(id);
   const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
-  const X = { root: 90, branch: 330, leaf: 650 };
-  const TOP = 48;
-  const ROW = 70;
-  const RIGHT_PAD = 520;
+  const X = { root: 95, branch: 360, leaf: 690 };
+  const TOP = 46;
+  const ROW = 58;
+  const RIGHT_PAD = 300;
 
   function readEmbeddedTree() {
     const node = byId("family-tree-data");
@@ -64,14 +64,14 @@
 
     const roots = children.get(null).length ? children.get(null) : [byFamily.get("root") || nodes[0]];
     roots.filter(Boolean).forEach((root) => layoutNode(root, 0));
-    return { byFamily, height: Math.max(700, y + TOP), width: X.leaf + RIGHT_PAD };
+    return { byFamily, height: Math.max(660, y + TOP), width: X.leaf + RIGHT_PAD };
   }
 
   function radius(node, maxCount) {
-    if (node.family_id === "root") return 38;
+    if (node.family_id === "root") return 35;
     const count = tfCount(node);
-    if (!count || !maxCount) return 9;
-    return Math.max(8, Math.min(34, 7 + Math.sqrt(count / maxCount) * 31));
+    if (!count || !maxCount) return 7;
+    return Math.max(7, Math.min(30, 7 + Math.sqrt(count / maxCount) * 27));
   }
   function innerRadius(node, outer) {
     const total = tfCount(node);
@@ -133,7 +133,6 @@
     const { byFamily, height, width } = computeLayout(nodes);
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     svg.style.height = `${height}px`;
-    svg.style.width = `${width}px`;
     const maxCount = Math.max(...nodes.map(tfCount), 1);
     const tooltip = byId("family-tree-tooltip");
 
@@ -171,14 +170,13 @@
         tooltip.hidden = false;
         tooltip.style.left = `${event.offsetX + 16}px`;
         tooltip.style.top = `${event.offsetY + 16}px`;
-        tooltip.innerHTML = `<strong>${node.label}</strong><br>${countLabel(node)}<br>Generated PWM TFs: ${num(node.generated_pwm_tf_count).toLocaleString()}<br>3D model TFs: ${num(node.model_tf_count).toLocaleString()}`;
+        tooltip.innerHTML = `<strong>${node.label}</strong><br>${countLabel(node)}<br>Known: ${num(node.known_count).toLocaleString()}<br>Nearest Neighbor: ${num(node.homologous_count).toLocaleString()}<br>Generated PWM TFs: ${num(node.generated_pwm_tf_count).toLocaleString()}<br>3D model TFs: ${num(node.model_tf_count).toLocaleString()}`;
       });
       group.addEventListener("mouseleave", () => { if (tooltip) tooltip.hidden = true; });
       svg.appendChild(group);
       const anchor = node._depth < 2 ? "end" : "start";
       const labelX = node._x + (anchor === "end" ? -(outerRadius + 10) : outerRadius + 12);
-      addText(svg, node.short_label || node.label, labelX, node._y - 2, "family-tree-node-label", anchor);
-      addText(svg, countLabel(node), labelX, node._y + 15, "family-tree-node-count", anchor);
+      addText(svg, node.short_label || node.label, labelX, node._y + 4, "family-tree-node-label", anchor);
     });
     const first = nodes.find((node) => node.family_id === "2.3") || nodes.find((node) => tfCount(node) > 0) || nodes[0];
     if (first) select(nodes, first.family_id);
