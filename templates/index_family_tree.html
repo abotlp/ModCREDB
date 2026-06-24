@@ -7,8 +7,8 @@
     <div class="home-hero-copy">
       <p class="eyebrow">Human transcription-factor motif and 3D-model database</p>
       <h1 id="home-title">ModCREDB</h1>
-      <p class="home-lede">Search or browse human TF sequence records, motif predictions, generated PWMs, and TF-DNA 3D models.</p>
-      <p class="home-context">Use direct search for a known gene, UniProt accession, motif ID, TF family, or PFAM/domain term. Use the family tree to explore the database by DNA-binding class.</p>
+      <p class="home-lede">Search human TF sequence records, motif predictions, generated PWMs, and TF-DNA 3D models.</p>
+      <p class="home-context">Start with a gene, UniProt accession, motif ID, source, prediction level, or browse by transcription-factor family.</p>
     </div>
     <form class="home-search" action="/search" method="get">
       <label class="visually-hidden" for="home-search">Search ModCREDB</label>
@@ -22,26 +22,40 @@
 
   <section id="browse">
     <div class="home-route-grid four-up">
-      <a class="home-route" href="#families"><span class="home-route-kicker">Biology</span><strong>TF family tree</strong><span>Browse DNA-binding domain classes.</span></a>
+      <a class="home-route" href="#families"><span class="home-route-kicker">Browse</span><strong>TF families</strong><span>Open common DNA-binding families.</span></a>
       <a class="home-route" href="#predictions"><span class="home-route-kicker">Confidence</span><strong>Prediction levels</strong><span>Known, nearest-neighbor, predicted low.</span></a>
       <a class="home-route" href="#sources"><span class="home-route-kicker">Provenance</span><strong>Motif sources</strong><span>JASPAR, CisBP, HOCOMOCO, ModCRE, AlphaFold3.</span></a>
       <a class="home-route" href="#availability"><span class="home-route-kicker">Usability</span><strong>PWM / 3D models</strong><span>Scan-ready motifs and structure-backed records.</span></a>
     </div>
   </section>
 
-  <section id="families">
-    <div class="section-head"><div><p class="eyebrow">Browse by family</p><h2>DNA-binding family tree</h2></div><a class="secondary-link" href="/search">Open all records</a></div>
-    <div class="family-tree-shell">
-      <div class="family-tree-wrap"><svg id="family-tree-svg" class="family-tree-svg" viewBox="0 0 820 980" role="img" aria-label="ModCREDB TF family tree"></svg><div id="family-tree-tooltip" class="family-tree-tooltip" hidden></div></div>
-      <aside class="selected-family-panel" aria-live="polite">
-        <p id="selected-family-eyebrow" class="eyebrow">Selected family</p>
-        <h2 id="selected-family-label">Family</h2>
-        <div class="selected-family-figure" aria-hidden="true"><svg viewBox="0 0 230 110"><path d="M12 56 C48 16 78 94 114 56 S178 16 218 56" fill="none" stroke="#2364aa" stroke-width="8" stroke-linecap="round"/><circle cx="80" cy="56" r="16" fill="#f28c38"/><circle cx="146" cy="56" r="16" fill="#f28c38"/><path d="M24 84 C72 70 156 70 206 84" fill="none" stroke="#7d8da6" stroke-width="5" stroke-linecap="round"/></svg></div>
-        <strong id="selected-family-count" class="selected-family-count">0</strong><p class="muted">TF sequence records</p>
-        <div class="selected-family-chips"><span>Known <strong id="selected-known-count">0</strong></span><span>Nearest Neighbor <strong id="selected-homologous-count">0</strong></span><span>50–70% <strong id="selected-relative-count">0</strong></span><span>Predicted Low <strong id="selected-predicted-count">0</strong></span></div>
-        <div class="selected-family-stats"><div><strong id="selected-generated-count">0</strong><span>Generated PWM TFs</span></div><div><strong id="selected-model-count">0</strong><span>TFs with 3D models</span></div><div><strong id="selected-monomer-count">0</strong><span>Monomer model TFs</span></div><div><strong id="selected-dimer-count">0</strong><span>Dimer model TFs</span></div></div>
-        <div class="selected-family-actions"><a id="selected-family-open" class="button-link" href="/search">Open family</a><a id="selected-family-search" class="secondary-link" href="/search">Search records</a></div>
-      </aside>
+  <section id="families" class="family-browser-section">
+    <div class="section-head"><div><p class="eyebrow">Browse</p><h2>Transcription-factor families</h2></div><a class="secondary-link" href="/search">Open all records</a></div>
+    <div class="family-browse-shell">
+      <div class="family-feature">
+        <h3>Common families</h3>
+        <p>Use these links when you know the broad TF family but not a specific gene or motif ID.</p>
+        <div class="family-chip-row">
+          <a href="/search?q=C2H2">C2H2 zinc fingers</a>
+          <a href="/search?q=Homeobox">Homeodomain</a>
+          <a href="/search?q=HLH">bHLH</a>
+          <a href="/search?q=bZIP">bZIP</a>
+          <a href="/search?q=Hormone_recep">Nuclear receptors</a>
+          <a href="/search?q=HMG">HMG / SOX</a>
+          <a href="/search?q=Fork_head">Forkhead</a>
+          <a href="/search?q=STAT">STAT</a>
+          <a href="/search?q=p53">p53</a>
+        </div>
+      </div>
+
+      <div class="family-group-grid">
+        <article class="family-group-card"><span>01</span><h3>Zinc-coordinating</h3><p>C2H2, C4/nuclear receptor, CXXC, THAP and related zinc-finger families.</p><div class="family-links"><a href="/search?q=C2H2">C2H2</a><a href="/search?q=Hormone_recep">Nuclear receptors</a><a href="/search?q=CxxC">CXXC</a><a href="/search?q=C2HC">C2HC</a><a href="/search?q=THAP">THAP</a></div></article>
+        <article class="family-group-card"><span>02</span><h3>Helix-turn-helix</h3><p>Homeodomain, forkhead, paired-box, heat-shock, TEA and ARID families.</p><div class="family-links"><a href="/search?q=Homeobox">Homeodomain</a><a href="/search?q=Fork_head">Forkhead</a><a href="/search?q=PAX">Paired box</a><a href="/search?q=HSF">Heat shock</a><a href="/search?q=TEA">TEA</a><a href="/search?q=ARID">ARID</a></div></article>
+        <article class="family-group-card"><span>03</span><h3>Basic domains</h3><p>Compact access to bZIP and bHLH transcription-factor classes.</p><div class="family-links"><a href="/search?q=bZIP">bZIP</a><a href="/search?q=HLH">bHLH</a><a href="/search?q=bHSH">bHSH</a></div></article>
+        <article class="family-group-card"><span>04</span><h3>HMG and other helical</h3><p>HMG/SOX, CCAAT-binding, MADS and SAND domain families.</p><div class="family-links"><a href="/search?q=HMG">HMG / SOX</a><a href="/search?q=CCAAT">CCAAT-binding</a><a href="/search?q=MADS">MADS</a><a href="/search?q=SAND">SAND</a></div></article>
+        <article class="family-group-card"><span>05</span><h3>Ig-fold and beta scaffold</h3><p>STAT, p53, Rel/NF-kB, T-box, Runt, SMAD/NF-1 and related families.</p><div class="family-links"><a href="/search?q=STAT">STAT</a><a href="/search?q=p53">p53</a><a href="/search?q=Rel">Rel / NF-kB</a><a href="/search?q=T-box">T-box</a><a href="/search?q=Runt">Runt</a><a href="/search?q=SMAD">SMAD / NF-1</a></div></article>
+        <article class="family-group-card"><span>06</span><h3>Other and low-frequency</h3><p>TATA-binding, A.T hook, cold-shock, GTF2I and uncharacterized groups.</p><div class="family-links"><a href="/search?q=TBP">TATA-binding</a><a href="/search?q=AT_hook">A.T hook</a><a href="/search?q=CSD">Cold-shock</a><a href="/search?q=GTF2I">GTF2I</a><a href="/search?q=Uncharacterized">Uncharacterized</a></div></article>
+      </div>
     </div>
   </section>
 
@@ -50,9 +64,5 @@
     <div class="home-compact-panel" id="sources"><div class="section-head"><h2>Sources</h2><span class="muted">Source is separate from prediction level.</span></div><div class="chips"><a href="/search?source=jaspar"><span>JASPAR</span></a><a href="/search?source=cisbp"><span>CisBP</span></a><a href="/search?source=hocomoco"><span>HOCOMOCO</span></a><a href="/search?source=modcre"><span>ModCRE</span></a><a href="/search?source=alphafold"><span>AlphaFold3-ModCRE</span></a></div><div class="section-head" id="availability" style="margin-top:22px"><h2>Data availability</h2></div><div class="annotation-grid"><div><strong>Generated PWM</strong><span>scan-ready</span></div><div><strong>Missing MEME</strong><span>not scannable</span></div><div><strong>3D models</strong><span>structures</span></div><div><strong>Monomers / dimers</strong><span>model groups</span></div></div></div>
   </section>
 
-  <section class="home-evidence-note"><p><strong>Figure plan:</strong> the tree is abstract and count-driven. Later, replace the selected-family placeholder with ChimeraX-rendered representative TF-DNA structures.</p></section>
   <section class="home-release"><p>About this release: {{ stats.tf_count }} UniProt TF sequence records. <a href="/docs">View documentation.</a></p></section>
-
-  <script id="family-tree-data" type="application/json">[{"family_id":"root","label":"Root","x":72,"y":280,"tf_count":{{ stats.tf_count }},"generated_pwm_tf_count":{{ stats.tf_with_fimo_ready_pwm_count }},"open_url":"/search"},{"family_id":"2","parent_id":"root","label":"Zinc-coordinating DNA-binding domains","x":284,"y":170,"tf_count":2116,"open_url":"/search?q=zinc"},{"family_id":"2.3","parent_id":"2","label":"C2H2 zinc finger factors","short_label":"C2H2 zinc fingers","x":536,"y":138,"tf_count":1691,"open_url":"/search?q=C2H2","search_query":"zf-C2H2"},{"family_id":"3","parent_id":"root","label":"Helix-turn-helix domains","x":284,"y":286,"tf_count":889,"open_url":"/search?q=Homeobox"},{"family_id":"3.1","parent_id":"3","label":"Homeo domain factors","short_label":"Homeodomain","x":536,"y":250,"tf_count":713,"open_url":"/search?q=Homeobox","search_query":"Homeobox"}]</script>
-  <script src="/static/family_tree.js" defer></script>
 {% endblock %}
