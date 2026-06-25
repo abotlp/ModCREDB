@@ -1,7 +1,0 @@
-evidence_type	mapping_type	curation_status	link_count	sources
-identical	direct_or_identical	pending_confirmation	2098	jaspar,cisbp
-identical	public_database_mapping_unconfirmed	pending_confirmation	401	hocomoco
-homologous	close_homolog	pending_confirmation	6516	cisbp,jaspar
-modcre	structure_predicted	imported	7319	modcre
-alphafold	af3_structure_predicted	imported	3360	alphafold
-relative_homologous	distant_homolog	pending_confirmation	93400	cisbp,jaspar

@@ -1,5 +1,0 @@
-source	structure_status	file_type	link_count	distinct_motif_refs	distinct_model_files
-alphafold	active	pdb	3360	3360	3360
-alphafold	failed	pdb	62	62	62
-modcre	active	pdb	7319	7319	7319
-modcre	failed	pdb	1712	1712	1712
