@@ -1,1 +1,6 @@
-{% include "tf_clean_candidate.html" %}
+{% extends "base.html" %}
+{% block title %}{{ tf.tf_id }} | ModCRE DB{% endblock %}
+{% block content %}
+{% include "tf_clean_styles.html" %}
+{% include "tf_clean_body.html" %}
+{% endblock %}
