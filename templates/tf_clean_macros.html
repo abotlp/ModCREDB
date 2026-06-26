@@ -1,0 +1,17 @@
+{% macro motif_table(generated_rows, keys, label, source_labels) %}
+<div class="table-wrap"><table class="motif-table">
+<thead><tr><th>Motif</th><th>Source</th><th>Prediction</th><th>DNA binding</th><th>Identity / model</th><th>Logo</th><th>Actions</th></tr></thead>
+<tbody>
+{% for row in generated_rows %}{% if row.evidence_type in keys %}
+<tr>
+<td class="mono"><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
+<td>{{ source_labels.get(row.source,row.source) }}</td>
+<td><span class="chip">{{ label }}</span></td>
+<td class="mono">{{ row.consensus or 'matrix available' }}</td>
+<td>{% if row.identity_percent is not none %}{{ '%.1f'|format(row.identity_percent) }}%{% elif row.region_start and row.region_end %}Region {{ row.region_start }}-{{ row.region_end }}{% elif row.evidence_type=='alphafold' %}AlphaFold / full sequence{% elif row.evidence_type=='modcre' %}Structure prediction{% else %}<span class="muted">-</span>{% endif %}</td>
+<td class="mini-logo-wrap">{% if row.matrix_json %}{{ row.matrix_json|pwm_svg(true)|safe }}{% endif %}</td>
+<td><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Open</a> · <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a></td>
+</tr>
+{% endif %}{% endfor %}
+</tbody></table></div>
+{% endmacro %}
