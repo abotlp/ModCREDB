@@ -1,0 +1,4 @@
+<details class="cat" {% if ns.known %}open{% endif %}>
+  <summary><span>Known</span><span>{{ ns.known }}</span></summary>
+  {% if ns.known %}{{ clean.motif_table(generated_rows,['identical'],'Known',source_labels) }}{% else %}<p class="muted">No generated PWM in this category.</p>{% endif %}
+</details>
