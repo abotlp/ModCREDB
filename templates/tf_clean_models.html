@@ -1,0 +1,8 @@
+{% if active_models %}
+<section class="tf-box">
+  <h2>3D Models</h2>
+  {% if region_groups %}{% for region in region_groups %}
+    <article class="region-box"><h3>Region {{ region.start }}-{{ region.end }}</h3><p class="muted">{{ region.motifs|length }} Generated PWM · {{ region.models|length }} 3D models</p></article>
+  {% endfor %}{% endif %}
+</section>
+{% endif %}
