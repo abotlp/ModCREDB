@@ -1,0 +1,4 @@
+<details class="cat" {% if ns.close %}open{% endif %}>
+  <summary><span>Nearest Neighbor (&gt;70%)</span><span>{{ ns.close }}</span></summary>
+  {% if ns.close %}{{ clean.motif_table(generated_rows,['homologous'],'Nearest Neighbor (>70%)',source_labels) }}{% else %}<p class="muted">No generated PWM in this category.</p>{% endif %}
+</details>
