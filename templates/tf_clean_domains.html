@@ -1,0 +1,7 @@
+{% if pfam_annotations or families %}
+<section class="tf-box">
+  <h2>Domains</h2>
+  {% if pfam_annotations %}<div class="table-wrap"><table><thead><tr><th>Residues</th><th>PFAM</th><th>Domain</th><th>InterPro</th></tr></thead><tbody>{% for row in pfam_annotations %}<tr><td>{% if row.start and row.end %}{{ row.start }}-{{ row.end }}{% endif %}</td><td class="mono">{{ row.pfam_id }}</td><td>{{ row.pfam_name or '' }}</td><td>{% if row.interpro_id %}<span class="mono">{{ row.interpro_id }}</span>{% if row.interpro_name %} · {{ row.interpro_name }}{% endif %}{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+  {% if families %}<details class="cat" {% if not pfam_annotations %}open{% endif %}><summary><span>Imported domain tags</span><span>{{ families|length }}</span></summary><div class="domain-tags">{% for row in families %}<span>{{ row.family }}</span>{% endfor %}</div></details>{% endif %}
+</section>
+{% endif %}
