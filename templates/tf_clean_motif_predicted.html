@@ -1,0 +1,6 @@
+<details class="cat" {% if ns.predicted %}open{% endif %}>
+  <summary><span>Predicted</span><span>{{ ns.predicted }}</span></summary>
+  {% if ns.predicted %}
+    {{ clean.motif_table(generated_rows,predicted_keys,'Predicted',source_labels) }}
+  {% else %}<p class="muted">No generated PWM in this category.</p>{% endif %}
+</details>
