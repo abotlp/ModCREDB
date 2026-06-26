@@ -1,0 +1,12 @@
+{% import "tf_clean_macros.html" as clean with context %}
+{% set generated_rows=fimo_ready_rows %}
+{% set predicted_keys=['modcre','alphafold'] %}
+{% set ns=namespace(known=0,close=0,distant=0,predicted=0) %}
+{% for row in generated_rows %}{% if row.evidence_type=='identical' %}{% set ns.known=ns.known+1 %}{% elif row.evidence_type=='homologous' %}{% set ns.close=ns.close+1 %}{% elif row.evidence_type=='relative_homologous' %}{% set ns.distant=ns.distant+1 %}{% elif row.evidence_type in predicted_keys %}{% set ns.predicted=ns.predicted+1 %}{% endif %}{% endfor %}
+<div class="tf-page">
+  {% include "tf_clean_header.html" %}
+  {% include "tf_clean_motifs.html" %}
+  {% include "tf_clean_models.html" %}
+  {% include "tf_clean_domains.html" %}
+  <details class="evidence-group"><summary>Prediction provenance <span>{{ motif_rows|length }} raw prediction links</span></summary><p class="muted">Raw mapping, matrix status, and importer details are kept here.</p></details>
+</div>
