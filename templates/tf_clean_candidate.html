@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ tf.tf_id }} | ModCRE DB{% endblock %}
+{% block content %}
+<section class="tf-record-header">
+  <div>
+    <p class="eyebrow">Transcription factor</p>
+    <h1 class="mono">{{ tf.tf_id }}{% if tf.gene_names %} — {{ tf.gene_names.split()[0] }}{% endif %}</h1>
+    {% if tf.protein_name %}<p><strong>{{ tf.protein_name }}</strong></p>{% endif %}
+    <p class="muted">{{ tf.organism_name or "Organism unknown" }}{% if tf.sequence_length %} · {{ tf.sequence_length }} aa{% endif %}</p>
+  </div>
+</section>
+<section class="tf-card"><h2>Motif Prediction</h2></section>
+{% endblock %}
