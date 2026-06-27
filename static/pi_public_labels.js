@@ -1,9 +1,9 @@
 (() => {
   const pairs = [
-    ["Predicted Low: AlphaFold3", "Predicted"],
-    ["Predicted Low: ModCRE", "Predicted"],
-    ["AlphaFold3-assisted ModCRE", "Predicted"],
-    ["AlphaFold_ModCRE", "Predicted"],
+    ["Predicted Low: AlphaFold3", "ModCRE"],
+    ["Predicted Low: ModCRE", "ModCRE"],
+    ["AlphaFold3-assisted ModCRE", "ModCRE"],
+    ["AlphaFold_ModCRE", "ModCRE"],
     ["Relatively_Homologous_PWM", "Nearest Neighbor (70% - 40%)"],
     ["Relatively Homologous PWM", "Nearest Neighbor (70% - 40%)"],
     ["Distant homologous candidate", "Nearest Neighbor (70% - 40%)"],
@@ -33,7 +33,7 @@
       let text = node.nodeValue;
       pairs.forEach(pair => { text = text.split(pair[0]).join(pair[1]); });
       const trimmed = text.trim();
-      if (trimmed === "Families") text = text.replace("Families", "PFAM Families (by similarity)");
+      if (trimmed === "Families") text = text.replace("Families", "PFAM Families");
       if (trimmed === "Motifs") text = text.replace("Motifs", "Generated PWM");
       node.nodeValue = text;
     });

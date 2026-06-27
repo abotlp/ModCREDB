@@ -1421,3 +1421,76 @@ tr:last-child td {
 .matrix-acgt-table tbody th {
   background: var(--panel);
 }
+
+/* ModCREDB compact prediction/search table patch */
+.search-results-table {
+  font-size: 14px;
+  min-width: 1040px;
+  table-layout: fixed;
+}
+.search-results-table th,
+.search-results-table td {
+  padding: 8px 9px;
+}
+.search-col-id { width: 100px; }
+.search-col-gene { width: 95px; }
+.search-col-protein { width: 230px; }
+.search-col-prediction { width: 150px; }
+.search-col-scan { width: 62px; }
+.search-col-pwm { width: 64px; }
+.search-col-3d { width: 56px; }
+.search-col-pfam { width: 205px; }
+.search-col-caveat { width: 190px; }
+.search-results-table .protein-cell,
+.search-results-table .pfam-cell,
+.search-results-table .caveat-cell {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.search-results-table .number-cell {
+  text-align: center;
+}
+.search-results-table .prediction-cell {
+  font-weight: 750;
+}
+.motif-table {
+  table-layout: fixed;
+}
+.motif-table th:nth-child(1),
+.motif-table td:nth-child(1) { width: 290px; overflow-wrap: anywhere; }
+.motif-table th:nth-child(2),
+.motif-table td:nth-child(2) { width: 160px; }
+.motif-table th:nth-child(3),
+.motif-table td:nth-child(3) { width: 135px; }
+.motif-table th:nth-child(4),
+.motif-table td:nth-child(4) { width: 180px; overflow-wrap: anywhere; }
+.motif-table th:nth-child(5),
+.motif-table td:nth-child(5) { width: 180px; }
+.motif-table th:nth-child(6),
+.motif-table td:nth-child(6) { width: 220px; }
+.motif-table th:nth-child(7),
+.motif-table td:nth-child(7) { width: 95px; }
+.motif-records-table {
+  font-size: 14px;
+  table-layout: fixed;
+}
+.motif-records-table th,
+.motif-records-table td {
+  padding: 8px 9px;
+}
+.motif-records-table th:nth-child(1),
+.motif-records-table td:nth-child(1) { width: 135px; overflow-wrap: anywhere; }
+.motif-records-table th:nth-child(2),
+.motif-records-table td:nth-child(2) { width: 85px; }
+.motif-records-table th:nth-child(3),
+.motif-records-table td:nth-child(3) { width: 105px; }
+.motif-records-table th:nth-child(4),
+.motif-records-table td:nth-child(4) { width: 160px; overflow-wrap: anywhere; }
+.motif-records-table th:nth-child(5),
+.motif-records-table td:nth-child(5) { width: 60px; text-align: center; }
+.motif-records-table th:nth-child(6),
+.motif-records-table td:nth-child(6) { width: 185px; }
+.motif-records-table th:nth-child(7),
+.motif-records-table td:nth-child(7) { width: 210px; }
+.motif-records-table th:nth-child(8),
+.motif-records-table td:nth-child(8) { width: 100px; }

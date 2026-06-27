@@ -39,11 +39,11 @@ MODEL_CACHE_DIR = (
     else None
 )
 EVIDENCE_LABELS = {
-    "identical": "Identical PWM",
-    "homologous": "Homologous PWM",
-    "relative_homologous": "Relatively Homologous PWM",
-    "modcre": "ModCRE",
-    "alphafold": "AlphaFold3-assisted ModCRE",
+    "identical": "Known",
+    "homologous": "Nearest Neighbor (>70%)",
+    "relative_homologous": "Nearest Neighbor (70% - 40%)",
+    "modcre": "Predicted = Low",
+    "alphafold": "Predicted = Low",
 }
 EVIDENCE_INFO = {
     "identical": {
@@ -74,13 +74,16 @@ EVIDENCE_INFO = {
 }
 TF_SCAN_DEFAULT_EVIDENCE = ["identical", "homologous", "modcre", "alphafold"]
 TF_SCAN_MAX_MOTIFS = 500
+GLOBAL_SCAN_DEFAULT_EVIDENCE = ["identical", "homologous", "relative_homologous", "modcre", "alphafold"]
+GLOBAL_SCAN_MAX_MOTIFS = int(os.environ.get("TF_WEBDB_GLOBAL_SCAN_MAX_MOTIFS", "5000"))
+GLOBAL_SCAN_HARD_MAX_MOTIFS = int(os.environ.get("TF_WEBDB_GLOBAL_SCAN_HARD_MAX_MOTIFS", "25000"))
 MATRIX_DISPLAY_MAX_POSITIONS = 30
 SOURCE_LABELS = {
     "jaspar": "JASPAR",
     "cisbp": "CisBP",
     "hocomoco": "HOCOMOCO",
-    "modcre": "ModCRE",
-    "alphafold": "AlphaFold3-assisted ModCRE",
+    "modcre": "Predicted = Low",
+    "alphafold": "Predicted = Low",
     "uniprot": "UniProt",
 }
 PRIMARY_ANNOTATION_ORDER = [
@@ -96,9 +99,9 @@ PRIMARY_ANNOTATION_LABELS = {
     "Homologous_PWM": "Homologous_PWM",
     "Relatively_Homologous_PWM": "Relatively_Homologous_PWM",
     "ModCRE": "ModCRE",
-    "AlphaFold": "AlphaFold3-assisted ModCRE",
-    "AlphaFold_ModCRE": "AlphaFold3-assisted ModCRE",
-    "AlphaFold3-assisted ModCRE": "AlphaFold3-assisted ModCRE",
+    "AlphaFold": "ModCRE",
+    "AlphaFold_ModCRE": "ModCRE",
+    "AlphaFold3-assisted ModCRE": "ModCRE",
     "Unannotated": "Unannotated",
 }
 PRIMARY_EVIDENCE_INFO = {
@@ -128,8 +131,8 @@ SOURCE_HOME_URLS = {
     "uniprot": "https://www.uniprot.org/",
 }
 MATRIX_STATUS_LABELS = {
-    "usable": "FIMO-ready",
-    "width_zero_no_matrix": "w=0 / no matrix",
+    "usable": "Generated PWM",
+    "width_zero_no_matrix": "Missing MEME",
     "no_parsed_matrix": "No parsed matrix",
     "malformed_matrix": "Malformed matrix",
     "width_mismatch": "Width mismatch",
@@ -994,6 +997,212 @@ def search_scan_motifs(
         """,
         [*args, limit],
     ).fetchall()
+
+
+def selected_global_evidence_from_params(params: dict[str, list[str]]) -> list[str]:
+    selected = [value for value in params.get("scan_evidence", []) if value in EVIDENCE_LABELS]
+    return selected or list(GLOBAL_SCAN_DEFAULT_EVIDENCE)
+
+
+def scan_source_from_params(params: dict[str, list[str]]) -> str:
+    source = params.get("scan_source", [""])[0].strip().lower()
+    return source if source in SOURCE_LABELS else ""
+
+
+def parse_scan_motif_limit(value: str) -> tuple[int, str]:
+    raw = (value or "").strip().lower()
+    if raw in {"", "default"}:
+        return min(GLOBAL_SCAN_MAX_MOTIFS, GLOBAL_SCAN_HARD_MAX_MOTIFS), ""
+    if raw == "all":
+        return GLOBAL_SCAN_HARD_MAX_MOTIFS, ""
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return min(GLOBAL_SCAN_MAX_MOTIFS, GLOBAL_SCAN_HARD_MAX_MOTIFS), "Max motif count was not numeric; using the default collection size."
+    parsed = max(1, min(parsed, GLOBAL_SCAN_HARD_MAX_MOTIFS))
+    return parsed, ""
+
+
+def evidence_case_sql(alias: str = "mr") -> str:
+    return f"""
+        CASE {alias}.evidence_type
+          WHEN 'identical' THEN 0
+          WHEN 'homologous' THEN 1
+          WHEN 'relative_homologous' THEN 2
+          WHEN 'modcre' THEN 3
+          WHEN 'alphafold' THEN 4
+          ELSE 99
+        END
+    """
+
+
+def source_case_sql(alias: str = "mf") -> str:
+    return f"""
+        CASE {alias}.source
+          WHEN 'jaspar' THEN 0
+          WHEN 'hocomoco' THEN 1
+          WHEN 'cisbp' THEN 2
+          WHEN 'modcre' THEN 3
+          WHEN 'alphafold' THEN 4
+          ELSE 99
+        END
+    """
+
+
+def load_global_scan_motifs(
+    conn: sqlite3.Connection,
+    evidence_types: list[str],
+    source: str = "",
+    limit: int = GLOBAL_SCAN_MAX_MOTIFS,
+) -> tuple[list[sqlite3.Row], dict[str, object]]:
+    selected = [evidence for evidence in evidence_types if evidence in EVIDENCE_LABELS] or list(GLOBAL_SCAN_DEFAULT_EVIDENCE)
+    placeholders = ",".join("?" for _ in selected)
+    where = ["mf.matrix_status = 'usable'"]
+    args: list[object] = []
+    if source:
+        where.append("mf.source = ?")
+        args.append(source)
+    where_sql = " AND ".join(where)
+    evidence_rank_sql = evidence_case_sql("mr")
+    source_rank_sql = source_case_sql("mf")
+
+    count_args = [*selected, *args]
+    total = conn.execute(
+        f"""
+        SELECT COUNT(*)
+        FROM (
+          SELECT mf.source, mf.motif_id
+          FROM motif_file AS mf
+          JOIN motif_ref AS mr
+            ON mr.source = mf.source
+           AND mr.motif_id = mf.motif_id
+          WHERE mr.evidence_type IN ({placeholders})
+            AND {where_sql}
+          GROUP BY mf.source, mf.motif_id
+        )
+        """,
+        count_args,
+    ).fetchone()[0]
+
+    rows = conn.execute(
+        f"""
+        SELECT mf.source, mf.motif_id, mf.width, mf.nsites, mf.consensus,
+               mf.matrix_json, mf.matrix_status, mf.matrix_warning,
+               COUNT(DISTINCT mr.tf_id) AS linked_tf_count,
+               GROUP_CONCAT(DISTINCT COALESCE(NULLIF(ta.gene_names, ''), mr.tf_id)) AS linked_tf_labels,
+               GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types,
+               MIN({evidence_rank_sql}) AS evidence_rank,
+               MAX(CASE WHEN sf.id IS NOT NULL THEN 1 ELSE 0 END) AS has_3d_model
+        FROM motif_file AS mf
+        JOIN motif_ref AS mr
+          ON mr.source = mf.source
+         AND mr.motif_id = mf.motif_id
+        LEFT JOIN tf_annotation AS ta ON ta.tf_id = mr.tf_id
+        LEFT JOIN motif_structure AS ms ON ms.motif_ref_id = mr.id
+        LEFT JOIN structure_file AS sf
+          ON sf.id = ms.structure_file_id
+         AND sf.status = 'active'
+         AND sf.file_type = 'pdb'
+        WHERE mr.evidence_type IN ({placeholders})
+          AND {where_sql}
+        GROUP BY mf.source, mf.motif_id
+        ORDER BY evidence_rank, has_3d_model DESC, {source_rank_sql}, linked_tf_count DESC, mf.motif_id
+        LIMIT ?
+        """,
+        [*selected, *args, limit],
+    ).fetchall()
+
+    summary = {
+        "mode": "global",
+        "total_available": int(total or 0),
+        "used_count": len(rows),
+        "limited": int(total or 0) > len(rows),
+        "limit": int(limit),
+        "selected_evidence": selected,
+        "source": source,
+    }
+    return rows, summary
+
+
+def best_prediction_from_evidence_types(evidence_types: object) -> tuple[str, str]:
+    values = [value.strip() for value in str(evidence_types or "").split(",") if value.strip()]
+    order = {"identical": 0, "homologous": 1, "relative_homologous": 2, "modcre": 3, "alphafold": 4}
+    if not values:
+        return "", ""
+    best = sorted(values, key=lambda value: order.get(value, 99))[0]
+    return best, EVIDENCE_LABELS.get(best, best)
+
+
+def short_linked_tf_labels(value: object, limit: int = 3) -> str:
+    labels = []
+    seen = set()
+    for item in str(value or "").split(","):
+        item = item.strip()
+        if not item or item in seen:
+            continue
+        seen.add(item)
+        labels.append(item)
+    if len(labels) > limit:
+        return ", ".join(labels[:limit]) + f"; +{len(labels) - limit} more"
+    return ", ".join(labels)
+
+
+def enrich_scan_hits(conn: sqlite3.Connection, hits: list[dict[str, object]]) -> None:
+    keys = sorted({(str(hit.get("source") or ""), str(hit.get("motif_id") or "")) for hit in hits})
+    keys = [key for key in keys if key[0] and key[1]]
+    if not keys:
+        return
+    clauses = []
+    args: list[object] = []
+    for source, motif_id in keys:
+        clauses.append("(mf.source = ? AND mf.motif_id = ?)")
+        args.extend([source, motif_id])
+    evidence_rank_sql = evidence_case_sql("mr")
+    metadata_rows = conn.execute(
+        f"""
+        SELECT mf.source, mf.motif_id, mf.consensus, mf.width,
+               COUNT(DISTINCT mr.tf_id) AS linked_tf_count,
+               GROUP_CONCAT(DISTINCT COALESCE(NULLIF(ta.gene_names, ''), mr.tf_id)) AS linked_tf_labels,
+               GROUP_CONCAT(DISTINCT mr.evidence_type) AS evidence_types,
+               MIN({evidence_rank_sql}) AS evidence_rank,
+               MAX(CASE WHEN sf.id IS NOT NULL THEN 1 ELSE 0 END) AS has_3d_model
+        FROM motif_file AS mf
+        LEFT JOIN motif_ref AS mr
+          ON mr.source = mf.source
+         AND mr.motif_id = mf.motif_id
+        LEFT JOIN tf_annotation AS ta ON ta.tf_id = mr.tf_id
+        LEFT JOIN motif_structure AS ms ON ms.motif_ref_id = mr.id
+        LEFT JOIN structure_file AS sf
+          ON sf.id = ms.structure_file_id
+         AND sf.status = 'active'
+         AND sf.file_type = 'pdb'
+        WHERE {' OR '.join(clauses)}
+        GROUP BY mf.source, mf.motif_id
+        """,
+        args,
+    ).fetchall()
+    metadata = {(row["source"], row["motif_id"]): dict(row) for row in metadata_rows}
+    for hit in hits:
+        key = (str(hit.get("source") or ""), str(hit.get("motif_id") or ""))
+        row = metadata.get(key, {})
+        prediction_key, prediction_label = best_prediction_from_evidence_types(row.get("evidence_types", ""))
+        hit["prediction_key"] = prediction_key
+        hit["prediction_label"] = prediction_label
+        hit["linked_tf_count"] = int(row.get("linked_tf_count") or 0)
+        hit["linked_tf_labels"] = short_linked_tf_labels(row.get("linked_tf_labels", ""))
+        hit["consensus"] = row.get("consensus", "")
+        hit["has_3d_model"] = int(row.get("has_3d_model") or 0)
+        hit["source_label"] = SOURCE_LABELS.get(str(hit.get("source") or ""), str(hit.get("source") or ""))
+        pvalue = hit.get("pvalue")
+        pvalue_text = f"{pvalue:.3g}" if isinstance(pvalue, float) else ""
+        hit["snpebot_text"] = (
+            f"motif={hit.get('source')}|{hit.get('motif_id')}; "
+            f"prediction={prediction_label}; "
+            f"match={hit.get('sequence')}; "
+            f"position={hit.get('start')}-{hit.get('end')}; "
+            f"strand={hit.get('strand')}; "
+            f"pvalue={pvalue_text}"
+        )
 
 
 def normalize_tf_id(tf_id: str) -> str:
@@ -1949,6 +2158,10 @@ class TFWebApp:
     def search(self, params: dict[str, list[str]]) -> tuple[bytes, str, int]:
         q = params.get("q", [""])[0].strip()
         evidence = params.get("evidence", [""])[0].strip()
+        if evidence == "alphafold":
+            evidence = "modcre"
+        if evidence not in {"identical", "homologous", "relative_homologous", "modcre"}:
+            evidence = ""
         source = params.get("source", [""])[0].strip()
         limit = 60
 
@@ -1971,8 +2184,10 @@ class TFWebApp:
             )
             args.extend([like, like, like, like, like, like, like, like, like, like])
         if evidence:
-            where.append("mr.evidence_type = ?")
-            args.append(evidence)
+            evidence_values = ("modcre", "alphafold") if evidence == "modcre" else (evidence,)
+            evidence_placeholders = ", ".join("?" for _ in evidence_values)
+            where.append(f"mr.evidence_type IN ({evidence_placeholders})")
+            args.extend(evidence_values)
         if source:
             where.append("mr.source = ?")
             args.append(source)
@@ -2333,16 +2548,21 @@ class TFWebApp:
         motif_source = params.get("motif_source", [""])[0].strip().lower()
         if motif_source not in SOURCE_LABELS:
             motif_source = ""
-        engine = "fimo"
+        scan_evidence = selected_global_evidence_from_params(params)
+        scan_source = scan_source_from_params(params)
+        max_motifs_raw = params.get("max_motifs", [str(GLOBAL_SCAN_MAX_MOTIFS)])[0]
+        max_motifs, max_motifs_warning = parse_scan_motif_limit(max_motifs_raw)
         pvalue_raw = params.get("pvalue", ["1e-4"])[0]
         max_hits_raw = params.get("max_hits", ["200"])[0]
         errors: list[str] = []
+        if max_motifs_warning:
+            errors.append(max_motifs_warning)
 
         try:
             pvalue = float(pvalue_raw)
         except ValueError:
             pvalue = 1e-4
-            errors.append("FIMO p-value threshold was not numeric; using 1e-4.")
+            errors.append("P-value threshold was not numeric; using 1e-4.")
         pvalue = min(max(pvalue, 1e-12), 1.0)
 
         try:
@@ -2355,7 +2575,9 @@ class TFWebApp:
         motifs: list[sqlite3.Row] = []
         seen_motifs: set[tuple[str, str]] = set()
         tf_scan_summary: dict[str, object] | None = None
+        global_scan_summary: dict[str, object] | None = None
         tf_scan_regions: list[dict[str, object]] = []
+        loaded_global_collection = False
 
         def add_motif(row: sqlite3.Row) -> None:
             key = (row["source"], row["motif_id"])
@@ -2401,15 +2623,15 @@ class TFWebApp:
                 if summary.get("limited"):
                     errors.append(
                         f"TF motif set was limited to {summary['limit']} motifs. "
-                        "Use stricter evidence filters for a smaller scan."
+                        "Use stricter prediction filters for a smaller scan."
                     )
                 if not tf_motifs:
                     if tf_region:
                         errors.append(
-                            "No FIMO-ready motifs were found for this TF with the selected evidence and region filters."
+                            "No generated PWMs were found for this TF with the selected prediction and region filters."
                         )
                     else:
-                        errors.append("No FIMO-ready motifs were found for this TF with the selected evidence filters.")
+                        errors.append("No generated PWMs were found for this TF with the selected prediction filters.")
 
         requested_specs = parse_motif_specs(motifs_text)
         if requested_specs:
@@ -2439,14 +2661,33 @@ class TFWebApp:
                         add_motif(row)
                     else:
                         label = f"{requested_source}|{requested_id}" if requested_source else requested_id
-                        errors.append(f"Motif not found or is not FIMO-ready: {label}")
-
-        with connect(self.db_path) as conn:
-            motif_results = search_scan_motifs(conn, motif_q, motif_source)
+                        errors.append(f"Motif not found or missing generated PWM: {label}")
 
         sequence, ignored_count = clean_dna_sequence(sequence_text)
         if ignored_count:
             errors.append(f"Ignored {ignored_count} non-DNA characters.")
+
+        # Top-menu /scan behavior: if the user only pasted a sequence, scan the global generated-PWM collection.
+        if method == "POST" and not motifs and not tf_id and not requested_specs:
+            with connect(self.db_path) as conn:
+                global_motifs, global_scan_summary = load_global_scan_motifs(
+                    conn,
+                    scan_evidence,
+                    source=scan_source,
+                    limit=max_motifs,
+                )
+            for row in global_motifs:
+                add_motif(row)
+            loaded_global_collection = True
+            if global_scan_summary and global_scan_summary.get("limited"):
+                errors.append(
+                    f"Scanned {global_scan_summary['used_count']} of {global_scan_summary['total_available']} generated PWMs. "
+                    "Increase the max motif count or filter by prediction/source if needed."
+                )
+
+        with connect(self.db_path) as conn:
+            motif_results = search_scan_motifs(conn, motif_q, motif_source)
+            global_available_count = safe_count(conn, "SELECT COUNT(*) FROM motif_file WHERE matrix_status = 'usable'")
 
         hits: list[dict[str, object]] = []
         profile_svg = ""
@@ -2455,15 +2696,17 @@ class TFWebApp:
         profile_csv_uri = ""
         if method == "POST":
             if not motifs:
-                errors.append("Choose at least one motif.")
+                errors.append("No generated PWMs matched the selected inputs.")
             if not sequence:
                 errors.append("Paste a DNA sequence.")
             if len(sequence) > 100000:
                 errors.append("Sequence is longer than 100,000 bases; please use a shorter sequence for this interactive scanner.")
             if motifs and sequence and len(sequence) <= 100000:
-                hits, fimo_errors, profile_svg, profile_summary = run_fimo_scan(motifs, sequence, pvalue, max_hits)
-                errors.extend(fimo_errors)
+                hits, scan_errors, profile_svg, profile_summary = run_fimo_scan(motifs, sequence, pvalue, max_hits)
+                errors.extend(scan_errors)
                 if hits:
+                    with connect(self.db_path) as conn:
+                        enrich_scan_hits(conn, hits)
                     hits_csv_uri = build_hits_csv_uri(hits)
                 if profile_summary:
                     profile_csv_uri = build_profile_csv_uri(profile_summary)
@@ -2477,13 +2720,19 @@ class TFWebApp:
                 tf_region=tf_region_raw,
                 tf_scan_regions=tf_scan_regions,
                 tf_scan_summary=tf_scan_summary,
+                global_scan_summary=global_scan_summary,
+                global_available_count=global_available_count,
+                scan_evidence=scan_evidence,
+                scan_source=scan_source,
+                max_motifs=max_motifs,
+                max_motifs_hard=GLOBAL_SCAN_HARD_MAX_MOTIFS,
+                loaded_global_collection=loaded_global_collection,
                 tf_scan_default_evidence=TF_SCAN_DEFAULT_EVIDENCE,
                 tf_scan_max_motifs=TF_SCAN_MAX_MOTIFS,
                 sequence_text=sequence_text,
                 motif_q=motif_q,
                 motif_source=motif_source,
                 motif_results=motif_results,
-                engine=engine,
                 pvalue=pvalue,
                 max_hits=max_hits,
                 motifs=motifs,

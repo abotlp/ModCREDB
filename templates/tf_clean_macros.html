@@ -1,24 +1,32 @@
 {% macro motif_table(generated_rows, keys, label, source_labels) %}
 <div class="table-wrap"><table class="motif-table">
-<thead><tr><th>Motif</th><th>Source</th><th>Prediction</th><th>DNA binding</th><th>Support</th><th>Logo</th><th>Actions</th></tr></thead>
+<thead><tr><th>Motif</th><th>Prediction</th><th>Source</th><th>DNA binding</th><th>Support</th><th>Logo</th><th>Actions</th></tr></thead>
 <tbody>
 {% for row in generated_rows %}{% if row.evidence_type in keys %}
 <tr>
 <td class="mono"><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
-<td>{% if row.evidence_type == 'modcre' %}ModCRE{% elif row.evidence_type == 'alphafold' %}AlphaFold-assisted{% else %}{{ source_labels.get(row.source,row.source) }}{% endif %}</td>
 <td><span class="chip{% if row.evidence_type in ['modcre','alphafold'] %} predicted{% endif %}">{{ label }}</span></td>
+<td>
+  {% if row.evidence_type == 'modcre' %}
+    Homology model
+  {% elif row.evidence_type == 'alphafold' %}
+    AlphaFold3 model
+  {% else %}
+    {{ source_labels.get(row.source,row.source) }}
+  {% endif %}
+</td>
 <td class="mono">{{ row.consensus or 'matrix available' }}</td>
 <td>
   {% if row.evidence_type == 'identical' %}
-    <span class="muted">Known</span>
+    Direct PWM
   {% elif row.identity_percent is not none %}
     {{ '%.1f'|format(row.identity_percent) }}% identity
   {% elif row.region_start and row.region_end %}
     Region {{ row.region_start }}-{{ row.region_end }}{% if row.exact_active_model_count %} · {{ row.exact_active_model_count }} 3D model{% if row.exact_active_model_count != 1 %}s{% endif %}{% endif %}
-  {% elif row.evidence_type=='alphafold' %}
-    Full sequence
-  {% elif row.evidence_type=='modcre' %}
-    Structure model
+  {% elif row.evidence_type == 'alphafold' %}
+    AlphaFold3 model · ModCRE PWM
+  {% elif row.evidence_type == 'modcre' %}
+    Homology model · ModCRE PWM
   {% else %}
     <span class="muted">Support recorded</span>
   {% endif %}

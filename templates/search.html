@@ -1,31 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Search ModCREDB{% endblock %}
-{% macro prediction_label(key) -%}
-  {%- if key == 'identical' -%}Known
-  {%- elif key == 'homologous' -%}Nearest Neighbor (&gt;70%)
-  {%- elif key == 'relative_homologous' -%}Nearest Neighbor (70% - 40%)
-  {%- elif key in ['modcre','alphafold'] -%}Predicted
-  {%- else -%}{{ evidence_labels.get(key, key) }}
+
+{% macro public_prediction_label(value) -%}
+  {%- if value in ['Identical_PWM', 'Identical PWM', 'Known'] -%}Known
+  {%- elif value in ['Homologous_PWM', 'Homologous PWM'] -%}Nearest Neighbor (&gt;70%)
+  {%- elif value in ['Relatively_Homologous_PWM', 'Relatively Homologous PWM'] -%}Nearest Neighbor (70% - 40%)
+  {%- elif value in ['ModCRE', 'AlphaFold', 'AlphaFold_ModCRE', 'AlphaFold3-assisted ModCRE'] -%}ModCRE
+  {%- elif value in ['Unannotated', '', none] -%}Unannotated
+  {%- else -%}{{ value }}
   {%- endif -%}
 {%- endmacro %}
+
 {% macro matrix_label(status) -%}
   {%- if status == 'usable' -%}Generated PWM
   {%- elif status == 'width_zero_no_matrix' -%}Missing MEME
   {%- else -%}{{ matrix_status_labels.get(status, status) }}
   {%- endif -%}
 {%- endmacro %}
+
+{% macro motif_prediction_categories(row) -%}
+  {%- set types = ',' ~ (row.evidence_types or '') ~ ',' -%}
+  {%- set ns = namespace(sep='') -%}
+  {%- if ',identical,' in types -%}{{ ns.sep }}Known{%- set ns.sep = ', ' -%}{%- endif -%}
+  {%- if ',homologous,' in types -%}{{ ns.sep }}Nearest Neighbor (&gt;70%){%- set ns.sep = ', ' -%}{%- endif -%}
+  {%- if ',relative_homologous,' in types -%}{{ ns.sep }}Nearest Neighbor (70% - 40%){%- set ns.sep = ', ' -%}{%- endif -%}
+  {%- if ',modcre,' in types or ',alphafold,' in types -%}{{ ns.sep }}ModCRE{%- set ns.sep = ', ' -%}{%- endif -%}
+  {%- if ns.sep == '' -%}No linked TF prediction{%- endif -%}
+{%- endmacro %}
+
 {% macro motif_records_table(rows) %}
   <div class="table-wrap wide-table">
-    <table>
+    <table class="motif-records-table">
       <thead>
         <tr>
           <th>Motif ID</th>
           <th>Source</th>
-          <th>PWM status</th>
+          <th>PWM</th>
           <th>DNA binding</th>
           <th>Width</th>
-          <th>Linked TF records</th>
-          <th>Prediction categories</th>
+          <th>TF records</th>
+          <th>Predictions</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -38,10 +52,10 @@
             <td class="mono">{{ row.consensus or "" }}</td>
             <td>{{ row.width or "" }}</td>
             <td>
-              {{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %} in ModCREDB
-              {% if row.preferred_tf_link %}<br><span class="matrix-badge ready">Linked to preferred record</span>{% endif %}
+              {{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %}
+              {% if row.preferred_tf_link %}<br><span class="matrix-badge ready">Preferred record</span>{% endif %}
             </td>
-            <td>{{ search_evidence_summary(row).replace('Identical PWM','Known').replace('Homologous PWM','Nearest Neighbor (>70%)').replace('Relatively Homologous PWM','Nearest Neighbor (70% - 40%)').replace('AlphaFold3-assisted ModCRE','Predicted').replace('ModCRE','Predicted') }}</td>
+            <td>{{ motif_prediction_categories(row) }}</td>
             <td>
               <a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif page</a>
               {% if row.matrix_status == "usable" %} · <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a>{% endif %}
@@ -52,6 +66,7 @@
     </table>
   </div>
 {% endmacro %}
+
 {% block content %}
   <section>
     <p class="eyebrow">TF-to-motif prediction search</p>
@@ -60,15 +75,18 @@
       <input name="q" value="{{ q }}" placeholder="Gene, UniProt accession, protein, PFAM family/domain, legacy family, or motif ID">
       <select name="evidence">
         <option value="">Any prediction</option>
-        {% for key, label in evidence_labels.items() %}
-          <option value="{{ key }}" {% if evidence == key %}selected{% endif %}>{{ prediction_label(key) }}</option>
-        {% endfor %}
+        <option value="identical" {% if evidence == 'identical' %}selected{% endif %}>Known</option>
+        <option value="homologous" {% if evidence == 'homologous' %}selected{% endif %}>Nearest Neighbor (&gt;70%)</option>
+        <option value="relative_homologous" {% if evidence == 'relative_homologous' %}selected{% endif %}>Nearest Neighbor (70% - 40%)</option>
+        <option value="modcre" {% if evidence == 'modcre' %}selected{% endif %}>ModCRE</option>
       </select>
       <select name="source">
         <option value="">Any source</option>
-        {% for key, label in source_labels.items() %}
-          <option value="{{ key }}" {% if source == key %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
+        <option value="jaspar" {% if source == 'jaspar' %}selected{% endif %}>JASPAR</option>
+        <option value="cisbp" {% if source == 'cisbp' %}selected{% endif %}>CisBP</option>
+        <option value="hocomoco" {% if source == 'hocomoco' %}selected{% endif %}>HOCOMOCO</option>
+        <option value="modcre" {% if source == 'modcre' %}selected{% endif %}>ModCRE</option>
+        <option value="alphafold" {% if source == 'alphafold' %}selected{% endif %}>AlphaFold3 model</option>
       </select>
       <button type="submit">Search</button>
     </form>
@@ -83,7 +101,7 @@
       <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
       <div class="table-wrap wide-table">
         <table>
-          <thead><tr><th>Gene</th><th>Preferred reviewed record</th><th>UniProt records</th><th>Best primary prediction</th><th>Can scan DNA</th><th>Generated PWM count</th><th>3D model count</th><th>Caveat / action</th></tr></thead>
+          <thead><tr><th>Gene</th><th>Preferred record</th><th>Records</th><th>Prediction</th><th>Scan</th><th>PWMs</th><th>3D</th><th>Caveat / action</th></tr></thead>
           <tbody>
             {% for summary in gene_summaries %}
               {% set preferred = summary.preferred %}
@@ -91,7 +109,7 @@
                 <td><strong>{{ summary.gene }}</strong></td>
                 <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed Swiss-Prot</span>{% endif %}</td>
                 <td>{{ summary.record_count }}</td>
-                <td>{{ preferred.primary_evidence_label.replace('Identical_PWM','Known').replace('Homologous_PWM','Nearest Neighbor (>70%)').replace('Relatively_Homologous_PWM','Nearest Neighbor (70% - 40%)').replace('AlphaFold3-assisted ModCRE','Predicted').replace('ModCRE','Predicted').replace('AlphaFold','Predicted') }}</td>
+                <td>{{ public_prediction_label(preferred.primary_evidence_raw) }}</td>
                 <td><span class="scan-status {% if preferred.can_scan %}yes{% else %}no{% endif %}">{{ preferred.can_scan_label }}</span></td>
                 <td>{{ preferred.fimo_ready_pwm_count }}</td>
                 <td>{{ preferred.active_model_count }}</td>
@@ -117,18 +135,29 @@
       <span class="muted">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span>
     </div>
     <div class="table-wrap wide-table">
-      <table>
+      <table class="search-results-table">
+        <colgroup>
+          <col class="search-col-id">
+          <col class="search-col-gene">
+          <col class="search-col-protein">
+          <col class="search-col-prediction">
+          <col class="search-col-scan">
+          <col class="search-col-pwm">
+          <col class="search-col-3d">
+          <col class="search-col-pfam">
+          <col class="search-col-caveat">
+        </colgroup>
         <thead>
           <tr>
-            <th>UniProt sequence record</th>
+            <th>UniProt</th>
             <th>Gene</th>
-            <th>Protein name</th>
-            <th>PFAM Families (by similarity)</th>
-            <th>Primary prediction</th>
-            <th>Can scan DNA</th>
-            <th>Generated PWM count</th>
-            <th>3D model count</th>
-            <th>Warning / caveat</th>
+            <th>Protein</th>
+            <th>Prediction</th>
+            <th>Scan</th>
+            <th>PWMs</th>
+            <th>3D</th>
+            <th>PFAM</th>
+            <th>Caveat</th>
           </tr>
         </thead>
         <tbody>
@@ -136,17 +165,17 @@
             <tr>
               <td>
                 <a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>
-                {% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred reviewed record</span>
+                {% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred</span>
                 {% elif row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}
               </td>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
-              <td>{{ row.protein_name or "" }}</td>
-              <td>{{ row.family_text }}</td>
-              <td>{{ row.primary_evidence_label.replace('Identical_PWM','Known').replace('Homologous_PWM','Nearest Neighbor (>70%)').replace('Relatively_Homologous_PWM','Nearest Neighbor (70% - 40%)').replace('AlphaFold3-assisted ModCRE','Predicted').replace('ModCRE','Predicted').replace('AlphaFold','Predicted') }}</td>
-              <td><span class="scan-status {% if row.can_scan %}yes{% else %}no{% endif %}">{{ row.can_scan_label }}</span></td>
-              <td>{{ row.fimo_ready_pwm_count }}</td>
-              <td>{{ row.active_model_count }}</td>
-              <td>{{ row.main_caveat }}</td>
+              <td class="protein-cell">{{ row.protein_name or "" }}</td>
+              <td class="prediction-cell">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
+              <td class="number-cell"><span class="scan-status {% if row.can_scan %}yes{% else %}no{% endif %}">{{ row.can_scan_label }}</span></td>
+              <td class="number-cell">{{ row.fimo_ready_pwm_count }}</td>
+              <td class="number-cell">{{ row.active_model_count }}</td>
+              <td class="pfam-cell">{{ row.family_text }}</td>
+              <td class="caveat-cell">{{ row.main_caveat }}</td>
             </tr>
           {% else %}
             <tr><td colspan="9">No matching UniProt sequence records.</td></tr>
