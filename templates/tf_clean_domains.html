@@ -1,9 +1,13 @@
 {% if pfam_annotations or families %}
 <section class="tf-box">
-  <h2>Domains</h2>
+  <div class="tf-section-head">
+    <div>
+      <h2>Domains</h2>
+      {% if pfam_annotations %}<p class="muted">Annotated protein domains. Overlaps with model-supported DNA-binding regions are shown when available.</p>{% endif %}
+    </div>
+  </div>
   {% if pfam_annotations %}
-    <p class="muted">Annotated DNA-binding domains on the protein sequence.</p>
-    <div class="table-wrap"><table><thead><tr><th>Residues</th><th>PFAM</th><th>Domain</th></tr></thead><tbody>{% for row in pfam_annotations %}<tr><td>{% if row.start and row.end %}{{ row.start }}-{{ row.end }}{% endif %}</td><td class="mono">{{ row.pfam_id }}</td><td>{{ row.pfam_name or '' }}</td></tr>{% endfor %}</tbody></table></div>
+    <div class="table-wrap"><table class="domain-table"><thead><tr><th>Residues</th><th>PFAM</th><th>Domain</th>{% if region_groups %}<th>Used by prediction region?</th>{% endif %}</tr></thead><tbody>{% for row in pfam_annotations %}<tr><td>{% if row.start and row.end %}{{ row.start }}-{{ row.end }}{% endif %}</td><td class="mono">{{ row.pfam_id }}</td><td>{{ row.pfam_name or '' }}</td>{% if region_groups %}<td>{% set reg_ns = namespace(found=false) %}{% for region in region_groups %}{% if row.start and row.end and row.start <= region.end and row.end >= region.start %}{% set reg_ns.found = true %}<span class="region-pill">overlaps {{ region.start }}-{{ region.end }}</span>{% endif %}{% endfor %}{% if not reg_ns.found %}<span class="muted">No overlap with loaded model regions</span>{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody></table></div>
   {% elif families %}
     <details class="cat"><summary><span>Imported domain tags</span><span>{{ families|length }}</span></summary><div class="domain-tags">{% for row in families %}<span>{{ row.family }}</span>{% endfor %}</div></details>
   {% endif %}
