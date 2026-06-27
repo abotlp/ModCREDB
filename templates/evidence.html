@@ -1,44 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Evidence Guide | ModCREDB{% endblock %}
+{% block title %}Prediction Guide | ModCREDB{% endblock %}
+{% macro prediction_label(key) -%}
+  {%- if key == 'identical' -%}Known
+  {%- elif key == 'homologous' -%}Nearest Neighbor (&gt;70%)
+  {%- elif key == 'relative_homologous' -%}Nearest Neighbor (70% - 40%)
+  {%- elif key in ['modcre','alphafold'] -%}Predicted
+  {%- else -%}{{ evidence_labels.get(key, key) }}
+  {%- endif -%}
+{%- endmacro %}
 {% block content %}
   <section>
     <p class="eyebrow">Interpretation guide</p>
-    <h1>Evidence layers</h1>
-    <p class="muted">The same TF can have several possible motifs. The evidence type tells users where each PWM came from and how cautiously it should be interpreted.</p>
+    <h1>Prediction categories</h1>
+    <p class="muted">The same TF can have several possible motifs. The prediction category tells users where each PWM came from and how it should be interpreted.</p>
   </section>
 
   <section class="evidence-guide">
     {% for key, info in evidence_info.items() %}
       <article>
         <div>
-          <h2>{{ evidence_labels[key] }}</h2>
-          <span class="trust">{{ info.trust }}</span>
+          <h2>{{ prediction_label(key) }}</h2>
+          {% if key in ['modcre','alphafold'] %}<span class="trust">Prediction</span>{% else %}<span class="trust">{{ info.trust }}</span>{% endif %}
         </div>
-        <p>{{ info.description }}</p>
+        <p>{{ info.description.replace('evidence', 'prediction').replace('PWM transferred', 'PWM assigned/transferred').replace('Structure-based PWM predicted', 'Structure-based PWM predicted') }}</p>
         <p><strong>How to use it:</strong> {{ info.use }}</p>
       </article>
     {% endfor %}
   </section>
 
   <section>
-    <h2>Source, Evidence, Mapping</h2>
-    <p class="muted">
-      These labels answer different questions. Source is where the record came from; evidence type is the imported chart category; mapping type is how the TF-to-motif link should be interpreted; curation status says whether that wording is still pending confirmation.
-    </p>
+    <h2>Source, Prediction, Assignment</h2>
+    <p class="muted">These labels answer different questions. Source is where the record came from; prediction category is how the motif is presented to users; assignment type explains whether the TF-to-motif link is direct, homologous, or structure-predicted.</p>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Mapping type</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Assignment type</th><th>Meaning</th></tr></thead>
         <tbody>
           {% for key, description in mapping_type_info.items() %}
-            <tr>
-              <td><strong>{{ mapping_type_label(key) }}</strong><br><span class="mono">{{ key }}</span></td>
-              <td>{{ description }}</td>
-            </tr>
+            <tr><td><strong>{{ mapping_type_label(key) }}</strong><br><span class="mono">{{ key }}</span></td><td>{{ description }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -49,29 +47,12 @@
     <h2>Practical interpretation</h2>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>Question</th>
-            <th>Recommended answer</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Question</th><th>Recommended answer</th></tr></thead>
         <tbody>
-          <tr>
-            <td>Which motif should I trust first?</td>
-            <td>Prefer identical known motifs, then close homologs, then more distant homologs, then predicted ModCRE and AlphaFold3-assisted ModCRE motifs.</td>
-          </tr>
-          <tr>
-            <td>Can predicted motifs be useful?</td>
-            <td>Yes. They are valuable when no experimental motif exists, but they should be treated as hypotheses.</td>
-          </tr>
-          <tr>
-            <td>Why do some motifs have identity percentages?</td>
-            <td>The percentage describes similarity to the TF used to transfer the PWM. Direct identical motifs do not need a transfer percentage.</td>
-          </tr>
-          <tr>
-            <td>Why are some referenced motifs missing?</td>
-            <td>The TSV appears to include a few JASPAR motif IDs from older or mixed releases. They are kept as references and reported in internal QC/data-quality notes.</td>
-          </tr>
+          <tr><td>Which motif should I use first?</td><td>Prefer Known motifs, then Nearest Neighbor (&gt;70%), then Nearest Neighbor (70% - 40%), then Predicted ModCRE/AlphaFold-assisted motifs.</td></tr>
+          <tr><td>Are predicted motifs low quality?</td><td>No. The public label should be <strong>Predicted</strong>, not “low”. They are structure-derived hypotheses and should be inspected with their region, template, and model support.</td></tr>
+          <tr><td>Why do some motifs have identity percentages?</td><td>The percentage describes similarity to the TF used to transfer the PWM. Known motifs do not need a transfer percentage.</td></tr>
+          <tr><td>Why are some referenced motifs missing?</td><td>Some archive records do not contain a generated PWM and are labeled Missing MEME in public views.</td></tr>
         </tbody>
       </table>
     </div>
