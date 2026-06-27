@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Search ModCREDB{% endblock %}
+{% macro prediction_label(key) -%}
+  {%- if key == 'identical' -%}Known
+  {%- elif key == 'homologous' -%}Nearest Neighbor (&gt;70%)
+  {%- elif key == 'relative_homologous' -%}Nearest Neighbor (70% - 40%)
+  {%- elif key in ['modcre','alphafold'] -%}Predicted
+  {%- else -%}{{ evidence_labels.get(key, key) }}
+  {%- endif -%}
+{%- endmacro %}
+{% macro matrix_label(status) -%}
+  {%- if status == 'usable' -%}Generated PWM
+  {%- elif status == 'width_zero_no_matrix' -%}Missing MEME
+  {%- else -%}{{ matrix_status_labels.get(status, status) }}
+  {%- endif -%}
+{%- endmacro %}
 {% macro motif_records_table(rows) %}
   <div class="table-wrap wide-table">
     <table>
@@ -7,11 +21,11 @@
         <tr>
           <th>Motif ID</th>
           <th>Source</th>
-          <th>Matrix status</th>
-          <th>Consensus</th>
+          <th>PWM status</th>
+          <th>DNA binding</th>
           <th>Width</th>
           <th>Linked TF records</th>
-          <th>Evidence types</th>
+          <th>Prediction categories</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -20,20 +34,14 @@
           <tr>
             <td><a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
             <td>{{ source_labels.get(row.source, row.source) }}</td>
-            <td>
-              {% if row.matrix_status == "usable" %}
-                <span class="matrix-badge ready">FIMO-ready</span>
-              {% else %}
-                <span class="matrix-badge blocked">{{ matrix_status_labels.get(row.matrix_status, row.matrix_status) }}</span>
-              {% endif %}
-            </td>
+            <td><span class="matrix-badge {% if row.matrix_status == 'usable' %}ready{% else %}blocked{% endif %}">{{ matrix_label(row.matrix_status) }}</span></td>
             <td class="mono">{{ row.consensus or "" }}</td>
             <td>{{ row.width or "" }}</td>
             <td>
               {{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %} in ModCREDB
               {% if row.preferred_tf_link %}<br><span class="matrix-badge ready">Linked to preferred record</span>{% endif %}
             </td>
-            <td>{{ search_evidence_summary(row) }}</td>
+            <td>{{ search_evidence_summary(row).replace('Identical PWM','Known').replace('Homologous PWM','Nearest Neighbor (>70%)').replace('Relatively Homologous PWM','Nearest Neighbor (70% - 40%)').replace('AlphaFold3-assisted ModCRE','Predicted').replace('ModCRE','Predicted') }}</td>
             <td>
               <a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif page</a>
               {% if row.matrix_status == "usable" %} · <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a>{% endif %}
@@ -46,14 +54,14 @@
 {% endmacro %}
 {% block content %}
   <section>
-    <p class="eyebrow">TF-to-motif evidence search</p>
+    <p class="eyebrow">TF-to-motif prediction search</p>
     <h1>Search ModCREDB</h1>
     <form class="filters" action="/search" method="get">
       <input name="q" value="{{ q }}" placeholder="Gene, UniProt accession, protein, PFAM family/domain, legacy family, or motif ID">
       <select name="evidence">
-        <option value="">Any evidence</option>
+        <option value="">Any prediction</option>
         {% for key, label in evidence_labels.items() %}
-          <option value="{{ key }}" {% if evidence == key %}selected{% endif %}>{{ label }}</option>
+          <option value="{{ key }}" {% if evidence == key %}selected{% endif %}>{{ prediction_label(key) }}</option>
         {% endfor %}
       </select>
       <select name="source">
@@ -72,10 +80,10 @@
         <h2>Gene summary results</h2>
         <span class="muted">Navigation aids, not separate database records</span>
       </div>
-      <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; evidence remains stored at the UniProt-record level.</p>
+      <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
       <div class="table-wrap wide-table">
         <table>
-          <thead><tr><th>Gene</th><th>Preferred reviewed record</th><th>UniProt records</th><th>Best primary evidence</th><th>Can scan DNA</th><th>FIMO-ready PWM count</th><th>Active model count</th><th>Caveat / action</th></tr></thead>
+          <thead><tr><th>Gene</th><th>Preferred reviewed record</th><th>UniProt records</th><th>Best primary prediction</th><th>Can scan DNA</th><th>Generated PWM count</th><th>3D model count</th><th>Caveat / action</th></tr></thead>
           <tbody>
             {% for summary in gene_summaries %}
               {% set preferred = summary.preferred %}
@@ -83,7 +91,7 @@
                 <td><strong>{{ summary.gene }}</strong></td>
                 <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed Swiss-Prot</span>{% endif %}</td>
                 <td>{{ summary.record_count }}</td>
-                <td>{{ preferred.primary_evidence_label }}</td>
+                <td>{{ preferred.primary_evidence_label.replace('Identical_PWM','Known').replace('Homologous_PWM','Nearest Neighbor (>70%)').replace('Relatively_Homologous_PWM','Nearest Neighbor (70% - 40%)').replace('AlphaFold3-assisted ModCRE','Predicted').replace('ModCRE','Predicted').replace('AlphaFold','Predicted') }}</td>
                 <td><span class="scan-status {% if preferred.can_scan %}yes{% else %}no{% endif %}">{{ preferred.can_scan_label }}</span></td>
                 <td>{{ preferred.fimo_ready_pwm_count }}</td>
                 <td>{{ preferred.active_model_count }}</td>
@@ -115,11 +123,11 @@
             <th>UniProt sequence record</th>
             <th>Gene</th>
             <th>Protein name</th>
-            <th>Family</th>
-            <th>Primary evidence</th>
+            <th>PFAM Families (by similarity)</th>
+            <th>Primary prediction</th>
             <th>Can scan DNA</th>
-            <th>FIMO-ready PWM count</th>
-            <th>Active model count</th>
+            <th>Generated PWM count</th>
+            <th>3D model count</th>
             <th>Warning / caveat</th>
           </tr>
         </thead>
@@ -134,14 +142,14 @@
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td>{{ row.protein_name or "" }}</td>
               <td>{{ row.family_text }}</td>
-              <td>{{ row.primary_evidence_label }}</td>
+              <td>{{ row.primary_evidence_label.replace('Identical_PWM','Known').replace('Homologous_PWM','Nearest Neighbor (>70%)').replace('Relatively_Homologous_PWM','Nearest Neighbor (70% - 40%)').replace('AlphaFold3-assisted ModCRE','Predicted').replace('ModCRE','Predicted').replace('AlphaFold','Predicted') }}</td>
               <td><span class="scan-status {% if row.can_scan %}yes{% else %}no{% endif %}">{{ row.can_scan_label }}</span></td>
               <td>{{ row.fimo_ready_pwm_count }}</td>
               <td>{{ row.active_model_count }}</td>
               <td>{{ row.main_caveat }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="10">No matching UniProt sequence records.</td></tr>
+            <tr><td colspan="9">No matching UniProt sequence records.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -152,10 +160,7 @@
     <section id="technical-motif-records">
       <details class="evidence-group">
         <summary>Technical motif-file matches <span>{{ motif_total }} record{% if motif_total != 1 %}s{% endif %}</span></summary>
-        <p class="muted">
-          These are archive-level motif records whose technical IDs contain this accession.
-          Open the TF record above for the biological evidence groups, DNA-binding regions, and models.
-        </p>
+        <p class="muted">These are archive-level motif records whose technical IDs contain this accession. Open the TF record above for the biological prediction groups, DNA-binding regions, and models.</p>
         {{ motif_records_table(motif_rows) }}
       </details>
     </section>
