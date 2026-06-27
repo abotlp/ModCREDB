@@ -8,227 +8,49 @@
   {%- else -%}{{ evidence_labels.get(key, key) }}
   {%- endif -%}
 {%- endmacro %}
-{% macro matrix_label(status) -%}
-  {%- if status == 'usable' -%}Generated PWM
-  {%- elif status == 'width_zero_no_matrix' -%}Missing MEME
-  {%- else -%}{{ matrix_status_labels.get(status, status) }}
-  {%- endif -%}
-{%- endmacro %}
 {% block content %}
-  <section>
-    <p class="eyebrow">PWM scanner</p>
-    <h1>Scan DNA sequence</h1>
-    <p class="muted">
-      This scanner uses MEME/FIMO to search pasted DNA or FASTA sequences with selected PWMs.
-      FIMO reports statistical p-values and q-values for predicted binding sites.
-    </p>
-  </section>
-
-  <section class="scan-help">
-    <div>
-      <h2>What to put in the scan</h2>
-      <p class="muted">
-        Choose one or more motifs, paste a DNA sequence, keep <span class="mono">1e-4</span> for a strict first scan,
-        then press Scan. A larger p-value such as <span class="mono">0.01</span> is more permissive and may return weaker hits.
-      </p>
+<style>
+.scan-focus{background:#fff;border:1px solid var(--line);border-radius:10px;margin:14px 0;padding:0;overflow:hidden}.scan-focus>summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;list-style:none;padding:13px 15px;font-weight:750;background:#f7f9fc}.scan-focus>summary::-webkit-details-marker{display:none}.scan-focus>summary:before{content:"▸";color:var(--accent);margin-right:8px}.scan-focus[open]>summary:before{content:"▾"}.scan-focus-body{padding:15px}.scan-stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.scan-stat-row div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}.scan-stat-row strong{display:block;font-size:25px;line-height:1}.scan-stat-row span{color:var(--muted)}
+</style>
+<section>
+  <p class="eyebrow">Global DNA scanner</p>
+  <h1>Scan DNA</h1>
+  <p class="muted">Paste a DNA sequence or FASTA record. ModCREDB searches generated PWMs and ranks motif matches. A UniProt accession is not required.</p>
+</section>
+<section class="scan-stat-row">
+  <div><strong>{{ global_pwm_count or 0 }}</strong><span>generated PWMs</span></div>
+  <div><strong>{{ global_source_count or 0 }}</strong><span>motif sources</span></div>
+  <div><strong>{{ global_scan_max_motifs or 5000 }}</strong><span>max motifs per scan</span></div>
+</section>
+<section>
+  <form class="scan-form" action="/scan" method="post">
+    <label>DNA sequence or FASTA<textarea name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-sequence-input>{{ sequence_text }}</textarea></label>
+    <div class="scan-controls">
+      <label>P-value threshold<input name="pvalue" type="text" value="{{ pvalue }}"></label>
+      <label>Max ranked hits<input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}"></label>
+      <label>Max motifs scanned<input name="max_motifs" type="number" min="1" max="5000" step="1" value="{{ max_motifs or global_scan_max_motifs or 5000 }}"></label>
+      <button type="submit">Scan</button>
     </div>
-    <div>
-      <button type="button" class="secondary-button" data-fill-example>Fill TEAD1 example</button>
-      <p class="muted">Fill TEAD1 example: scan a short sequence with the direct TEAD1 motif set linked to UniProt <span class="mono">P28347</span>. It illustrates candidate TEAD-like motif matches, not a confirmed binding site.</p>
-    </div>
-  </section>
-
-  <section>
-    <form class="scan-form" action="/scan" method="post">
-      <div class="scan-mode-grid">
-        <div class="tf-scan-fields">
-          <label>
-            UniProt accession
-            <input name="tf_id" value="{{ tf_id }}" placeholder="P28347">
-          </label>
-          <label>
-            DNA-binding region
-            <select name="tf_region"{% if tf_id and not tf_scan_regions %} disabled{% endif %}>
-              <option value="">All available regions</option>
-              {% for region in tf_scan_regions %}
-                <option value="{{ region.value }}"{% if tf_region == region.value %} selected{% endif %}>{{ region.label }} ({{ region.motif_count }} motif{% if region.motif_count != 1 %}s{% endif %})</option>
-              {% endfor %}
-              {% if not tf_scan_regions and not tf_id %}<option value="" disabled>Enter a UniProt accession to list regions</option>{% endif %}
-              {% if tf_id and not tf_scan_regions %}<option value="" disabled>No explicit regions with generated PWMs</option>{% endif %}
-            </select>
-          </label>
-        </div>
-        <fieldset class="evidence-filter">
-          <legend>TF motif prediction categories to include</legend>
-          <div>
-            {% for key, label in evidence_labels.items() %}
-              <label>
-                <input type="checkbox" name="tf_evidence" value="{{ key }}" {% if key in tf_evidence or (not tf_id and key in tf_scan_default_evidence) %}checked{% endif %}>
-                <span>{{ prediction_label(key) }}</span>
-              </label>
-            {% endfor %}
+    <details class="scan-focus"{% if tf_id or motifs_text or tf_region %} open{% endif %}>
+      <summary><span>Filters and optional focused scan</span><span class="muted">leave closed to scan all generated PWMs</span></summary>
+      <div class="scan-focus-body">
+        <div class="scan-mode-grid">
+          <div class="tf-scan-fields">
+            <label>UniProt accession<input name="tf_id" value="{{ tf_id }}" placeholder="P28347"></label>
+            <label>DNA-binding region<select name="tf_region"{% if tf_id and not tf_scan_regions %} disabled{% endif %}><option value="">All available regions</option>{% for region in tf_scan_regions %}<option value="{{ region.value }}"{% if tf_region == region.value %} selected{% endif %}>{{ region.label }} ({{ region.motif_count }} motif{% if region.motif_count != 1 %}s{% endif %})</option>{% endfor %}{% if not tf_scan_regions and not tf_id %}<option value="" disabled>Enter a UniProt accession to list regions</option>{% endif %}</select></label>
           </div>
-        </fieldset>
-      </div>
-      <p class="muted">
-        Optional: enter a UniProt accession to scan with all linked generated PWMs. Relatively homologous motifs are available,
-        but are weaker assignments and can make the scan much larger. If a region is selected, only motifs linked to models
-        overlapping that residue range are loaded.
-      </p>
-
-      <label>
-        Selected motifs
-        <textarea name="motifs" rows="4" placeholder="jaspar|MA0090.1&#10;cisbp|M04524_2.00" data-motif-input>{{ motifs_text }}</textarea>
-      </label>
-      <p class="muted">Optional: add individual motifs one per line as <span class="mono">source|motif_id</span>. Manual motifs are added to the TF motif set if both are used.</p>
-
-      <label>
-        DNA sequence or FASTA
-        <textarea name="sequence" rows="8" placeholder=">example&#10;ACGTACGTACGT" data-sequence-input>{{ sequence_text }}</textarea>
-      </label>
-
-      <div class="scan-controls">
-        <label>
-          FIMO p-value threshold
-          <input name="pvalue" type="text" value="{{ pvalue }}">
-        </label>
-        <label>
-          Max hits
-          <input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}">
-        </label>
-        <button type="submit">Scan</button>
-      </div>
-    </form>
-  </section>
-
-  {% if tf_scan_summary %}
-    <section class="scan-summary">
-      <div class="section-head">
-        <h2>TF motif set</h2>
-        <span class="muted">{{ tf_scan_summary.used_count }} motifs used{% if tf_scan_summary.skipped_no_matrix %} · {{ tf_scan_summary.skipped_no_matrix }} skipped because no generated PWM was available{% endif %}</span>
-      </div>
-      <div class="annotation-grid">
-        <div><span>TF</span><strong><a class="mono" href="/tf/{{ tf_scan_summary.tf.tf_id|quote }}">{{ tf_scan_summary.tf.tf_id }}</a></strong></div>
-        <div><span>Gene/protein</span><strong>{{ tf_scan_summary.tf.gene_names or tf_scan_summary.tf.protein_name or "unknown" }}</strong></div>
-        <div><span>Organism</span><strong>{{ tf_scan_summary.tf.organism_name or "unknown" }}</strong></div>
-        <div>
-          <span>Selected prediction</span>
-          <strong>{% for key in tf_scan_summary.selected_evidence %}{{ prediction_label(key) }}{% if not loop.last %}, {% endif %}{% endfor %}</strong>
+          <fieldset class="evidence-filter"><legend>Prediction categories</legend><div>{% for key, label in evidence_labels.items() %}<label><input type="checkbox" name="tf_evidence" value="{{ key }}" {% if key in tf_evidence or (not tf_id and key in tf_scan_default_evidence) %}checked{% endif %}><span>{{ prediction_label(key) }}</span></label>{% endfor %}</div></fieldset>
         </div>
-        {% if tf_scan_summary.selected_region %}<div><span>DNA-binding region</span><strong>{{ tf_scan_summary.selected_region }}</strong></div>{% endif %}
-      </div>
-      {% if tf_scan_summary.evidence_counts %}
-        <div class="scan-evidence-counts">
-          {% for row in tf_scan_summary.evidence_counts %}<span>{{ prediction_label(row.evidence_type) }}: {{ row.count }}</span>{% endfor %}
-        </div>
-      {% endif %}
-      {% if tf_scan_summary.skipped_status_counts %}
-        <p class="muted">Skipped motifs without generated PWMs:</p>
-        <div class="scan-evidence-counts">
-          {% for row in tf_scan_summary.skipped_status_counts %}<span>{{ matrix_label(row.matrix_status) }}: {{ row.count }}</span>{% endfor %}
-        </div>
-      {% endif %}
-      {% if tf_scan_summary.limited %}<p class="warning">Only the first {{ tf_scan_summary.limit }} generated PWMs are used. Use stricter prediction filters for a smaller scan.</p>{% endif %}
-    </section>
-  {% endif %}
-
-  {% if errors %}
-    <section>{% for error in errors %}<p class="warning">{{ error.replace('FIMO-ready', 'generated PWM').replace('matrix_status was not usable', 'no generated PWM was available') }}</p>{% endfor %}</section>
-  {% endif %}
-
-  {% if method == "POST" %}
-    <section id="scan-results">
-      <div class="section-head"><h2>Scan results</h2><span class="muted">{{ hits|length }} hits shown · FIMO · sequence length {{ sequence_length }} bp</span></div>
-      {% if profile_svg %}
-        <div class="profile-panel">
-          <div class="section-head">
-            <h3>FIMO motif-match profile</h3>
-            {% if profile_summary %}<span class="muted">{{ profile_summary.profiled_hits }} hits profiled · bin size about {{ profile_summary.bin_size }} bp</span>{% endif %}
-          </div>
-          <p class="muted">The line shows the best <span class="mono">-log10(p-value)</span> at each DNA position. Pale bars show how many FIMO hits cover each position.</p>
-          {% if profile_summary %}
-            <div class="profile-metrics">
-              <div><strong>{{ profile_summary.profiled_hits }}</strong><span>FIMO hits profiled</span></div>
-              <div><strong>{{ "%.1f"|format(profile_summary.coverage_pct) }}%</strong><span>profile bins with hits</span></div>
-              <div><strong>{{ "%.2f"|format(profile_summary.max_signal) }}</strong><span>best -log10(p-value)</span></div>
-              <div><strong>{{ profile_summary.max_count }}</strong><span>max overlapping hits</span></div>
-            </div>
-            {% if profile_summary.source_counts %}<div class="profile-source-list">{% for source_row in profile_summary.source_counts %}<span>{{ source_row.label }}: {{ source_row.count }}</span>{% endfor %}</div>{% endif %}
-            <div class="profile-actions">
-              {% if profile_csv_uri %}<a class="secondary-link" href="{{ profile_csv_uri }}" download="modcredb_fimo_profile_bins.csv">Download profile CSV</a>{% endif %}
-              {% if hits_csv_uri %}<a class="secondary-link" href="{{ hits_csv_uri }}" download="modcredb_fimo_hits_shown.csv">Download shown hits CSV</a>{% endif %}
-            </div>
-          {% endif %}
-          <div class="profile-plot">{{ profile_svg|safe }}</div>
-          {% if profile_summary and profile_summary.peak_rows %}
-            <details class="peak-table">
-              <summary>Top FIMO profile peaks</summary>
-              <div class="table-wrap"><table><thead><tr><th>DNA region</th><th>Hits</th><th>Best -log10(p)</th><th>Best motif</th><th>Source</th><th>P-value</th></tr></thead><tbody>{% for row in profile_summary.peak_rows %}<tr><td>{{ row.start }}-{{ row.end }}</td><td>{{ row.hit_count }}</td><td>{{ "%.2f"|format(row.best_neg_log10_pvalue) }}</td><td><span class="mono">{{ row.best_motif }}</span></td><td>{{ source_labels.get(row.best_source, row.best_source) }}</td><td>{{ row.best_pvalue }}</td></tr>{% endfor %}</tbody></table></div>
-            </details>
-          {% endif %}
-        </div>
-      {% endif %}
-      <div class="table-wrap wide-table">
-        <table>
-          <thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead>
-          <tbody>{% for hit in hits %}<tr><td><a class="mono" href="/motif?source={{ hit.source|quote }}&id={{ hit.motif_id|quote }}">{{ hit.motif_id }}</a></td><td>{{ source_labels.get(hit.source, hit.source) }}</td><td>{{ hit.start }}</td><td>{{ hit.end }}</td><td>{{ hit.strand }}</td><td class="mono">{{ hit.sequence }}</td><td>{{ "%.2f"|format(hit.score) }}</td><td>{% if hit.pvalue is not none %}{{ "%.2e"|format(hit.pvalue) }}{% endif %}</td><td>{% if hit.qvalue is not none %}{{ "%.2e"|format(hit.qvalue) }}{% endif %}</td></tr>{% else %}<tr><td colspan="9">No hits met the selected FIMO p-value threshold.</td></tr>{% endfor %}</tbody>
-        </table>
-      </div>
-    </section>
-  {% endif %}
-
-  {% if motifs %}
-    <section>
-      <h2>Motifs used</h2>
-      <div class="motif-grid compact-motif-grid">{% for motif in motifs %}<article class="motif-card"><div class="motif-card-head"><a class="mono" href="/motif?source={{ motif.source|quote }}&id={{ motif.motif_id|quote }}">{{ motif.motif_id }}</a><span>{{ source_labels.get(motif.source, motif.source) }}</span></div><p class="muted">Width {{ motif.width }}{% if motif.consensus %}; DNA binding <span class="mono">{{ motif.consensus }}</span>{% endif %}</p></article>{% endfor %}</div>
-    </section>
-  {% endif %}
-
-  <section>
-    <details class="motif-picker"{% if method != "POST" and (motif_q or not motifs_text) %} open{% endif %}>
-      <summary><span>Find motifs</span><span class="muted">{% if motif_q %}Results for <span class="mono">{{ motif_q }}</span>{% else %}Suggested motifs{% endif %}</span></summary>
-      <form class="filters motif-search" action="/scan" method="get"><input name="motif_q" value="{{ motif_q }}" placeholder="Search motif ID, TF accession, gene, protein, organism, or DNA-binding consensus"><select name="motif_source"><option value="">All sources</option>{% for source_key, source_label in source_labels.items() %}<option value="{{ source_key }}"{% if motif_source == source_key %} selected{% endif %}>{{ source_label }}</option>{% endfor %}</select><button type="submit">Find</button></form>
-      <div class="motif-picker-grid">
-        {% for row in motif_results %}
-          <article class="motif-choice"><div><a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a><span>{{ source_labels.get(row.source, row.source) }}</span></div><p class="muted">Width {{ row.width }}{% if row.consensus %}; DNA binding <span class="mono">{{ row.consensus }}</span>{% endif %}{% if row.tf_count %}; linked TFs {{ row.tf_count }}{% endif %}</p>{% if row.example_tfs %}<p class="motif-examples">{{ row.example_tfs }}</p>{% endif %}<div class="choice-actions"><button type="button" class="secondary-button" data-add-motif="{{ motif_spec(row.source, row.motif_id) }}">Add</button><a href="/scan?motifs={{ motif_spec(row.source, row.motif_id)|quote }}">Use alone</a></div></article>
-        {% else %}
-          <p class="muted">No motifs matched the search.</p>
-        {% endfor %}
+        <label>Selected motifs<textarea name="motifs" rows="3" placeholder="jaspar|MA0090.1&#10;cisbp|M04524_2.00" data-motif-input>{{ motifs_text }}</textarea></label>
+        <p class="muted">Optional. Use this only for a focused scan; otherwise leave blank to scan the global generated-PWM collection.</p>
       </div>
     </details>
-  </section>
-
-  <script>
-    (() => {
-      const motifInput = document.querySelector("[data-motif-input]");
-      const sequenceInput = document.querySelector("[data-sequence-input]");
-      const pvalueInput = document.querySelector('input[name="pvalue"]');
-      const maxHitsInput = document.querySelector('input[name="max_hits"]');
-
-      function addMotif(spec) {
-        if (!motifInput) return;
-        const current = motifInput.value.trim();
-        const lines = current ? current.split(/\n+/) : [];
-        if (!lines.includes(spec)) {
-          lines.push(spec);
-          motifInput.value = lines.join("\n");
-        }
-      }
-
-      document.querySelectorAll("[data-add-motif]").forEach((button) => {
-        button.addEventListener("click", () => addMotif(button.dataset.addMotif));
-      });
-
-      const exampleButton = document.querySelector("[data-fill-example]");
-      if (exampleButton) {
-        exampleButton.addEventListener("click", () => {
-          const tfInput = document.querySelector('input[name="tf_id"]');
-          if (tfInput) tfInput.value = "P28347";
-          if (sequenceInput) sequenceInput.value = ">TEAD1_example\nGGAATGGAATGGAATGGAATGGAATGGAATGGAATGGAATGGAAT";
-          if (pvalueInput) pvalueInput.value = "1e-4";
-          if (maxHitsInput) maxHitsInput.value = "50";
-        });
-      }
-    })();
-  </script>
+  </form>
+</section>
+{% if global_scan_summary %}<section class="scan-summary"><h2>Global motif set</h2><p class="muted">{{ global_scan_summary.used_count }} generated PWMs scanned{% if global_scan_summary.limited %} of {{ global_scan_summary.total_count }} available{% endif %}.</p></section>{% endif %}
+{% if tf_scan_summary %}<section class="scan-summary"><h2>Focused motif set</h2><p class="muted">{{ tf_scan_summary.used_count }} motifs used{% if tf_scan_summary.skipped_no_matrix %} · {{ tf_scan_summary.skipped_no_matrix }} skipped because no generated PWM was available{% endif %}</p></section>{% endif %}
+{% if errors %}<section>{% for error in errors %}<p class="warning">{{ error.replace('FIMO-ready', 'generated PWM').replace('matrix_status was not usable', 'no generated PWM was available') }}</p>{% endfor %}</section>{% endif %}
+{% if method == "POST" %}<section id="scan-results"><div class="section-head"><h2>Scan results</h2><span class="muted">{{ hits|length }} hits shown · sequence length {{ sequence_length }} bp</span></div>{% if profile_svg %}<div class="profile-panel"><div class="section-head"><h3>Motif-match profile</h3>{% if profile_summary %}<span class="muted">{{ profile_summary.profiled_hits }} hits profiled</span>{% endif %}</div><div class="profile-plot">{{ profile_svg|safe }}</div></div>{% endif %}<div class="table-wrap wide-table"><table><thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead><tbody>{% for hit in hits %}<tr><td><a class="mono" href="/motif?source={{ hit.source|quote }}&id={{ hit.motif_id|quote }}">{{ hit.motif_id }}</a></td><td>{{ source_labels.get(hit.source, hit.source) }}</td><td>{{ hit.start }}</td><td>{{ hit.end }}</td><td>{{ hit.strand }}</td><td class="mono">{{ hit.sequence }}</td><td>{{ "%.2f"|format(hit.score) }}</td><td>{% if hit.pvalue is not none %}{{ "%.2e"|format(hit.pvalue) }}{% endif %}</td><td>{% if hit.qvalue is not none %}{{ "%.2e"|format(hit.qvalue) }}{% endif %}</td></tr>{% else %}<tr><td colspan="9">No hits met the selected p-value threshold.</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
+<section><details class="motif-picker"><summary><span>Find individual motifs</span><span class="muted">optional</span></summary><form class="filters motif-search" action="/scan" method="get"><input name="motif_q" value="{{ motif_q }}" placeholder="Search motif ID, TF accession, gene, protein, organism, or DNA-binding consensus"><select name="motif_source"><option value="">All sources</option>{% for source_key, source_label in source_labels.items() %}<option value="{{ source_key }}"{% if motif_source == source_key %} selected{% endif %}>{{ source_label }}</option>{% endfor %}</select><button type="submit">Find</button></form><div class="motif-picker-grid">{% for row in motif_results %}<article class="motif-choice"><div><a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a><span>{{ source_labels.get(row.source, row.source) }}</span></div><p class="muted">Width {{ row.width }}{% if row.consensus %}; DNA binding <span class="mono">{{ row.consensus }}</span>{% endif %}{% if row.tf_count %}; linked TFs {{ row.tf_count }}{% endif %}</p><div class="choice-actions"><button type="button" class="secondary-button" data-add-motif="{{ motif_spec(row.source, row.motif_id) }}">Add</button><a href="/scan?motifs={{ motif_spec(row.source, row.motif_id)|quote }}">Use alone</a></div></article>{% else %}<p class="muted">No motifs matched the search.</p>{% endfor %}</div></details></section>
+<script>(()=>{const motifInput=document.querySelector('[data-motif-input]');document.querySelectorAll('[data-add-motif]').forEach((button)=>{button.addEventListener('click',()=>{if(!motifInput)return;const spec=button.dataset.addMotif;const lines=motifInput.value.trim()?motifInput.value.trim().split(/\n+/):[];if(!lines.includes(spec)){lines.push(spec);motifInput.value=lines.join('\n');}});});})();</script>
 {% endblock %}
