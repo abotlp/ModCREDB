@@ -21,6 +21,11 @@
   display: none !important;
 }
 
+#examples tbody td:nth-child(3) .muted,
+#examples tbody td:nth-child(3) br {
+  display: none !important;
+}
+
 .home-family-section,
 .home-evidence-section,
 .family-browse-page {
