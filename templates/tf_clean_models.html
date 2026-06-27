@@ -1,9 +1,143 @@
-{% if active_models %}
-<section class="tf-box">
-  <h2>3D Models</h2>
-  {% if region_groups %}{% for region in region_groups %}
-    <article class="region-box"><h3>Region {{ region.start }}-{{ region.end }}</h3><p class="muted">{{ region.motifs|length }} Generated PWM · {{ region.models|length }} 3D models</p></article>
-  {% endfor %}{% endif %}
-  <div class="table-wrap"><table><thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead><tbody>{% for model in active_models %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endfor %}</tbody></table></div>
+{% if region_groups or active_models %}
+{% if region_groups %}
+<section class="tf-box tf-regions">
+  <div class="tf-section-head">
+    <div>
+      <h2>Model-supported DNA-binding regions</h2>
+      <p class="muted">Protein residue intervals where structure models support predicted PWMs. Domain annotations and modeled regions are shown together when available.</p>
+    </div>
+  </div>
+
+  {% if tf.sequence_length %}
+  <div class="region-track" aria-label="Protein domain and model region track">
+    <span class="axis-label" style="left:4%">1</span>
+    <span class="axis-label" style="right:4%">{{ tf.sequence_length }} aa</span>
+    <div class="track-line"></div>
+    {% for dom in pfam_annotations %}
+      {% if dom.start and dom.end %}
+        <div class="domain-block" style="left:{{ (((dom.start - 1) / tf.sequence_length) * 100)|round(3) }}%;width:{{ (((dom.end - dom.start + 1) / tf.sequence_length) * 100)|round(3) }}%" title="{{ dom.pfam_id }} {{ dom.start }}-{{ dom.end }} {{ dom.pfam_name or '' }}"></div>
+      {% endif %}
+    {% endfor %}
+    {% for region in region_groups %}
+      <div class="region-block" style="left:{{ region.track_left }}%;width:{{ region.track_width }}%" title="Region {{ region.start }}-{{ region.end }}">{{ region.start }}-{{ region.end }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="region-grid">
+    {% for region in region_groups[:6] %}
+      {% set ready = namespace(count=0) %}
+      {% for motif in region.motifs %}
+        {% if motif.matrix_status == 'usable' and motif.missing_local_file == 0 %}{% set ready.count = ready.count + 1 %}{% endif %}
+      {% endfor %}
+      <article class="region-card">
+        <h3>Region {{ region.start }}-{{ region.end }} <span class="chip predicted">{{ ready.count }} PWM</span></h3>
+        <dl>
+          <dt>Residues</dt><dd>{{ region.width }} aa</dd>
+          <dt>Domains</dt>
+          <dd>
+            {% set dom_ns = namespace(found=false) %}
+            {% for dom in pfam_annotations %}
+              {% if dom.start and dom.end and dom.start <= region.end and dom.end >= region.start %}
+                {% set dom_ns.found = true %}<span class="domain-overlap">{{ dom.pfam_id }}{% if dom.pfam_name %} · {{ dom.pfam_name }}{% endif %}</span>
+              {% endif %}
+            {% endfor %}
+            {% if not dom_ns.found %}<span class="muted">No overlapping PFAM annotation recorded</span>{% endif %}
+          </dd>
+          <dt>3D models</dt><dd>{{ region.models|length }} active PDB{% if region.models|length != 1 %}s{% endif %}{% if region.summaries %} · {{ region.summaries|length }} summary row{% if region.summaries|length != 1 %}s{% endif %}{% endif %}</dd>
+          <dt>Templates</dt><dd>{% if region.templates %}<span class="mono">{{ region.templates|join(', ') }}{% if region.template_count > region.templates|length %}, ...{% endif %}</span>{% else %}<span class="muted">Not recorded</span>{% endif %}</dd>
+          <dt>Sources</dt><dd>{% if region.sources %}{{ region.sources|join(', ') }}{% else %}<span class="muted">Structure model</span>{% endif %}</dd>
+        </dl>
+        <div class="region-links">
+          <a href="/scan?tf={{ tf.tf_id|quote }}&tf_region={{ region.start }}-{{ region.end }}">Scan this region</a>
+          <a href="#models-region-{{ loop.index }}">Show models</a>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+  {% if region_groups|length > 6 %}<p class="muted">Showing first 6 modeled regions; the collapsible 3D Models table below includes all regions loaded for this TF page.</p>{% endif %}
 </section>
+{% endif %}
+
+{% if active_models %}
+<details class="tf-box tf-main-disclosure models" open>
+  <summary class="tf-disclosure-summary">
+    <div>
+      <div class="summary-title">3D Models</div>
+      <div class="summary-note">Collapsible technical table. Rows are grouped by protein region and retain model, template, residue coverage, and available summary evidence.</div>
+    </div>
+    <div class="summary-pills">
+      <span class="tf-tag">{{ active_models|length }} active PDB model{% if active_models|length != 1 %}s{% endif %}</span>
+      {% if model_summaries %}<span class="tf-tag">{{ model_summaries|length }} summary row{% if model_summaries|length != 1 %}s{% endif %}</span>{% endif %}
+    </div>
+  </summary>
+  <div class="disclosure-body">
+    {% if region_groups %}
+      {% for region in region_groups %}
+        <details class="model-region" id="models-region-{{ loop.index }}" {% if loop.first %}open{% endif %}>
+          <summary><span>Region {{ region.start }}-{{ region.end }}</span><span>{{ region.models|length }} model{% if region.models|length != 1 %}s{% endif %}{% if region.summaries %} · {{ region.summaries|length }} summary row{% if region.summaries|length != 1 %}s{% endif %}{% endif %}</span></summary>
+          {% if region.models %}
+          <div class="table-wrap">
+            <table class="model-table">
+              <thead><tr><th><button class="sort-btn">Source <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Model <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Template <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Residues modeled <span class="sort-icon">↕</span></button></th><th>Actions</th></tr></thead>
+              <tbody>
+                {% for model in region.models %}
+                <tr>
+                  <td>{{ source_labels.get(model.source, model.source) }}</td>
+                  <td class="mono">{{ model.model_id }}</td>
+                  <td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>
+                  <td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td>
+                  <td class="model-actions"><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+          {% if region.summaries %}
+          <p class="model-subnote">Model-summary evidence imported for this region.</p>
+          <div class="table-wrap">
+            <table class="summary-table">
+              <thead><tr><th>Rank</th><th>Template</th><th>Domain</th><th>N-tails</th><th>C-tails</th><th>Chains</th><th>Identity / similarity</th><th>Coverage</th><th>Model file</th></tr></thead>
+              <tbody>
+                {% for row in region.summaries %}
+                <tr>
+                  <td>{{ row.model_rank or '' }}</td>
+                  <td>{% if row.template_pdb %}<a class="mono" href="{{ pdb_url(row.template_pdb) }}" target="_blank" rel="noopener">{{ row.template_pdb }}</a>{% endif %}</td>
+                  <td class="mono">{{ row.domain or '' }}</td>
+                  <td>{{ row.n_tails or '' }}</td>
+                  <td>{{ row.c_tails or '' }}</td>
+                  <td class="mono">{% if row.protein_chain %}P:{{ row.protein_chain }}{% endif %}{% if row.dna_chain %} · DNA:{{ row.dna_chain }}{% endif %}</td>
+                  <td>{% if row.identity_percent is not none %}{{ '%.1f'|format(row.identity_percent) }}%{% endif %}{% if row.similarity_percent is not none %} / {{ '%.1f'|format(row.similarity_percent) }}%{% endif %}</td>
+                  <td>{{ row.coverage or '' }}</td>
+                  <td>{% if row.matched_file_id %}<a href="/model?id={{ row.matched_file_id }}">View</a> · <a href="/download/model?id={{ row.matched_file_id }}">{{ row.matched_file_type|upper }}</a> <span class="muted mono">{{ row.matched_model_id }}</span>{% else %}<span class="muted">unlinked</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </details>
+      {% endfor %}
+    {% else %}
+      <div class="table-wrap">
+        <table class="model-table">
+          <thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead>
+          <tbody>{% for model in active_models %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    {% endif %}
+
+    {% set full = namespace(count=0) %}
+    {% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}{% set full.count = full.count + 1 %}{% endif %}{% endfor %}
+    {% if full.count %}
+      <details class="model-region">
+        <summary><span>Full sequence / unlocalized models</span><span>{{ full.count }} model{% if full.count != 1 %}s{% endif %}</span></summary>
+        <div class="table-wrap"><table class="model-table"><thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead><tbody>{% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td><span class="muted">Full sequence / not localized</span></td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endif %}{% endfor %}</tbody></table></div>
+      </details>
+    {% endif %}
+    <p class="muted" style="margin-top:14px"><a href="/model-summaries/{{ tf.tf_id|quote }}">View full model evidence table</a> for rank, chains, N/C tails, coverage, RMSD-template information, identity/similarity, and linked model files.</p>
+  </div>
+</details>
+{% endif %}
 {% endif %}
