@@ -9,3 +9,35 @@
   {% include "tf_clean_models.html" %}
   {% include "tf_clean_domains.html" %}
 </div>
+<script>
+(function(){
+  function text(row, index){
+    var cell = row.children[index];
+    return cell ? cell.textContent.trim().toLowerCase() : "";
+  }
+  document.addEventListener("click", function(event){
+    var button = event.target.closest(".tf-page .sort-btn");
+    if(!button){ return; }
+    var th = button.closest("th");
+    var table = button.closest("table");
+    if(!th || !table || !table.tBodies.length){ return; }
+    var index = Array.prototype.indexOf.call(th.parentNode.children, th);
+    var direction = button.getAttribute("data-sort-dir") === "asc" ? "desc" : "asc";
+    var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+    rows.sort(function(a,b){
+      var av = text(a,index);
+      var bv = text(b,index);
+      return direction === "asc" ? av.localeCompare(bv, undefined, {numeric:true}) : bv.localeCompare(av, undefined, {numeric:true});
+    });
+    rows.forEach(function(row){ table.tBodies[0].appendChild(row); });
+    table.querySelectorAll(".sort-btn").forEach(function(btn){
+      btn.removeAttribute("data-sort-dir");
+      var icon = btn.querySelector(".sort-icon");
+      if(icon){ icon.textContent = "↕"; }
+    });
+    button.setAttribute("data-sort-dir", direction);
+    var activeIcon = button.querySelector(".sort-icon");
+    if(activeIcon){ activeIcon.textContent = direction === "asc" ? "↑" : "↓"; }
+  });
+})();
+</script>
