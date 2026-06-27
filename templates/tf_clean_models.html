@@ -4,5 +4,6 @@
   {% if region_groups %}{% for region in region_groups %}
     <article class="region-box"><h3>Region {{ region.start }}-{{ region.end }}</h3><p class="muted">{{ region.motifs|length }} Generated PWM · {{ region.models|length }} 3D models</p></article>
   {% endfor %}{% endif %}
+  <div class="table-wrap"><table><thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead><tbody>{% for model in active_models %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endfor %}</tbody></table></div>
 </section>
 {% endif %}
