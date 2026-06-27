@@ -5,7 +5,7 @@
 {% for row in generated_rows %}{% if row.evidence_type in keys %}
 <tr>
 <td class="mono"><a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
-<td>{% if row.evidence_type in ['modcre','alphafold'] %}Predicted{% else %}{{ source_labels.get(row.source,row.source) }}{% endif %}</td>
+<td>{% if row.evidence_type == 'modcre' %}ModCRE{% elif row.evidence_type == 'alphafold' %}AlphaFold-assisted{% else %}{{ source_labels.get(row.source,row.source) }}{% endif %}</td>
 <td><span class="chip{% if row.evidence_type in ['modcre','alphafold'] %} predicted{% endif %}">{{ label }}</span></td>
 <td class="mono">{{ row.consensus or 'matrix available' }}</td>
 <td>
@@ -18,7 +18,7 @@
   {% elif row.evidence_type=='alphafold' %}
     Full sequence
   {% elif row.evidence_type=='modcre' %}
-    Predicted
+    Structure model
   {% else %}
     <span class="muted">Support recorded</span>
   {% endif %}
