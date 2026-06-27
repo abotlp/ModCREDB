@@ -2,37 +2,91 @@
 {% block title %}Scan DNA | ModCREDB{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="/static/scan_snpebot.css">
+
+{% set selected_motif = motifs_text|trim %}
+{% set selected_tf = tf_id|trim %}
+
 <section class="scanbot-hero">
-  <p class="eyebrow">SNPBot export scanner</p>
+  <p class="eyebrow">SNPeBOT export scanner</p>
   <h1>Scan DNA</h1>
-  <p class="muted">Paste a DNA sequence or FASTA record. ModCREDB scans the generated PWM collection, ranks predicted motif matches, and prepares a file that can be downloaded and submitted to SNPeBOT.</p>
+  {% if selected_motif %}
+    <p class="muted">Paste a DNA sequence or FASTA record. This scan is restricted to the selected motif and prepares a SNPeBOT-ready export.</p>
+  {% elif selected_tf %}
+    <p class="muted">Paste a DNA sequence or FASTA record. This scan uses the selected TF motif set and prepares a SNPeBOT-ready export.</p>
+  {% else %}
+    <p class="muted">Paste a DNA sequence or FASTA record. ModCREDB scans the generated PWM collection, ranks motif matches, and prepares a SNPeBOT-ready export.</p>
+  {% endif %}
 </section>
+
 <div class="scanbot-layout">
   <section class="scanbot-card">
-    <h2>Global DNA scan</h2>
+    {% if selected_motif %}
+      <h2>Selected motif DNA scan</h2>
+      <p class="scanbot-note">This scan will use only the selected motif: <strong class="mono">{{ selected_motif }}</strong></p>
+    {% elif selected_tf %}
+      <h2>TF-specific DNA scan</h2>
+      <p class="scanbot-note">This scan will use generated PWMs linked to TF <strong class="mono">{{ selected_tf }}</strong>.</p>
+    {% else %}
+      <h2>Global DNA scan</h2>
+      <p class="scanbot-note">No TF accession, motif ID, gene name, or protein name is needed here. This mode scans the generated PWM collection.</p>
+    {% endif %}
+
     <form action="/scan" method="post">
-      <label>DNA sequence or FASTA<textarea name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-sequence-input>{{ sequence_text }}</textarea></label>
+      {% if selected_motif %}
+        <input type="hidden" name="motifs" value="{{ selected_motif }}">
+      {% endif %}
+      {% if selected_tf %}
+        <input type="hidden" name="tf_id" value="{{ selected_tf }}">
+        {% if tf_region %}<input type="hidden" name="tf_region" value="{{ tf_region }}">{% endif %}
+        {% for evidence in tf_evidence %}
+          <input type="hidden" name="tf_evidence" value="{{ evidence }}">
+        {% endfor %}
+      {% endif %}
+
+      <label>DNA sequence or FASTA
+        <textarea name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-sequence-input>{{ sequence_text }}</textarea>
+      </label>
+
       <div class="scan-controls">
         <label>P-value threshold<input name="pvalue" type="text" value="{{ pvalue }}"></label>
         <label>Max ranked hits<input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}"></label>
         <button type="submit">Scan</button>
       </div>
+
       <details class="scanbot-advanced">
         <summary><span>Advanced scan settings</span><span class="muted">optional</span></summary>
         <div class="scanbot-advanced-body">
-          <label>Max motifs scanned<input name="max_motifs" type="number" min="1" max="5000" step="1" value="{{ max_motifs or 5000 }}"></label>
+          {% if not selected_motif and not selected_tf %}
+            <label>Max motifs scanned<input name="max_motifs" type="number" min="1" max="5000" step="1" value="{{ max_motifs or 5000 }}"></label>
+          {% endif %}
           <label>Strand<select name="strand"><option>Both strands</option><option>Forward only</option></select></label>
         </div>
       </details>
     </form>
-    <p class="scanbot-note">No TF accession, motif ID, gene name, or protein name is needed here. This page exists to produce a SNPeBOT-ready export from a DNA scan.</p>
   </section>
+
   <aside>
     <section class="scanbot-side">
       <h3>Workflow</h3>
-      <ul class="muted"><li>Paste DNA or FASTA.</li><li>Run the ModCREDB PWM scan.</li><li>Download the SNPeBOT-ready file.</li><li>Open SNPeBOT and upload the file there.</li></ul>
-      <div class="scanbot-pill-row"><span class="scanbot-pill">DNA-only</span><span class="scanbot-pill">SNPeBOT-ready</span><span class="scanbot-pill">Global PWM scan</span></div>
+      <ul class="muted">
+        <li>Paste DNA or FASTA.</li>
+        <li>Run the ModCREDB PWM scan.</li>
+        <li>Download the SNPeBOT-ready file.</li>
+        <li>Open SNPeBOT and upload the file there.</li>
+      </ul>
+      <div class="scanbot-pill-row">
+        <span class="scanbot-pill">DNA-only</span>
+        <span class="scanbot-pill">SNPeBOT-ready</span>
+        {% if selected_motif %}
+          <span class="scanbot-pill">Selected motif</span>
+        {% elif selected_tf %}
+          <span class="scanbot-pill">TF motif set</span>
+        {% else %}
+          <span class="scanbot-pill">Global PWM scan</span>
+        {% endif %}
+      </div>
     </section>
+
     <section class="scanbot-side">
       <h3>Open SNPeBOT</h3>
       <p class="muted">After downloading the export file, submit it at SNPeBOT.</p>
@@ -40,21 +94,76 @@
     </section>
   </aside>
 </div>
-{% if errors %}<section>{% for error in errors %}<p class="warning">{{ error.replace('FIMO-ready', 'generated PWM').replace('matrix_status was not usable', 'no generated PWM was available') }}</p>{% endfor %}</section>{% endif %}
+
+{% if errors %}
+<section>
+  {% for error in errors %}
+    <p class="warning">{{ error.replace('FIMO-ready', 'generated PWM').replace('matrix_status was not usable', 'no generated PWM was available') }}</p>
+  {% endfor %}
+</section>
+{% endif %}
+
 {% if method == "POST" %}
 <section class="scanbot-export">
-  <div class="scanbot-export-head"><h2>SNPeBOT export</h2><span class="muted">{% if hits_csv_uri %}ready{% else %}no file generated{% endif %}</span></div>
+  <div class="scanbot-export-head">
+    <h2>SNPeBOT export</h2>
+    <span class="muted">{% if hits_csv_uri %}ready{% else %}no file generated{% endif %}</span>
+  </div>
   <div class="scanbot-export-body">
-    <div><p>Download the predicted motif-impact file generated from the scan results, then upload it to SNPeBOT.</p><p class="muted">The export contains the sequence/motif coordinates and matched motif information from this scan.</p></div>
-    <div class="scanbot-export-actions">{% if hits_csv_uri %}<a class="button-link scanbot-success" href="{{ hits_csv_uri }}" download="modcredb_snpebot_ready.csv">Download SNPeBOT-ready file</a>{% endif %}<a class="button-link secondary" href="https://snpebot.upf.edu/" target="_blank" rel="noopener">Open SNPeBOT</a></div>
+    <div>
+      <p>Download the predicted motif-impact file generated from the scan results, then upload it to SNPeBOT.</p>
+      <p class="muted">The export contains the sequence/motif coordinates and matched motif information from this scan.</p>
+    </div>
+    <div class="scanbot-export-actions">
+      {% if hits_csv_uri %}<a class="button-link scanbot-success" href="{{ hits_csv_uri }}" download="modcredb_snpebot_ready.csv">Download SNPeBOT-ready file</a>{% endif %}
+      <a class="button-link secondary" href="https://snpebot.upf.edu/" target="_blank" rel="noopener">Open SNPeBOT</a>
+    </div>
   </div>
 </section>
+
 <section class="scanbot-results" id="scan-results">
-  <div class="scanbot-results-head"><h2>Scan results</h2><span class="muted">{{ hits|length }} hits shown · sequence length {{ sequence_length }} bp</span></div>
-  {% if profile_svg %}<div class="profile-panel"><div class="section-head"><h3>Motif-match profile</h3>{% if profile_summary %}<span class="muted">{{ profile_summary.profiled_hits }} hits profiled</span>{% endif %}</div><div class="profile-plot">{{ profile_svg|safe }}</div></div>{% endif %}
-  <div class="table-wrap wide-table"><table><thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead><tbody>{% for hit in hits %}<tr><td><a class="mono" href="/motif?source={{ hit.source|quote }}&id={{ hit.motif_id|quote }}">{{ hit.motif_id }}</a></td><td>{{ source_labels.get(hit.source, hit.source) }}</td><td>{{ hit.start }}</td><td>{{ hit.end }}</td><td>{{ hit.strand }}</td><td class="mono">{{ hit.sequence }}</td><td>{{ "%.2f"|format(hit.score) }}</td><td>{% if hit.pvalue is not none %}{{ "%.2e"|format(hit.pvalue) }}{% endif %}</td><td>{% if hit.qvalue is not none %}{{ "%.2e"|format(hit.qvalue) }}{% endif %}</td></tr>{% else %}<tr><td colspan="9" class="scanbot-placeholder">No hits met the selected p-value threshold.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="scanbot-results-head">
+    <h2>Scan results</h2>
+    <span class="muted">{{ hits|length }} hits shown · sequence length {{ sequence_length }} bp</span>
+  </div>
+  {% if profile_svg %}
+    <div class="profile-panel">
+      <div class="section-head"><h3>Motif-match profile</h3>{% if profile_summary %}<span class="muted">{{ profile_summary.profiled_hits }} hits profiled</span>{% endif %}</div>
+      <div class="profile-plot">{{ profile_svg|safe }}</div>
+    </div>
+  {% endif %}
+  <div class="table-wrap wide-table">
+    <table>
+      <thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead>
+      <tbody>
+        {% for hit in hits %}
+          <tr>
+            <td><a class="mono" href="/motif?source={{ hit.source|quote }}&id={{ hit.motif_id|quote }}">{{ hit.motif_id }}</a></td>
+            <td>{{ source_labels.get(hit.source, hit.source) }}</td>
+            <td>{{ hit.start }}</td>
+            <td>{{ hit.end }}</td>
+            <td>{{ hit.strand }}</td>
+            <td class="mono">{{ hit.sequence }}</td>
+            <td>{{ "%.2f"|format(hit.score) }}</td>
+            <td>{% if hit.pvalue is not none %}{{ "%.2e"|format(hit.pvalue) }}{% endif %}</td>
+            <td>{% if hit.qvalue is not none %}{{ "%.2e"|format(hit.qvalue) }}{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="9" class="scanbot-placeholder">No hits met the selected p-value threshold.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </section>
 {% else %}
-<section class="scanbot-results" id="scan-results"><div class="scanbot-results-head"><h2>Scan results</h2><span class="muted">Results appear after running a scan</span></div><div class="table-wrap"><table><thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead><tbody><tr><td colspan="9" class="scanbot-placeholder">Paste DNA and press Scan.</td></tr></tbody></table></div></section>
+<section class="scanbot-results" id="scan-results">
+  <div class="scanbot-results-head"><h2>Scan results</h2><span class="muted">Results appear after running a scan</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead>
+      <tbody><tr><td colspan="9" class="scanbot-placeholder">Paste DNA and press Scan.</td></tr></tbody>
+    </table>
+  </div>
+</section>
 {% endif %}
 {% endblock %}
