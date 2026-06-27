@@ -2,6 +2,7 @@
 .tf-page{
   display:grid;
   gap:24px;
+  max-width:100%;
 }
 .tf-head{
   display:grid;
@@ -65,6 +66,7 @@
   border-radius:18px;
   box-shadow:0 12px 30px rgba(22,35,58,.08);
   padding:20px;
+  min-width:0;
 }
 .tf-section-head{
   display:flex;
@@ -121,13 +123,22 @@
 }
 .table-wrap{
   overflow-x:auto;
+  max-width:100%;
 }
 .motif-table,
 .model-table,
 .summary-table,
 .domain-table{
-  min-width:900px;
   width:100%;
+}
+.motif-table{
+  table-layout:fixed;
+  min-width:0;
+}
+.model-table,
+.summary-table,
+.domain-table{
+  min-width:900px;
 }
 table{
   border-collapse:separate;
@@ -136,7 +147,7 @@ table{
 th,
 td{
   border-bottom:1px solid var(--line);
-  padding:11px 12px;
+  padding:9px 10px;
   text-align:left;
   vertical-align:middle;
 }
@@ -181,8 +192,28 @@ tbody tr:hover td{
   font-size:12px;
   opacity:.65;
 }
+.motif-table th:nth-child(1),
+.motif-table td:nth-child(1){width:25%;}
+.motif-table th:nth-child(2),
+.motif-table td:nth-child(2){width:11%;}
+.motif-table th:nth-child(3),
+.motif-table td:nth-child(3){width:11%;}
+.motif-table th:nth-child(4),
+.motif-table td:nth-child(4){width:15%;}
+.motif-table th:nth-child(5),
+.motif-table td:nth-child(5){width:14%;}
+.motif-table th:nth-child(6),
+.motif-table td:nth-child(6){width:17%;}
+.motif-table th:nth-child(7),
+.motif-table td:nth-child(7){width:7%;}
+.motif-table td{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
 .mini-logo-wrap svg{
-  max-width:220px;
+  display:block;
+  max-width:100%;
+  height:auto;
 }
 .chip{
   border:1px solid #c8ddf8;
@@ -363,6 +394,9 @@ tbody tr:hover td{
   }
   .region-grid{
     grid-template-columns:1fr;
+  }
+  .motif-table{
+    min-width:760px;
   }
 }
 </style>
