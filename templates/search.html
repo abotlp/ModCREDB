@@ -101,7 +101,7 @@
       <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
       <div class="table-wrap wide-table">
         <table>
-          <thead><tr><th>Gene</th><th>Preferred record</th><th>Records</th><th>Prediction</th><th>Scan</th><th>PWMs</th><th>3D</th><th>Caveat / action</th></tr></thead>
+          <thead><tr><th>Gene</th><th>Preferred record</th><th>Records</th><th>Prediction</th><th>PWMs</th><th>3D</th></tr></thead>
           <tbody>
             {% for summary in gene_summaries %}
               {% set preferred = summary.preferred %}
@@ -110,10 +110,8 @@
                 <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed Swiss-Prot</span>{% endif %}</td>
                 <td>{{ summary.record_count }}</td>
                 <td>{{ public_prediction_label(preferred.primary_evidence_raw) }}</td>
-                <td><span class="scan-status {% if preferred.can_scan %}yes{% else %}no{% endif %}">{{ preferred.can_scan_label }}</span></td>
                 <td>{{ preferred.fimo_ready_pwm_count }}</td>
                 <td>{{ preferred.active_model_count }}</td>
-                <td>{{ preferred.recommended_use }}<br><span class="muted">{{ preferred.main_caveat }}</span></td>
               </tr>
             {% endfor %}
           </tbody>
@@ -141,11 +139,9 @@
           <col class="search-col-gene">
           <col class="search-col-protein">
           <col class="search-col-prediction">
-          <col class="search-col-scan">
           <col class="search-col-pwm">
           <col class="search-col-3d">
           <col class="search-col-pfam">
-          <col class="search-col-caveat">
         </colgroup>
         <thead>
           <tr>
@@ -153,11 +149,9 @@
             <th>Gene</th>
             <th>Protein</th>
             <th>Prediction</th>
-            <th>Scan</th>
             <th>PWMs</th>
             <th>3D</th>
             <th>PFAM</th>
-            <th>Caveat</th>
           </tr>
         </thead>
         <tbody>
@@ -171,14 +165,12 @@
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td class="protein-cell">{{ row.protein_name or "" }}</td>
               <td class="prediction-cell">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
-              <td class="number-cell"><span class="scan-status {% if row.can_scan %}yes{% else %}no{% endif %}">{{ row.can_scan_label }}</span></td>
               <td class="number-cell">{{ row.fimo_ready_pwm_count }}</td>
               <td class="number-cell">{{ row.active_model_count }}</td>
               <td class="pfam-cell">{{ row.family_text }}</td>
-              <td class="caveat-cell">{{ row.main_caveat }}</td>
             </tr>
           {% else %}
-            <tr><td colspan="9">No matching UniProt sequence records.</td></tr>
+            <tr><td colspan="7">No matching UniProt sequence records.</td></tr>
           {% endfor %}
         </tbody>
       </table>
