@@ -1,0 +1,24 @@
+.tf-page .motif-table th:nth-child(1),
+.tf-page .motif-table td:nth-child(1){width:25% !important;}
+.tf-page .motif-table th:nth-child(2),
+.tf-page .motif-table td:nth-child(2){width:12% !important;overflow:hidden !important;}
+.tf-page .motif-table th:nth-child(3),
+.tf-page .motif-table td:nth-child(3){width:9% !important;}
+.tf-page .motif-table th:nth-child(4),
+.tf-page .motif-table td:nth-child(4){width:16% !important;}
+.tf-page .motif-table th:nth-child(5),
+.tf-page .motif-table td:nth-child(5){width:14% !important;}
+.tf-page .motif-table th:nth-child(6),
+.tf-page .motif-table td:nth-child(6){width:17% !important;}
+.tf-page .motif-table th:nth-child(7),
+.tf-page .motif-table td:nth-child(7){width:7% !important;}
+.tf-page .motif-table .chip{
+  display:inline-block !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  vertical-align:middle !important;
+  font-size:11.5px !important;
+  line-height:1.2 !important;
+  padding:3px 7px !important;
+}
