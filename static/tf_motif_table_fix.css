@@ -89,3 +89,42 @@
 .search-results-table .search-col-3d{width:7% !important;}
 .search-results-table .protein-cell{overflow-wrap:anywhere !important;white-space:normal !important;}
 .search-results-table .number-cell{text-align:center !important;white-space:nowrap !important;}
+
+/* Search section disclosure: replace browser triangle with a small aligned chevron. */
+details > summary[style*="cursor:pointer"]{
+  display:flex !important;
+  align-items:center !important;
+  gap:10px !important;
+  list-style:none !important;
+  color:var(--ink) !important;
+  line-height:1.15 !important;
+}
+details > summary[style*="cursor:pointer"]::-webkit-details-marker{display:none !important;}
+details > summary[style*="cursor:pointer"]::marker{content:"" !important;}
+details > summary[style*="cursor:pointer"]::before{
+  content:"" !important;
+  width:9px !important;
+  height:9px !important;
+  border-right:2px solid #9aa4b2 !important;
+  border-bottom:2px solid #9aa4b2 !important;
+  transform:rotate(45deg) translateY(-2px) !important;
+  transform-origin:center !important;
+  transition:transform .16s ease,border-color .16s ease !important;
+  flex:0 0 auto !important;
+  margin-right:0 !important;
+}
+details:not([open]) > summary[style*="cursor:pointer"]::before{
+  transform:rotate(-45deg) translateY(1px) !important;
+}
+details > summary[style*="cursor:pointer"]:hover::before{border-color:#64748b !important;}
+details > summary[style*="cursor:pointer"] strong{
+  font-size:28px !important;
+  line-height:1.15 !important;
+}
+details > summary[style*="cursor:pointer"] span.muted{
+  float:none !important;
+  margin-left:auto !important;
+  margin-top:0 !important;
+  padding-top:3px !important;
+  text-align:right !important;
+}
