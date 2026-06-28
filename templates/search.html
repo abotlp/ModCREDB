@@ -100,7 +100,8 @@
       </div>
       <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
       <div class="table-wrap search-summary-wrap">
-        <table class="gene-summary-table">
+        <table class="gene-summary-table" style="table-layout:fixed;min-width:0;width:100%">
+          <colgroup><col style="width:14%"><col style="width:26%"><col style="width:10%"><col style="width:26%"><col style="width:12%"><col style="width:12%"></colgroup>
           <thead><tr><th>Gene</th><th>Preferred record</th><th>Records</th><th>Prediction</th><th>PWMs</th><th>3D</th></tr></thead>
           <tbody>
             {% for summary in gene_summaries %}
@@ -108,10 +109,10 @@
               <tr>
                 <td><strong>{{ summary.gene }}</strong></td>
                 <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed Swiss-Prot</span>{% endif %}</td>
-                <td>{{ summary.record_count }}</td>
+                <td class="number-cell" style="text-align:center">{{ summary.record_count }}</td>
                 <td>{{ public_prediction_label(preferred.primary_evidence_raw) }}</td>
-                <td>{{ preferred.fimo_ready_pwm_count }}</td>
-                <td>{{ preferred.active_model_count }}</td>
+                <td class="number-cell" style="text-align:center">{{ preferred.fimo_ready_pwm_count }}</td>
+                <td class="number-cell" style="text-align:center">{{ preferred.active_model_count }}</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -133,15 +134,15 @@
       <span class="muted">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span>
     </div>
     <div class="table-wrap search-results-wrap">
-      <table class="search-results-table">
+      <table class="search-results-table" style="table-layout:fixed;min-width:0;width:100%">
         <colgroup>
-          <col class="search-col-id">
-          <col class="search-col-gene">
-          <col class="search-col-protein">
-          <col class="search-col-prediction">
-          <col class="search-col-pwm">
-          <col class="search-col-3d">
-          <col class="search-col-pfam">
+          <col class="search-col-id" style="width:13%">
+          <col class="search-col-gene" style="width:11%">
+          <col class="search-col-protein" style="width:31%">
+          <col class="search-col-prediction" style="width:17%">
+          <col class="search-col-pwm" style="width:6%">
+          <col class="search-col-3d" style="width:6%">
+          <col class="search-col-pfam" style="width:16%">
         </colgroup>
         <thead>
           <tr>
@@ -163,11 +164,11 @@
                 {% elif row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}
               </td>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
-              <td class="protein-cell">{{ row.protein_name or "" }}</td>
-              <td class="prediction-cell">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
-              <td class="number-cell">{{ row.fimo_ready_pwm_count }}</td>
-              <td class="number-cell">{{ row.active_model_count }}</td>
-              <td class="pfam-cell">{{ row.family_text }}</td>
+              <td class="protein-cell" style="overflow-wrap:anywhere;white-space:normal">{{ row.protein_name or "" }}</td>
+              <td class="prediction-cell" style="white-space:normal">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
+              <td class="number-cell" style="text-align:center;white-space:nowrap">{{ row.fimo_ready_pwm_count }}</td>
+              <td class="number-cell" style="text-align:center;white-space:nowrap">{{ row.active_model_count }}</td>
+              <td class="pfam-cell" style="overflow-wrap:anywhere;white-space:normal">{{ row.family_text }}</td>
             </tr>
           {% else %}
             <tr><td colspan="7">No matching UniProt sequence records.</td></tr>
