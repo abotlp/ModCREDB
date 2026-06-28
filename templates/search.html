@@ -30,12 +30,20 @@
 
 {% macro motif_records_table(rows) %}
   <div class="table-wrap wide-table">
-    <table class="motif-records-table">
+    <table class="motif-records-table" style="table-layout:fixed;min-width:0;width:100%">
+      <colgroup>
+        <col style="width:15%">
+        <col style="width:10%">
+        <col style="width:22%">
+        <col style="width:6%">
+        <col style="width:20%">
+        <col style="width:17%">
+        <col style="width:10%">
+      </colgroup>
       <thead>
         <tr>
           <th>Motif ID</th>
           <th>Source</th>
-          <th>PWM</th>
           <th>DNA binding</th>
           <th>Width</th>
           <th>TF records</th>
@@ -48,14 +56,13 @@
           <tr>
             <td><a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a></td>
             <td>{{ source_labels.get(row.source, row.source) }}</td>
-            <td><span class="matrix-badge {% if row.matrix_status == 'usable' %}ready{% else %}blocked{% endif %}">{{ matrix_label(row.matrix_status) }}</span></td>
-            <td class="mono">{{ row.consensus or "" }}</td>
-            <td>{{ row.width or "" }}</td>
+            <td class="mono" style="overflow-wrap:anywhere;white-space:normal">{{ row.consensus or "" }}</td>
+            <td class="number-cell" style="text-align:center">{{ row.width or "" }}</td>
             <td>
               {{ row.linked_tf_count }} linked TF record{% if row.linked_tf_count != 1 %}s{% endif %}
               {% if row.preferred_tf_link %}<br><span class="matrix-badge ready">Preferred record</span>{% endif %}
             </td>
-            <td>{{ motif_prediction_categories(row) }}</td>
+            <td style="white-space:normal">{{ motif_prediction_categories(row) }}</td>
             <td>
               <a href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Motif page</a>
               {% if row.matrix_status == "usable" %} · <a href="/scan?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">Scan</a>{% endif %}
