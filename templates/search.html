@@ -129,17 +129,14 @@
   {% endif %}
 
   {% if motif_rows and motif_search_is_direct and not exact_tf_accession_search %}
-    <section>
-      <div class="section-head"><h2>Motif records</h2><span class="muted">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></div>
+    <details open style="margin-top:28px">
+      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></summary>
       {{ motif_records_table(motif_rows) }}
-    </section>
+    </details>
   {% endif %}
 
-  <section>
-    <div class="section-head">
-      <h2>UniProt sequence-record results</h2>
-      <span class="muted">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span>
-    </div>
+  <details open style="margin-top:28px">
+    <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">UniProt sequence-record results</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span></summary>
     <div class="table-wrap search-results-wrap">
       <table class="search-results-table" style="table-layout:fixed;min-width:0;width:100%">
         <colgroup>
@@ -151,25 +148,11 @@
           <col class="search-col-3d" style="width:6%">
           <col class="search-col-pfam" style="width:16%">
         </colgroup>
-        <thead>
-          <tr>
-            <th>UniProt</th>
-            <th>Gene</th>
-            <th>Protein</th>
-            <th>Prediction</th>
-            <th>PWMs</th>
-            <th>3D</th>
-            <th>PFAM</th>
-          </tr>
-        </thead>
+        <thead><tr><th>UniProt</th><th>Gene</th><th>Protein</th><th>Prediction</th><th>PWMs</th><th>3D</th><th>PFAM</th></tr></thead>
         <tbody>
           {% for row in rows %}
             <tr>
-              <td>
-                <a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>
-                {% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred</span>
-                {% elif row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}
-              </td>
+              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred</span>{% elif row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}</td>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td class="protein-cell" style="overflow-wrap:anywhere;white-space:normal">{{ row.protein_name or "" }}</td>
               <td class="prediction-cell" style="white-space:normal">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
@@ -183,20 +166,18 @@
         </tbody>
       </table>
     </div>
-  </section>
+  </details>
 
   {% if motif_rows and exact_tf_accession_search %}
-    <section id="technical-motif-records">
-      <details class="evidence-group">
-        <summary>Technical motif-file matches <span>{{ motif_total }} record{% if motif_total != 1 %}s{% endif %}</span></summary>
-        <p class="muted">These are archive-level motif records whose technical IDs contain this accession. Open the TF record above for the biological prediction groups, DNA-binding regions, and models.</p>
-        {{ motif_records_table(motif_rows) }}
-      </details>
-    </section>
-  {% elif motif_rows and not motif_search_is_direct %}
-    <section>
-      <div class="section-head"><h2>Motif records</h2><span class="muted">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></div>
+    <details open id="technical-motif-records" style="margin-top:28px">
+      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Technical motif-file matches</strong><span class="muted" style="float:right;margin-top:8px">{{ motif_total }} record{% if motif_total != 1 %}s{% endif %}</span></summary>
+      <p class="muted">These are archive-level motif records whose technical IDs contain this accession. Open the TF record above for the biological prediction groups, DNA-binding regions, and models.</p>
       {{ motif_records_table(motif_rows) }}
-    </section>
+    </details>
+  {% elif motif_rows and not motif_search_is_direct %}
+    <details open style="margin-top:28px">
+      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></summary>
+      {{ motif_records_table(motif_rows) }}
+    </details>
   {% endif %}
 {% endblock %}
