@@ -5,95 +5,154 @@
 
 {% set selected_motif = motifs_text|trim %}
 {% set selected_tf = tf_id|trim %}
+{% set personalized_open = selected_motif or selected_tf or motif_q %}
 
-<section class="scanbot-hero">
+<style>
+.scan-compact-hero{margin-bottom:18px}.scan-compact-hero h1{margin-bottom:4px}.scan-global-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 34px rgba(22,35,58,.08);padding:18px 20px}.scan-global-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}.scan-global-head p{max-width:760px;margin:4px 0 0}.scan-grid{display:grid;grid-template-columns:minmax(0,2fr) 260px;gap:16px}.scan-param-panel{background:#f8fbfe;border:1px solid var(--line);border-radius:14px;padding:14px}.scan-param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scan-actions{display:grid;gap:10px;margin-top:14px}.scan-button{border:1px solid var(--line);border-radius:10px;background:#fff;color:#243145;font-weight:850;text-decoration:none;padding:11px 16px;text-align:center;display:inline-flex;justify-content:center}.scan-button.primary{background:#117a46;border-color:#117a46;color:#fff}.scan-button.blue{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.scan-chip{display:inline-flex;border:1px solid #b9d2ff;background:#e9f2ff;color:#164f9f;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:850;white-space:nowrap}.scan-chip.orange{background:#fff2df;border-color:#efc58a;color:#b85b00}.scan-chip.gray{background:#f3f6fa;border-color:var(--line);color:#43546a}.scan-personalized{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-top:20px}.scan-personalized[open]{border-color:#a8c6ef}.scan-personalized summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-personalized summary::-webkit-details-marker{display:none}.scan-summary-title{font-size:19px;font-weight:900}.scan-summary-title:before{content:"▸";color:#2f5f86;display:inline-block;margin-right:8px;transition:transform .12s ease}.scan-personalized[open] .scan-summary-title:before{transform:rotate(90deg)}.scan-summary-sub{display:block;color:#667085;font-size:13px;font-weight:500;margin-top:4px}.scan-personalized-body{padding:20px;border-top:1px solid var(--line)}.scan-mode-note{border:1px solid #bad5ff;background:#f3f8ff;border-radius:14px;padding:14px}.scan-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.scan-three-col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.scan-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.scan-filter-grid label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff;font-size:12px;font-weight:800;margin:0}.scan-filter-grid input{width:auto}.scan-textarea-motifs{min-height:160px}.scan-textarea-dna{min-height:150px}.motif-choice{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}.motif-choice-head{display:flex;justify-content:space-between;gap:10px}.choice-actions{display:flex;gap:10px;align-items:center;margin-top:10px}.scan-picker-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end}.scan-picker-search{display:grid;grid-template-columns:minmax(0,1fr) 160px 90px;gap:10px;min-width:520px}.scan-selected-table{padding:0;overflow:hidden}.scan-selected-table .scanbot-results-head{padding:14px 16px}.scan-selected-table table{margin:0}@media(max-width:900px){.scan-grid,.scan-two-col,.scan-three-col,.scan-picker-head,.scan-picker-search{grid-template-columns:1fr;display:grid;min-width:0}.scan-global-head{display:block}}
+</style>
+
+<section class="scan-compact-hero">
   <p class="eyebrow">SNPeBOT export scanner</p>
   <h1>Scan DNA</h1>
-  {% if selected_motif %}
-    <p class="muted">Paste a DNA sequence or FASTA record. This scan is restricted to the selected motif and prepares a SNPeBOT-ready export.</p>
-  {% elif selected_tf %}
-    <p class="muted">Paste a DNA sequence or FASTA record. This scan uses the selected TF motif set and prepares a SNPeBOT-ready export.</p>
-  {% else %}
-    <p class="muted">Paste a DNA sequence or FASTA record. ModCREDB scans the generated PWM collection, ranks motif matches, and prepares a SNPeBOT-ready export.</p>
-  {% endif %}
+  <p class="muted">Default mode scans all generated PWMs and exports SNPeBOT-ready results. Use the personalized panel for TF- or motif-specific scans.</p>
 </section>
 
-<div class="scanbot-layout">
-  <section class="scanbot-card">
-    {% if selected_motif %}
-      <h2>Selected motif DNA scan</h2>
-      <p class="scanbot-note">This scan will use only the selected motif: <strong class="mono">{{ selected_motif }}</strong></p>
-    {% elif selected_tf %}
-      <h2>TF-specific DNA scan</h2>
-      <p class="scanbot-note">This scan will use generated PWMs linked to TF <strong class="mono">{{ selected_tf }}</strong>.</p>
-    {% else %}
-      <h2>Global DNA scan</h2>
-      <p class="scanbot-note">No TF accession, motif ID, gene name, or protein name is needed here. This mode scans the generated PWM collection.</p>
-    {% endif %}
-
-    <form action="/scan" method="post">
-      {% if selected_motif %}
-        <input type="hidden" name="motifs" value="{{ selected_motif }}">
-      {% endif %}
-      {% if selected_tf %}
-        <input type="hidden" name="tf_id" value="{{ selected_tf }}">
-        {% if tf_region %}<input type="hidden" name="tf_region" value="{{ tf_region }}">{% endif %}
-        {% for evidence in tf_evidence %}
-          <input type="hidden" name="tf_evidence" value="{{ evidence }}">
-        {% endfor %}
-      {% endif %}
-
+<section class="scan-global-card">
+  <form action="/scan" method="post">
+    <div class="scan-global-head">
+      <div>
+        <h2>SNPeBOT-ready global scan</h2>
+        <p class="muted">Paste DNA, scan all generated PWMs, then download the SNPeBOT-ready export.</p>
+      </div>
+      <span class="scan-chip">Global PWM collection</span>
+    </div>
+    <div class="scan-grid">
       <label>DNA sequence or FASTA
-        <textarea name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-sequence-input>{{ sequence_text }}</textarea>
+        <textarea class="scan-textarea-dna" name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-sequence-input>{{ sequence_text }}</textarea>
       </label>
-
-      <div class="scan-controls">
-        <label>P-value threshold<input name="pvalue" type="text" value="{{ pvalue }}"></label>
-        <label>Max ranked hits<input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}"></label>
-        <button type="submit">Scan</button>
-      </div>
-
-      <details class="scanbot-advanced">
-        <summary><span>Advanced scan settings</span><span class="muted">optional</span></summary>
-        <div class="scanbot-advanced-body">
-          {% if not selected_motif and not selected_tf %}
-            <label>Max motifs scanned<input name="max_motifs" type="number" min="1" max="5000" step="1" value="{{ max_motifs or 5000 }}"></label>
-          {% endif %}
-          <label>Strand<select name="strand"><option>Both strands</option><option>Forward only</option></select></label>
+      <div class="scan-param-panel">
+        <div class="scan-param-grid">
+          <label>P-value<input name="pvalue" type="text" value="{{ pvalue }}"></label>
+          <label>Max hits<input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}"></label>
         </div>
-      </details>
-    </form>
-  </section>
+        <label style="margin-top:12px">Max motifs<input name="max_motifs" type="number" min="1" max="{{ max_motifs_hard }}" step="1" value="{{ max_motifs or 5000 }}"></label>
+        <div class="scan-actions">
+          <button class="scan-button primary" type="submit">Scan all generated PWMs</button>
+          <a class="scan-button" href="https://snpebot.upf.edu/" target="_blank" rel="noopener">Open SNPeBOT</a>
+        </div>
+      </div>
+    </div>
+  </form>
+</section>
 
-  <aside>
-    <section class="scanbot-side">
-      <h3>Workflow</h3>
-      <ul class="muted">
-        <li>Paste DNA or FASTA.</li>
-        <li>Run the ModCREDB PWM scan.</li>
-        <li>Download the SNPeBOT-ready file.</li>
-        <li>Open SNPeBOT and upload the file there.</li>
-      </ul>
-      <div class="scanbot-pill-row">
-        <span class="scanbot-pill">DNA-only</span>
-        <span class="scanbot-pill">SNPeBOT-ready</span>
-        {% if selected_motif %}
-          <span class="scanbot-pill">Selected motif</span>
-        {% elif selected_tf %}
-          <span class="scanbot-pill">TF motif set</span>
+<details id="personalized-scan" class="scan-personalized" {% if personalized_open %}open{% endif %}>
+  <summary>
+    <div>
+      <span class="scan-summary-title">Personalized TF / motif scan</span>
+      <span class="scan-summary-sub">{% if selected_motif %}Prefilled from a motif page. Paste DNA and scan this selected motif set.{% elif selected_tf %}Prefilled from a TF page. Paste DNA and scan linked generated PWMs.{% else %}Collapsed by default. Open to scan selected TFs, one motif, or multiple motifs.{% endif %}</span>
+    </div>
+    {% if selected_motif or selected_tf %}<span class="scan-chip orange">Prefilled</span>{% else %}<span class="scan-chip">Optional</span>{% endif %}
+  </summary>
+  <div class="scan-personalized-body">
+    <div class="scan-mode-note">
+      <h3>Selected TF or motif scan</h3>
+      <p class="muted">Use a TF accession, paste one or many motif specs, or add motifs from the picker. Manual motifs are added to the TF motif set if both are used.</p>
+    </div>
+
+    <form action="/scan" method="post" class="section">
+      <div class="scan-two-col">
+        <div>
+          <div class="scan-two-col">
+            <label>TF / UniProt accession
+              <input name="tf_id" value="{{ tf_id }}" placeholder="A0A0S2Z4K5">
+            </label>
+            <label>DNA-binding region
+              <select name="tf_region"{% if tf_id and not tf_scan_regions %} disabled{% endif %}>
+                <option value="">All available regions</option>
+                {% for region in tf_scan_regions %}
+                  <option value="{{ region.value }}"{% if tf_region == region.value %} selected{% endif %}>{{ region.label }} ({{ region.motif_count }} motif{% if region.motif_count != 1 %}s{% endif %})</option>
+                {% endfor %}
+                {% if not tf_scan_regions and not tf_id %}<option value="" disabled>Enter a TF accession to list regions</option>{% endif %}
+                {% if tf_id and not tf_scan_regions %}<option value="" disabled>No explicit regions with generated PWMs</option>{% endif %}
+              </select>
+            </label>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>TF motif predictions to include</label>
+            <div class="scan-filter-grid">
+              <label><input type="checkbox" name="tf_evidence" value="identical" {% if 'identical' in tf_evidence or (not tf_id and 'identical' in tf_scan_default_evidence) %}checked{% endif %}> Known</label>
+              <label><input type="checkbox" name="tf_evidence" value="homologous" {% if 'homologous' in tf_evidence or (not tf_id and 'homologous' in tf_scan_default_evidence) %}checked{% endif %}> NN 70+%</label>
+              <label><input type="checkbox" name="tf_evidence" value="relative_homologous" {% if 'relative_homologous' in tf_evidence %}checked{% endif %}> NN 70-40%</label>
+              <label><input type="checkbox" name="tf_evidence" value="modcre" {% if 'modcre' in tf_evidence or (not tf_id and 'modcre' in tf_scan_default_evidence) %}checked{% endif %}> ModCRE</label>
+              <label><input type="checkbox" name="tf_evidence" value="alphafold" {% if 'alphafold' in tf_evidence or (not tf_id and 'alphafold' in tf_scan_default_evidence) %}checked{% endif %}> AF3 model</label>
+            </div>
+          </div>
+
+          <div style="margin-top:14px">
+            <label>Selected motifs — one per line
+              <textarea class="scan-textarea-motifs" name="motifs" rows="5" placeholder="cisbp|M02392_2.00&#10;jaspar|MA1531.1&#10;modcre|DIMER_..." data-motif-input>{{ motifs_text }}</textarea>
+            </label>
+            <p class="muted">Multiple motifs are allowed. Use <span class="mono">source|motif_id</span>; one motif per line.</p>
+          </div>
+        </div>
+
+        <div>
+          <label>DNA sequence or FASTA
+            <textarea class="scan-textarea-dna" name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-personalized-sequence>{{ sequence_text }}</textarea>
+          </label>
+          <div class="scan-param-grid" style="margin-top:14px">
+            <label>P-value threshold<input name="pvalue" type="text" value="{{ pvalue }}"></label>
+            <label>Max hits<input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}"></label>
+          </div>
+          <div class="scan-actions">
+            <button class="scan-button blue" type="submit">Run personalized scan</button>
+            <button class="scan-button" type="button" data-clear-personalized>Clear personalized fields</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <section class="section">
+      <div class="scan-picker-head">
+        <div>
+          <h3>Find motifs</h3>
+          <p class="muted">Search motif ID, TF accession, gene, protein, organism, or consensus. Add one or many motifs.</p>
+        </div>
+        <form class="scan-picker-search" action="/scan" method="get">
+          {% if selected_tf %}<input type="hidden" name="tf_id" value="{{ selected_tf }}">{% endif %}
+          {% if selected_motif %}<input type="hidden" name="motifs" value="{{ selected_motif }}">{% endif %}
+          <input name="motif_q" value="{{ motif_q }}" placeholder="Search motifs">
+          <select name="motif_source">
+            <option value="">All sources</option>
+            {% for source_key, source_label in source_labels.items() %}
+              <option value="{{ source_key }}"{% if motif_source == source_key %} selected{% endif %}>{{ source_label }}</option>
+            {% endfor %}
+          </select>
+          <button class="scan-button" type="submit">Find</button>
+        </form>
+      </div>
+      <div class="scan-three-col" style="margin-top:14px">
+        {% for row in motif_results %}
+          <article class="motif-choice">
+            <div class="motif-choice-head">
+              <a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a>
+              <span>{{ source_labels.get(row.source, row.source) }}</span>
+            </div>
+            <p class="muted">Width {{ row.width }}{% if row.consensus %}; consensus <span class="mono">{{ row.consensus }}</span>{% endif %}{% if row.tf_count %}; linked TFs {{ row.tf_count }}{% endif %}</p>
+            {% if row.example_tfs %}<p class="motif-examples">{{ row.example_tfs }}</p>{% endif %}
+            <div class="choice-actions">
+              <button type="button" class="scan-button" data-add-motif="{{ motif_spec(row.source, row.motif_id) }}">Add</button>
+              <a href="/scan?motifs={{ motif_spec(row.source, row.motif_id)|quote }}">Use alone</a>
+            </div>
+          </article>
         {% else %}
-          <span class="scanbot-pill">Global PWM scan</span>
-        {% endif %}
+          <p class="muted">No motifs matched the search.</p>
+        {% endfor %}
       </div>
     </section>
-
-    <section class="scanbot-side">
-      <h3>Open SNPeBOT</h3>
-      <p class="muted">After downloading the export file, submit it at SNPeBOT.</p>
-      <a class="button-link secondary" href="https://snpebot.upf.edu/" target="_blank" rel="noopener">Open SNPeBOT</a>
-    </section>
-  </aside>
-</div>
+  </div>
+</details>
 
 {% if errors %}
 <section>
@@ -166,4 +225,54 @@
   </div>
 </section>
 {% endif %}
+
+{% if motifs %}
+<section>
+  <h2>Motifs used</h2>
+  <div class="motif-grid compact-motif-grid">
+    {% for motif in motifs %}
+      <article class="motif-card">
+        <div class="motif-card-head">
+          <a class="mono" href="/motif?source={{ motif.source|quote }}&id={{ motif.motif_id|quote }}">{{ motif.motif_id }}</a>
+          <span>{{ source_labels.get(motif.source, motif.source) }}</span>
+        </div>
+        <p class="muted">Width {{ motif.width }}{% if motif.consensus %}; consensus <span class="mono">{{ motif.consensus }}</span>{% endif %}</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<script>
+(() => {
+  const motifInput = document.querySelector("[data-motif-input]");
+  function addMotif(spec) {
+    if (!motifInput) return;
+    const lines = motifInput.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    if (!lines.includes(spec)) lines.push(spec);
+    motifInput.value = lines.join("\n");
+    motifInput.focus();
+  }
+  document.querySelectorAll("[data-add-motif]").forEach((button) => {
+    button.addEventListener("click", () => addMotif(button.dataset.addMotif));
+  });
+  const clearButton = document.querySelector("[data-clear-personalized]");
+  if (clearButton) {
+    clearButton.addEventListener("click", () => {
+      const tfInput = document.querySelector('#personalized-scan input[name="tf_id"]');
+      const sequenceInput = document.querySelector('[data-personalized-sequence]');
+      if (tfInput) tfInput.value = "";
+      if (motifInput) motifInput.value = "";
+      if (sequenceInput) sequenceInput.value = "";
+    });
+  }
+  {% if method == "POST" %}
+    const results = document.getElementById("scan-results");
+    if (results) requestAnimationFrame(() => results.scrollIntoView({ block: "start" }));
+  {% elif selected_motif or selected_tf %}
+    const personalized = document.getElementById("personalized-scan");
+    if (personalized) requestAnimationFrame(() => personalized.scrollIntoView({ block: "start" }));
+  {% endif %}
+})();
+</script>
 {% endblock %}
