@@ -22,3 +22,58 @@
   line-height:1.2 !important;
   padding:3px 7px !important;
 }
+
+/* Keep the 3D model table controls visually consistent with the page.
+   These are sortable table headers, not primary action buttons. */
+.tf-page .model-table th{background:#f0f3f8 !important;}
+.tf-page .model-table .sort-btn,
+.tf-page .summary-table .sort-btn{
+  appearance:none !important;
+  -webkit-appearance:none !important;
+  background:transparent !important;
+  border:0 !important;
+  border-radius:6px !important;
+  color:#253044 !important;
+  cursor:pointer !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:4px !important;
+  font:inherit !important;
+  font-size:13px !important;
+  font-weight:750 !important;
+  line-height:1.25 !important;
+  min-height:0 !important;
+  padding:2px 4px !important;
+  text-align:left !important;
+  text-decoration:none !important;
+  width:auto !important;
+}
+.tf-page .model-table .sort-btn:hover,
+.tf-page .model-table .sort-btn:focus,
+.tf-page .summary-table .sort-btn:hover,
+.tf-page .summary-table .sort-btn:focus{
+  background:#e8eef7 !important;
+  color:var(--accent-dark) !important;
+  outline:0 !important;
+  text-decoration:none !important;
+}
+.tf-page .model-table .sort-icon,
+.tf-page .summary-table .sort-icon{
+  color:var(--muted) !important;
+  font-size:11px !important;
+  line-height:1 !important;
+}
+.tf-page .model-table td,
+.tf-page .summary-table td{vertical-align:middle !important;}
+.tf-page .model-table tbody tr:hover,
+.tf-page .summary-table tbody tr:hover{background:#fbfcfe !important;}
+.tf-page .model-actions a,
+.tf-page .model-table td a{
+  border-radius:5px !important;
+  padding:1px 3px !important;
+}
+.tf-page .model-actions a:hover,
+.tf-page .model-table td a:hover{
+  background:#eef5ff !important;
+  text-decoration:none !important;
+}
