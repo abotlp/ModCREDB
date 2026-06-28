@@ -77,3 +77,15 @@
   background:#eef5ff !important;
   text-decoration:none !important;
 }
+
+.search-results-table th:nth-child(7),
+.search-results-table td:nth-child(7),
+.search-results-table .search-col-pfam{display:none !important;}
+.search-results-table .search-col-id{width:14% !important;}
+.search-results-table .search-col-gene{width:12% !important;}
+.search-results-table .search-col-protein{width:42% !important;}
+.search-results-table .search-col-prediction{width:18% !important;}
+.search-results-table .search-col-pwm{width:7% !important;}
+.search-results-table .search-col-3d{width:7% !important;}
+.search-results-table .protein-cell{overflow-wrap:anywhere !important;white-space:normal !important;}
+.search-results-table .number-cell{text-align:center !important;white-space:nowrap !important;}
