@@ -99,8 +99,8 @@
         <span class="muted">Navigation aids, not separate database records</span>
       </div>
       <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
-      <div class="table-wrap wide-table">
-        <table>
+      <div class="table-wrap search-summary-wrap">
+        <table class="gene-summary-table">
           <thead><tr><th>Gene</th><th>Preferred record</th><th>Records</th><th>Prediction</th><th>PWMs</th><th>3D</th></tr></thead>
           <tbody>
             {% for summary in gene_summaries %}
@@ -132,7 +132,7 @@
       <h2>UniProt sequence-record results</h2>
       <span class="muted">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span>
     </div>
-    <div class="table-wrap wide-table">
+    <div class="table-wrap search-results-wrap">
       <table class="search-results-table">
         <colgroup>
           <col class="search-col-id">
