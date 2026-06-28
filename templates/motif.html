@@ -51,29 +51,26 @@
 
   <section>
     <h2>Source/provenance</h2>
-    {% if source_release %}
-      <div class="table-wrap">
-        <table>
-          <tbody>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+          {% if source in ['modcre', 'alphafold'] or (source_release and source_release.source in ['modcre', 'alphafold']) %}
+            <tr><th>Source</th><td>Predicted</td></tr>
+          {% elif source_release %}
             <tr><th>Source</th><td>{{ source_labels.get(source_release.source, source_release.source) }}</td></tr>
             <tr><th>Release</th><td>{{ source_release.release_name }}</td></tr>
             <tr><th>Collection</th><td>{{ source_release.collection }}</td></tr>
-            <tr><th>Status</th><td>{{ source_release.confirmation_status }}</td></tr>
-            <tr>
-              <th>External source</th>
-              <td>
-                {% if source_release.source_url and source_release.source_url != "pending confirmation" %}<a href="{{ source_release.source_url }}" target="_blank" rel="noopener">source page</a>{% endif %}
-                {% if source_release.download_url and source_release.download_url not in ["pending confirmation", "not public / pending confirmation"] %}<a href="{{ source_release.download_url }}" target="_blank" rel="noopener">download</a>{% elif source_release.download_url %}<span>{{ source_release.download_url }}</span>{% endif %}
-              </td>
-            </tr>
-            {% if source_release.citation or source_release.license_note %}<tr><th>Citation/license</th><td>{{ source_release.citation }}{% if source_release.license_note %}<br>{{ source_release.license_note }}{% endif %}</td></tr>{% endif %}
-            {% if source_release.notes %}<tr><th>Notes</th><td>{{ source_release.notes }}</td></tr>{% endif %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="muted">No source-release metadata has been loaded for this source yet.</p>
-    {% endif %}
+            {% if source_release.source_url and source_release.source_url != "pending confirmation" %}<tr><th>External source</th><td><a href="{{ source_release.source_url }}" target="_blank" rel="noopener">source page</a></td></tr>{% endif %}
+            {% if source_release.download_url and source_release.download_url not in ["pending confirmation", "not public / pending confirmation"] %}<tr><th>Download</th><td><a href="{{ source_release.download_url }}" target="_blank" rel="noopener">download</a></td></tr>{% endif %}
+            {% if source_release.citation and source_release.citation != "pending confirmation" %}<tr><th>Citation</th><td>{{ source_release.citation }}</td></tr>{% endif %}
+            {% if source_release.license_note and source_release.license_note != "pending confirmation" %}<tr><th>License</th><td>{{ source_release.license_note }}</td></tr>{% endif %}
+            {% if source_release.notes and "pending" not in source_release.notes and "PI" not in source_release.notes and "Baldo" not in source_release.notes %}<tr><th>Notes</th><td>{{ source_release.notes }}</td></tr>{% endif %}
+          {% else %}
+            <tr><th>Source</th><td>{{ source_labels.get(source, source) }}</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
   </section>
 
   {% if motif %}
