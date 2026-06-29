@@ -872,32 +872,82 @@ def curation_status_label(curation_status: object) -> str:
     return CURATION_STATUS_LABELS.get(key, key)
 
 
-def motif_external_links(source: str, motif_id: str) -> list[dict[str, str]]:
+EXTERNAL_MOTIF_LINKS_TSV = APP_DIR / "data" / "external_motif_links.tsv"
+_EXTERNAL_MOTIF_LINK_CACHE = None
+_EXTERNAL_MOTIF_LINK_CACHE_MTIME = None
+
+
+def hocomoco_v11_to_v14_motif_id(motif_id: str) -> str:
+    text = str(motif_id or "").strip()
+    match = re.fullmatch(r"(.+?)(?:_HUMAN)?\.H11MO\.([^.]+)\.([A-Za-z])", text)
+    if not match:
+        return text
+    gene, subtype, quality = match.groups()
+    return f"{gene}.H14CORE.{subtype}.P.{quality.upper()}"
+
+
+def load_external_motif_link_map() -> dict[tuple[str, str], dict[str, str]]:
+    global _EXTERNAL_MOTIF_LINK_CACHE, _EXTERNAL_MOTIF_LINK_CACHE_MTIME
+
+    path = EXTERNAL_MOTIF_LINKS_TSV
+    mtime = path.stat().st_mtime if path.exists() else None
+    if _EXTERNAL_MOTIF_LINK_CACHE is not None and _EXTERNAL_MOTIF_LINK_CACHE_MTIME == mtime:
+        return _EXTERNAL_MOTIF_LINK_CACHE
+
+    links = {}
+    if path.exists():
+        with path.open(newline="") as handle:
+            reader = csv.DictReader(handle, delimiter="	")
+            for row in reader:
+                source = str(row.get("source") or "").strip().lower()
+                motif_id = str(row.get("motif_id") or "").strip()
+                url = str(row.get("url") or "").strip()
+                if source and motif_id and url:
+                    links[(source, motif_id)] = {
+                        "label": str(row.get("label") or "Open in source database").strip(),
+                        "url": url,
+                        "mapped_id": str(row.get("mapped_id") or "").strip(),
+                        "note": str(row.get("note") or "").strip(),
+                    }
+
+    _EXTERNAL_MOTIF_LINK_CACHE = links
+    _EXTERNAL_MOTIF_LINK_CACHE_MTIME = mtime
+    return links
+
+
+def motif_source_link(source: str, motif_id: str) -> dict[str, str] | None:
+    source = str(source or "").strip().lower()
+    motif_id = str(motif_id or "").strip()
+    if not source or not motif_id:
+        return None
+
+    curated = load_external_motif_link_map().get((source, motif_id))
+    if curated:
+        return curated
+
     if source == "jaspar" and motif_id.startswith("MA"):
-        return [
-            {
-                "label": "JASPAR matrix",
-                "url": f"https://jaspar2024.elixir.no/matrix/{quote(motif_id, safe='')}/",
-                "note": "Direct matrix page",
-            }
-        ]
-    if source == "cisbp" and motif_id.startswith("M"):
-        return [
-            {
-                "label": "CIS-BP database",
-                "url": SOURCE_HOME_URLS["cisbp"],
-                "note": "Search this motif ID in CIS-BP",
-            }
-        ]
+        return {
+            "label": "Open in JASPAR",
+            "url": f"https://jaspar.elixir.no/matrix/{quote(motif_id, safe='')}/",
+            "mapped_id": motif_id,
+            "note": "JASPAR matrix page",
+        }
+
     if source == "hocomoco":
-        return [
-            {
-                "label": "HOCOMOCO v11",
-                "url": SOURCE_HOME_URLS["hocomoco"],
-                "note": "Search this motif ID in HOCOMOCO v11",
-            }
-        ]
-    return []
+        mapped_id = hocomoco_v11_to_v14_motif_id(motif_id)
+        return {
+            "label": "Open in HOCOMOCO",
+            "url": f"https://hocomoco14.autosome.org/motif/{quote(mapped_id, safe='')}",
+            "mapped_id": mapped_id,
+            "note": "HOCOMOCO v14 motif page",
+        }
+
+    return None
+
+
+def motif_external_links(source: str, motif_id: str) -> list[dict[str, str]]:
+    link = motif_source_link(source, motif_id)
+    return [link] if link else []
 
 
 def pdb_url(pdb_id: str | None) -> str:

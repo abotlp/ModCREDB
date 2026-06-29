@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ motif_id }} | ModCREDB{% endblock %}
 {% block content %}
+  {% set external_links = motif_external_links(source, motif_id) %}
+
   <div class="motif-page">
     <section class="motif-head-clean">
       <div>
@@ -20,20 +22,9 @@
             <a class="secondary-link" href="/scan?source={{ source|quote }}&id={{ motif_id|quote }}">Scan DNA</a>
           {% endif %}
         {% endif %}
-        {% if source == "jaspar" %}
-          <a class="secondary-link" href="https://jaspar.elixir.no/matrix/{{ motif_id|quote }}/" target="_blank" rel="noopener">Open in JASPAR</a>
-        {% elif source == "cisbp" %}
-          {% set cisbp_source_id = 'T094907_2.00' if motif_id == 'M08889_2.00' else motif_id %}
-          <a class="secondary-link" href="https://cisbp.ccbr.utoronto.ca/TFnewreport.php?searchTF={{ cisbp_source_id|quote }}" target="_blank" rel="noopener">Open in CisBP</a>
-        {% elif source == "hocomoco" %}
-          {% set hoco_gene = motif_id.split('_HUMAN.')[0] if '_HUMAN.' in motif_id else motif_id.split('.')[0] %}
-          {% set hoco_tail = motif_id.split('.H11MO.')[1] if '.H11MO.' in motif_id else '' %}
-          {% set hoco_parts = hoco_tail.split('.') %}
-          {% set hoco_subtype = hoco_parts[0] if hoco_parts|length > 0 and hoco_parts[0] else '0' %}
-          {% set hoco_quality = hoco_parts[1] if hoco_parts|length > 1 and hoco_parts[1] else 'C' %}
-          {% set hoco_v14_id = hoco_gene ~ '.H14CORE.' ~ hoco_subtype ~ '.P.' ~ hoco_quality %}
-          <a class="secondary-link" href="https://hocomoco14.autosome.org/motif/{{ hoco_v14_id|quote }}" target="_blank" rel="noopener">Open in HOCOMOCO</a>
-        {% endif %}
+        {% for link in external_links %}
+          <a class="secondary-link" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
+        {% endfor %}
       </div>
     </section>
 
