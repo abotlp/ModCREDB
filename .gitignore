@@ -21,3 +21,15 @@ TF_database_grant_stats_summary.md
 # OS/editor
 .DS_Store
 *.swp
+
+# Local CIS-BP downloads / audits / DB backups
+external/
+outputs/
+*.sqlite.before_*.bak
+data/*.bak
+
+# Local CIS-BP downloads / audits / DB backups
+external/
+outputs/
+*.sqlite.before_*.bak
+data/*.bak
