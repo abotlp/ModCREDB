@@ -33,3 +33,4 @@ external/
 outputs/
 *.sqlite.before_*.bak
 data/*.bak
+modcredb.log

@@ -1,25 +1,22 @@
-# CIS-BP v2 direct Homo sapiens motif assignment
+# CIS-BP v2 direct motif assignments
 
-Problem fixed:
-- CIS-BP v2 PWM files were present in `motif_file`.
-- Direct CIS-BP TF-to-motif assignments were missing from `motif_ref` for many reviewed human UniProt TFs.
-- Example: TP53/P04637 had JASPAR and HOCOMOCO motifs, but lacked direct CIS-BP motifs from CIS-BP TF report `T311040_2.00`.
+This workflow fixes missing direct CIS-BP v2 TF-to-motif assignments in `motif_ref`.
 
-Primary source:
-- CIS-BP v2 Homo sapiens bulk download.
-- Required table: `TF_Information.txt`.
+Issue:
+- CIS-BP PWM files existed in `motif_file`.
+- Some TF pages lacked direct CIS-BP motifs because `motif_ref` was not populated from CIS-BP v2 `TF_Information.txt`.
+- Example: TP53/P04637 had JASPAR and HOCOMOCO motifs but lacked direct CIS-BP motifs from CIS-BP TF report `T311040_2.00`.
 
-Important parsing rule:
-- `TF_Information.txt` contains duplicate `DBID` column names.
-- Parse by column index, not by `csv.DictReader`.
-- Column 5 is TF external ID, e.g. Ensembl gene ID.
-- Column 13 is motif/source identifier, e.g. HOCOMOCO/TRANSFAC source motif name.
+Versioned patch:
+- `data/cisbp_v2_direct_human_motif_ref_insert_candidates.tsv`
+- `scripts/cisbp_v2/apply_cisbp_v2_direct_assignments.py`
 
-Insertion filter:
+Insertion criteria:
+- direct CIS-BP v2 mapping from `TF_Information.txt`
 - `TF_Species == Homo_sapiens`
 - `TF_Status == D`
 - selected ModCREDB TF is a unique reviewed UniProt entry
 - local CIS-BP PWM exists in `motif_file`
-- motif_ref row does not already exist
+- exact `tf_id/source/motif_id` row does not already exist
 
-Do not use `TF_Information_all_motifs_plus.txt` for Known/direct rows. It includes related/inferred motifs.
+Do not use `TF_Information_all_motifs_plus.txt` for direct/known rows; it includes related/inferred motifs.
