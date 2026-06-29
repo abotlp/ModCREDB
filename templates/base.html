@@ -6,6 +6,7 @@
     <title>{% block title %}ModCRE DB{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/tf_motif_table_fix.css">
+    {% block head_extra %}{% endblock %}
     <script defer src="/static/pi_public_labels.js"></script>
     <script defer src="/static/pi_public_labels_extra.js"></script>
     <script defer src="/static/tf_model_clean.js"></script>
@@ -18,8 +19,7 @@
         <a href="/">Browse</a>
         <a href="/search">Search</a>
         <a href="/scan">Scan DNA</a>
-        <a href="/docs">Documentation</a>
-        {% if debug_enabled %}<a href="/debug">Debug</a>{% endif %}
+        <a href="/docs">Help</a>
       </nav>
     </header>
     <main class="page">
