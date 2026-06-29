@@ -1,206 +1,143 @@
 {% extends "base.html" %}
 {% block title %}{{ motif_id }} | ModCREDB{% endblock %}
 {% block content %}
-  <section class="record-head">
-    <div>
-      <p class="eyebrow">{{ source_labels.get(source, source) }} motif</p>
-      <h1 class="mono">{{ motif_id }}</h1>
-      {% if motif %}
-        <p>Width {{ motif.width or "unknown" }}{% if motif.nsites %}; nsites {{ motif.nsites }}{% endif %}</p>
-        <div class="matrix-badges">
-          {% if motif.matrix_status == "usable" %}
-            <span class="matrix-badge ready">Generated PWM</span>
-          {% elif motif.matrix_status == "width_zero_no_matrix" %}
-            <span class="matrix-badge blocked">Missing MEME</span>
-          {% else %}
-            <span class="matrix-badge blocked">{{ matrix_status_labels.get(motif.matrix_status, motif.matrix_status or "Unknown") }}</span>
-          {% endif %}
-        </div>
-      {% else %}
-        <p class="warning">This motif is referenced by the database but is missing from the local archive.</p>
-      {% endif %}
-    </div>
-    <div class="actions">
-      {% if motif %}
-        <a class="button-link" href="/download/motif?source={{ source|quote }}&id={{ motif_id|quote }}">Download MEME</a>
-        {% if motif.matrix_status == "usable" %}
-          <a class="secondary-link" href="/scan?source={{ source|quote }}&id={{ motif_id|quote }}">Scan DNA</a>
-        {% endif %}
-      {% endif %}
-      {% set external_links = motif_external_links(source, motif_id) %}
-      {% for link in external_links %}
-        <a class="secondary-link" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
-      {% endfor %}
-    </div>
-  </section>
-
   {% set external_links = motif_external_links(source, motif_id) %}
-  {% if external_links %}
-    <section>
-      <h2>External source</h2>
-      <div class="source-links">
+
+  <div class="motif-page">
+    <section class="motif-head-clean">
+      <div>
+        <p class="eyebrow">{{ source_labels.get(source, source) }} motif</p>
+        <h1 class="mono">{{ motif_id }}</h1>
+        <p class="motif-source-line">Source: {{ source_labels.get(source, source) }}</p>
+        {% if motif and motif.matrix_status != "usable" %}
+          <p class="warning">No usable motif matrix is available for display or DNA scanning.</p>
+        {% elif not motif %}
+          <p class="warning">This motif is referenced by the database but is missing from the local archive.</p>
+        {% endif %}
+      </div>
+      <div class="actions motif-actions-clean">
+        {% if motif %}
+          <a class="button-link" href="/download/motif?source={{ source|quote }}&id={{ motif_id|quote }}">Download MEME</a>
+          {% if motif.matrix_status == "usable" %}
+            <a class="secondary-link" href="/scan?source={{ source|quote }}&id={{ motif_id|quote }}">Scan DNA</a>
+          {% endif %}
+        {% endif %}
         {% for link in external_links %}
-          <div>
-            <a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
-            <span>{{ link.note }}</span>
-          </div>
+          <a class="secondary-link" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
         {% endfor %}
       </div>
     </section>
-  {% endif %}
 
-  <section>
-    <h2>Source/provenance</h2>
-    <div class="table-wrap">
-      <table>
-        <tbody>
-          {% if source in ['modcre', 'alphafold'] or (source_release and source_release.source in ['modcre', 'alphafold']) %}
-            <tr><th>Source</th><td>Predicted</td></tr>
-          {% elif source_release %}
-            <tr><th>Source</th><td>{{ source_labels.get(source_release.source, source_release.source) }}</td></tr>
-            <tr><th>Release</th><td>{{ source_release.release_name }}</td></tr>
-            <tr><th>Collection</th><td>{{ source_release.collection }}</td></tr>
-            {% if source_release.source_url and source_release.source_url != "pending confirmation" %}<tr><th>External source</th><td><a href="{{ source_release.source_url }}" target="_blank" rel="noopener">source page</a></td></tr>{% endif %}
-            {% if source_release.download_url and source_release.download_url not in ["pending confirmation", "not public / pending confirmation"] %}<tr><th>Download</th><td><a href="{{ source_release.download_url }}" target="_blank" rel="noopener">download</a></td></tr>{% endif %}
-            {% if source_release.citation and source_release.citation != "pending confirmation" %}<tr><th>Citation</th><td>{{ source_release.citation }}</td></tr>{% endif %}
-            {% if source_release.license_note and source_release.license_note != "pending confirmation" %}<tr><th>License</th><td>{{ source_release.license_note }}</td></tr>{% endif %}
-            {% if source_release.notes and "pending" not in source_release.notes and "PI" not in source_release.notes and "Baldo" not in source_release.notes %}<tr><th>Notes</th><td>{{ source_release.notes }}</td></tr>{% endif %}
-          {% else %}
-            <tr><th>Source</th><td>{{ source_labels.get(source, source) }}</td></tr>
-          {% endif %}
-        </tbody>
-      </table>
-    </div>
-  </section>
+    {% if motif and motif.matrix_status == "usable" and motif.matrix_json %}
+      <section class="motif-block motif-logo-block">
+        <h2>Sequence logo</h2>
+        <div class="pwm-panel motif-logo-panel">{{ motif.matrix_json|pwm_svg|safe }}</div>
+      </section>
 
-  {% if motif %}
-    <section>
-      <h2>Matrix QC</h2>
-      <div class="annotation-grid">
-        <div><span>Status</span><strong>{% if motif.matrix_status == "usable" %}Generated PWM{% elif motif.matrix_status == "width_zero_no_matrix" %}Missing MEME{% else %}{{ matrix_status_labels.get(motif.matrix_status, motif.matrix_status or "Unknown") }}{% endif %}</strong></div>
-        <div><span>Parsed rows</span><strong>{{ motif.matrix_row_count if motif.matrix_row_count is not none else "unknown" }}</strong></div>
-        <div><span>Expected width</span><strong>{{ motif.matrix_expected_width if motif.matrix_expected_width is not none else "unknown" }}</strong></div>
-        <div>
-          <span>Row-sum range</span>
-          <strong>{% if motif.matrix_row_sum_min is not none and motif.matrix_row_sum_max is not none %}{{ "%.3f"|format(motif.matrix_row_sum_min) }}-{{ "%.3f"|format(motif.matrix_row_sum_max) }}{% else %}unknown{% endif %}</strong>
-        </div>
+      {% if matrix_position_rows %}
+        <section class="motif-block motif-matrix-block">
+          <h2>Matrix</h2>
+          <div class="table-wrap motif-matrix-wrap">
+            <table class="motif-matrix-table">
+              <thead>
+                <tr>
+                  <th>Position</th>
+                  <th>A</th>
+                  <th>C</th>
+                  <th>G</th>
+                  <th>T</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in matrix_position_rows %}
+                  <tr>
+                    <td>{{ row.position }}</td>
+                    <td>{{ "%.4f"|format(row.A) }}</td>
+                    <td>{{ "%.4f"|format(row.C) }}</td>
+                    <td>{{ "%.4f"|format(row.G) }}</td>
+                    <td>{{ "%.4f"|format(row.T) }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      {% endif %}
+    {% elif motif %}
+      <section class="motif-block">
+        <h2>Sequence logo</h2>
+        <p class="warning">No usable matrix is available for this motif.</p>
+      </section>
+    {% endif %}
+
+    {% set link_counts = namespace(known=0, close=0, distant=0, predicted=0) %}
+    {% for ref in refs %}
+      {% if ref.evidence_type == 'identical' %}{% set link_counts.known = link_counts.known + 1 %}
+      {% elif ref.evidence_type == 'homologous' %}{% set link_counts.close = link_counts.close + 1 %}
+      {% elif ref.evidence_type == 'relative_homologous' %}{% set link_counts.distant = link_counts.distant + 1 %}
+      {% elif ref.evidence_type in ['modcre','alphafold'] %}{% set link_counts.predicted = link_counts.predicted + 1 %}
+      {% endif %}
+    {% endfor %}
+
+    <section class="motif-block">
+      <h2>TFs using this motif</h2>
+      <p class="muted">
+        This motif is linked to {{ distinct_linked_tf_count }} TF record{% if distinct_linked_tf_count != 1 %}s{% endif %}:
+        {{ link_counts.known }} known/direct,
+        {{ link_counts.close }} nearest-neighbor &gt;70%,
+        {{ link_counts.distant }} nearest-neighbor 50–70%,
+        {{ link_counts.predicted }} structure-derived.
+        {% if evidence_link_count > ref_limit %} Showing first {{ refs|length }} assignments.{% else %} Showing all {{ refs|length }} assignment{% if refs|length != 1 %}s{% endif %}.{% endif %}
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>TF record</th>
+              <th>Prediction</th>
+              <th>Assignment type</th>
+              <th>Curation status</th>
+              <th>Identity</th>
+              <th>PFAM Families (by similarity)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ref in refs %}
+              <tr>
+                <td><a class="mono" href="/tf/{{ ref.tf_id|quote }}">{{ ref.tf_id }}</a></td>
+                <td>{{ evidence_display_label(ref) }}{% if ref.mapping_type == "public_database_mapping_unconfirmed" %} <span class="inline-badge pending">Mapping pending</span>{% endif %}</td>
+                <td>{{ mapping_type_label(ref.mapping_type) }}</td>
+                <td>{{ curation_status_label(ref.curation_status) }}</td>
+                <td>{% if ref.identity_percent is not none %}{{ "%.1f"|format(ref.identity_percent) }}%{% endif %}</td>
+                <td>{{ ref.family_text }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6">No TF assignments found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-      {% if motif.matrix_warning %}<p class="warning">{{ motif.matrix_warning }}</p>{% endif %}
-    </section>
-  {% endif %}
-
-  {% if motif and motif.matrix_status == "usable" and motif.matrix_json %}
-    <section>
-      <h2>Sequence logo</h2>
-      <p class="muted">Letter height shows the information content of the PWM at each position.</p>
-      <p class="mono consensus">{{ motif.consensus }}</p>
-      <div class="pwm-panel">{{ motif.matrix_json|pwm_svg|safe }}</div>
     </section>
 
-    {% if matrix_acgt_rows %}
-      <section>
-        <h2>MEME letter-probability matrix</h2>
-        <p class="muted">This is the normalized MEME letter-probability matrix stored in ModCREDB and used for logo rendering and DNA scanning. Rows in the default view are A/C/G/T; columns are motif positions.</p>
-        {% if motif.matrix_row_sum_min is not none and motif.matrix_row_sum_max is not none %}
-          <p class="muted">Probability rows are expected to sum to approximately 1.0. Observed row-sum range: {{ "%.3f"|format(motif.matrix_row_sum_min) }}-{{ "%.3f"|format(motif.matrix_row_sum_max) }}. Parsed rows: {{ motif.matrix_row_count }}; expected width: {{ motif.matrix_expected_width }}.</p>
-        {% endif %}
-        <div class="table-wrap wide-table matrix-acgt-wrap">
-          <table class="matrix-acgt-table">
-            <thead><tr><th>Base</th>{% for position in matrix_positions %}<th>{{ position }}</th>{% endfor %}</tr></thead>
+    {% if structures %}
+      <section class="motif-block">
+        <h2>3D models</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Model</th><th>Template</th><th>Residues</th><th>Actions</th></tr></thead>
             <tbody>
-              {% for base_row in matrix_acgt_rows %}
-                <tr><th>{{ base_row.base }}</th>{% for probability in base_row.probabilities %}<td>{{ "%.4f"|format(probability) }}</td>{% endfor %}</tr>
+              {% for model in structures %}
+                <tr>
+                  <td class="mono">{{ model.model_id }}</td>
+                  <td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% endif %}</td>
+                  <td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td>
+                  <td>{% if model.file_type == "pdb" %}<a href="/model?id={{ model.id }}">View 3D</a>{% endif %} <a href="/download/model?id={{ model.id }}">Download {{ model.file_type|upper }}</a></td>
+                </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
-        {% if matrix_hidden_positions %}<p class="muted">Showing the first {{ matrix_positions|length }} of {{ motif.matrix_row_count }} motif positions; {{ matrix_hidden_positions }} position{% if matrix_hidden_positions != 1 %}s{% endif %} are hidden in this display.</p>{% endif %}
-        <details class="evidence-group">
-          <summary>Position-row MEME view</summary>
-          <div class="table-wrap wide-table">
-            <table>
-              <thead><tr><th>Position</th><th>A</th><th>C</th><th>G</th><th>T</th></tr></thead>
-              <tbody>
-                {% for row in matrix_position_rows %}<tr><td>{{ row.position }}</td><td>{{ "%.4f"|format(row.A) }}</td><td>{{ "%.4f"|format(row.C) }}</td><td>{{ "%.4f"|format(row.G) }}</td><td>{{ "%.4f"|format(row.T) }}</td></tr>{% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </details>
       </section>
     {% endif %}
-  {% elif motif %}
-    <section>
-      <h2>Sequence logo</h2>
-      <p class="warning">{% if motif.matrix_status == "width_zero_no_matrix" %}Missing MEME: no probability matrix is available for logo rendering or DNA scanning.{% elif motif.matrix_status == "no_parsed_matrix" %}No usable matrix rows could be parsed for this motif.{% else %}No generated PWM is available for logo rendering or DNA scanning.{% endif %}</p>
-    </section>
-  {% endif %}
-
-  {% set link_counts = namespace(known=0, close=0, distant=0, predicted=0) %}
-  {% for ref in refs %}
-    {% if ref.evidence_type == 'identical' %}{% set link_counts.known = link_counts.known + 1 %}
-    {% elif ref.evidence_type == 'homologous' %}{% set link_counts.close = link_counts.close + 1 %}
-    {% elif ref.evidence_type == 'relative_homologous' %}{% set link_counts.distant = link_counts.distant + 1 %}
-    {% elif ref.evidence_type in ['modcre','alphafold'] %}{% set link_counts.predicted = link_counts.predicted + 1 %}
-    {% endif %}
-  {% endfor %}
-  <section>
-    <h2>TFs using this motif</h2>
-    <p class="muted">
-      This motif is linked to {{ distinct_linked_tf_count }} TF record{% if distinct_linked_tf_count != 1 %}s{% endif %}:
-      {{ link_counts.known }} known/direct,
-      {{ link_counts.close }} nearest-neighbor &gt;70%,
-      {{ link_counts.distant }} nearest-neighbor 70-40%,
-      {{ link_counts.predicted }} predicted.
-      {% if evidence_link_count > ref_limit %} Showing first {{ refs|length }} assignments.{% else %} Showing all {{ refs|length }} assignment{% if refs|length != 1 %}s{% endif %}.{% endif %}
-    </p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>TF record</th>
-            <th>Prediction</th>
-            <th>Assignment type</th>
-            <th>Curation status</th>
-            <th>Identity</th>
-            <th>PFAM Families (by similarity)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ref in refs %}
-            <tr>
-              <td><a class="mono" href="/tf/{{ ref.tf_id|quote }}">{{ ref.tf_id }}</a></td>
-              <td>{{ evidence_display_label(ref) }}{% if ref.mapping_type == "public_database_mapping_unconfirmed" %} <span class="inline-badge pending">Mapping pending</span>{% endif %}</td>
-              <td>{{ mapping_type_label(ref.mapping_type) }}</td>
-              <td>{{ curation_status_label(ref.curation_status) }}</td>
-              <td>{% if ref.identity_percent is not none %}{{ "%.1f"|format(ref.identity_percent) }}%{% endif %}</td>
-              <td>{{ ref.family_text }}</td>
-            </tr>
-          {% else %}
-            <tr><td colspan="6">No TF assignments found.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>3D Models</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Model</th><th>Template</th><th>Residues</th><th>Actions</th></tr></thead>
-        <tbody>
-          {% for model in structures %}
-            <tr>
-              <td class="mono">{{ model.model_id }}</td>
-              <td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% endif %}</td>
-              <td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td>
-              <td>{% if model.file_type == "pdb" %}<a href="/model?id={{ model.id }}">View 3D</a>{% endif %} <a href="/download/model?id={{ model.id }}">Download {{ model.file_type|upper }}</a></td>
-            </tr>
-          {% else %}
-            <tr><td colspan="4">No 3D model matched directly to this motif.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
+  </div>
 {% endblock %}
