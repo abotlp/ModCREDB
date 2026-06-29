@@ -6,29 +6,28 @@
 {% set selected_motif = motifs_text|trim %}
 {% set selected_tf = tf_id|trim %}
 {% set personalized_open = selected_motif or selected_tf %}
-{% set finder_open = motif_q %}
 
 <style>
-.scan-compact-hero{margin-bottom:18px}.scan-compact-hero h1{margin-bottom:4px}.scan-global-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-bottom:20px}.scan-global-card summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-global-card summary::-webkit-details-marker{display:none}.scan-global-body{padding:20px;border-top:1px solid var(--line)}.scan-global-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}.scan-global-head p{max-width:760px;margin:4px 0 0}.scan-grid{display:grid;grid-template-columns:minmax(0,2fr) 260px;gap:16px}.scan-param-panel{background:#f8fbfe;border:1px solid var(--line);border-radius:14px;padding:14px}.scan-param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scan-actions{display:grid;gap:10px;margin-top:14px}.scan-button{border:1px solid var(--line);border-radius:10px;background:#fff;color:#243145;font-weight:850;text-decoration:none;padding:11px 16px;text-align:center;display:inline-flex;justify-content:center}.scan-button.primary{background:#117a46;border-color:#117a46;color:#fff}.scan-button.blue{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.scan-chip{display:inline-flex;border:1px solid #b9d2ff;background:#e9f2ff;color:#164f9f;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:850;white-space:nowrap}.scan-chip.orange{background:#fff2df;border-color:#efc58a;color:#b85b00}.scan-chip.gray{background:#f3f6fa;border-color:var(--line);color:#43546a}.scan-personalized,.scan-finder{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-top:20px}.scan-personalized[open],.scan-finder[open]{border-color:#a8c6ef}.scan-personalized summary,.scan-finder summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-personalized summary::-webkit-details-marker,.scan-finder summary::-webkit-details-marker{display:none}.scan-summary-title{font-size:19px;font-weight:900}.scan-summary-title:before{content:"▸";color:#2f5f86;display:inline-block;margin-right:8px;transition:transform .12s ease}.scan-personalized[open] .scan-summary-title:before,.scan-finder[open] .scan-summary-title:before,.scan-global-card[open] .scan-summary-title:before{transform:rotate(90deg)}.scan-summary-sub{display:block;color:#667085;font-size:13px;font-weight:500;margin-top:4px}.scan-personalized-body,.scan-finder-body{padding:20px;border-top:1px solid var(--line)}.scan-mode-note{border:1px solid #bad5ff;background:#f3f8ff;border-radius:14px;padding:14px}.scan-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.scan-three-col{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.scan-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.scan-filter-grid label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff;font-size:12px;font-weight:800;margin:0}.scan-filter-grid input{width:auto}.scan-textarea-motifs{min-height:160px}.scan-textarea-dna{min-height:150px}.motif-choice{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fff}.motif-choice-head{display:flex;justify-content:space-between;gap:10px}.choice-actions{display:flex;gap:10px;align-items:center;margin-top:10px}.scan-picker-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end}.scan-picker-search{display:grid;grid-template-columns:minmax(0,1fr) 160px 90px;gap:10px;min-width:520px}.scan-selected-table{padding:0;overflow:hidden}.scan-selected-table .scanbot-results-head{padding:14px 16px}.scan-selected-table table{margin:0}@media(max-width:900px){.scan-grid,.scan-two-col,.scan-three-col,.scan-picker-head,.scan-picker-search{grid-template-columns:1fr;display:grid;min-width:0}.scan-global-head{display:block}}
+.scan-compact-hero{margin-bottom:18px}.scan-compact-hero h1{margin-bottom:4px}.scan-global-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-bottom:20px}.scan-global-card summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-global-card summary::-webkit-details-marker{display:none}.scan-global-body{padding:20px;border-top:1px solid var(--line)}.scan-grid{display:grid;grid-template-columns:minmax(0,2fr) 260px;gap:16px}.scan-param-panel{background:#f8fbfe;border:1px solid var(--line);border-radius:14px;padding:14px}.scan-param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scan-actions{display:grid;gap:10px;margin-top:14px}.scan-button{border:1px solid var(--line);border-radius:10px;background:#fff;color:#243145;font-weight:850;text-decoration:none;padding:11px 16px;text-align:center;display:inline-flex;justify-content:center}.scan-button.primary{background:#117a46;border-color:#117a46;color:#fff}.scan-button.blue{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.scan-chip{display:inline-flex;border:1px solid #b9d2ff;background:#e9f2ff;color:#164f9f;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:850;white-space:nowrap}.scan-chip.orange{background:#fff2df;border-color:#efc58a;color:#b85b00}.scan-personalized{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-top:20px}.scan-personalized[open]{border-color:#a8c6ef}.scan-personalized summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-personalized summary::-webkit-details-marker{display:none}.scan-summary-title{font-size:19px;font-weight:900}.scan-summary-title:before{content:"▸";color:#2f5f86;display:inline-block;margin-right:8px;transition:transform .12s ease}.scan-personalized[open] .scan-summary-title:before,.scan-global-card[open] .scan-summary-title:before{transform:rotate(90deg)}.scan-summary-sub{display:block;color:#667085;font-size:13px;font-weight:500;margin-top:4px}.scan-personalized-body{padding:20px;border-top:1px solid var(--line)}.scan-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.scan-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.scan-filter-grid label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff;font-size:12px;font-weight:800;margin:0}.scan-filter-grid input{width:auto}.scan-textarea-motifs{min-height:160px}.scan-textarea-dna{min-height:150px}@media(max-width:900px){.scan-grid,.scan-two-col{grid-template-columns:1fr;display:grid;min-width:0}}
 </style>
 
 <section class="scan-compact-hero">
   <h1>Scan DNA</h1>
-  <p class="muted">Paste a DNA sequence and scan it with selected TF motifs, selected motif IDs, or the full motif collection.</p>
+  <p class="muted">Paste a DNA sequence and scan it with the full motif collection or with selected TF/motif assignments.</p>
 </section>
 
 <details class="scan-global-card">
   <summary>
     <div>
       <span class="scan-summary-title">Global scan</span>
-      <span class="scan-summary-sub">Scan the sequence against the full generated motif collection.</span>
+      <span class="scan-summary-sub">Scan the sequence against the full motif collection.</span>
     </div>
   </summary>
   <div class="scan-global-body">
     <form action="/scan" method="post">
       <div class="scan-grid">
         <label>DNA sequence or FASTA
-          <textarea class="scan-textarea-dna" name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-sequence-input>{{ sequence_text }}</textarea>
+          <textarea class="scan-textarea-dna" name="sequence" rows="8" placeholder=">example&#10;TTTTTGCTGCTCTTTTTAAAA" data-sequence-input>{{ sequence_text }}</textarea>
         </label>
         <div class="scan-param-panel">
           <div class="scan-param-grid">
@@ -87,7 +86,7 @@
 
           <div style="margin-top:14px">
             <label>Selected motifs — one per line
-              <textarea class="scan-textarea-motifs" name="motifs" rows="5" placeholder="cisbp|M02392_2.00&#10;jaspar|MA1531.1&#10;modcre|DIMER_..." data-motif-input>{{ motifs_text }}</textarea>
+              <textarea class="scan-textarea-motifs" name="motifs" rows="5" placeholder="cisbp|M08889_2.00&#10;jaspar|MA1531.1&#10;modcre|DIMER_..." data-motif-input>{{ motifs_text }}</textarea>
             </label>
             <p class="muted">Use <span class="mono">source|motif_id</span>; one motif per line.</p>
           </div>
@@ -95,7 +94,7 @@
 
         <div>
           <label>DNA sequence or FASTA
-            <textarea class="scan-textarea-dna" name="sequence" rows="8" placeholder=">example&#10;CTGATGCCATCCG" data-personalized-sequence>{{ sequence_text }}</textarea>
+            <textarea class="scan-textarea-dna" name="sequence" rows="8" placeholder=">example&#10;TTTTTGCTGCTCTTTTTAAAA" data-personalized-sequence>{{ sequence_text }}</textarea>
           </label>
           <div class="scan-param-grid" style="margin-top:14px">
             <label>P-value threshold<input name="pvalue" type="text" value="{{ pvalue }}"></label>
@@ -108,50 +107,6 @@
         </div>
       </div>
     </form>
-  </div>
-</details>
-
-<details class="scan-finder" {% if finder_open %}open{% endif %}>
-  <summary>
-    <div>
-      <span class="scan-summary-title">Find motifs</span>
-      <span class="scan-summary-sub">Search motif ID, TF accession, gene, protein, organism, or consensus.</span>
-    </div>
-  </summary>
-  <div class="scan-finder-body">
-    <div class="scan-picker-head">
-      <div></div>
-      <form class="scan-picker-search" action="/scan" method="get">
-        {% if selected_tf %}<input type="hidden" name="tf_id" value="{{ selected_tf }}">{% endif %}
-        {% if selected_motif %}<input type="hidden" name="motifs" value="{{ selected_motif }}">{% endif %}
-        <input name="motif_q" value="{{ motif_q }}" placeholder="Search motifs">
-        <select name="motif_source">
-          <option value="">All sources</option>
-          {% for source_key, source_label in source_labels.items() %}
-            <option value="{{ source_key }}"{% if motif_source == source_key %} selected{% endif %}>{{ source_label }}</option>
-          {% endfor %}
-        </select>
-        <button class="scan-button" type="submit">Find</button>
-      </form>
-    </div>
-    <div class="scan-three-col" style="margin-top:14px">
-      {% for row in motif_results %}
-        <article class="motif-choice">
-          <div class="motif-choice-head">
-            <a class="mono" href="/motif?source={{ row.source|quote }}&id={{ row.motif_id|quote }}">{{ row.motif_id }}</a>
-            <span>{{ source_labels.get(row.source, row.source) }}</span>
-          </div>
-          <p class="muted">{% if row.consensus %}<span class="mono">{{ row.consensus }}</span>{% endif %}{% if row.tf_count %} · {{ row.tf_count }} linked TFs{% endif %}</p>
-          {% if row.example_tfs %}<p class="motif-examples">{{ row.example_tfs }}</p>{% endif %}
-          <div class="choice-actions">
-            <button type="button" class="scan-button" data-add-motif="{{ motif_spec(row.source, row.motif_id) }}">Add</button>
-            <a href="/scan?motifs={{ motif_spec(row.source, row.motif_id)|quote }}">Use alone</a>
-          </div>
-        </article>
-      {% else %}
-        <p class="muted">No motifs matched the search.</p>
-      {% endfor %}
-    </div>
   </div>
 </details>
 
@@ -215,19 +170,9 @@
     </table>
   </div>
 </section>
-{% else %}
-<section class="scanbot-results" id="scan-results">
-  <div class="scanbot-results-head"><h2>Scan results</h2><span class="muted">Results appear after running a scan</span></div>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead>
-      <tbody><tr><td colspan="9" class="scanbot-placeholder">Paste DNA and press Scan.</td></tr></tbody>
-    </table>
-  </div>
-</section>
 {% endif %}
 
-{% if motifs %}
+{% if method == "POST" and motifs %}
 <section>
   <h2>Motifs used</h2>
   <div class="motif-grid compact-motif-grid">
@@ -248,17 +193,6 @@
 (() => {
   const motifInput = document.querySelector("[data-motif-input]");
   const personalized = document.getElementById("personalized-scan");
-  function addMotif(spec) {
-    if (!motifInput) return;
-    const lines = motifInput.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    if (!lines.includes(spec)) lines.push(spec);
-    motifInput.value = lines.join("\n");
-    if (personalized) personalized.open = true;
-    motifInput.focus();
-  }
-  document.querySelectorAll("[data-add-motif]").forEach((button) => {
-    button.addEventListener("click", () => addMotif(button.dataset.addMotif));
-  });
   const clearButton = document.querySelector("[data-clear-personalized]");
   if (clearButton) {
     clearButton.addEventListener("click", () => {
