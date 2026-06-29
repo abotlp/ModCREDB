@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Documentation | ModCRE DB{% endblock %}
+{% block title %}Help | ModCRE DB{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="/static/help.css">{% endblock %}
 
 {% macro category_label(level) -%}
   {%- if level in ['Identical_PWM', 'identical', 'Known'] -%}Known
@@ -12,301 +13,6 @@
 {%- endmacro %}
 
 {% block content %}
-  <style>
-    .docs-shell {
-      display: grid;
-      gap: 22px;
-    }
-    .docs-hero {
-      background:
-        radial-gradient(circle at 84% 10%, rgba(35, 100, 170, .13), transparent 32%),
-        linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
-      border: 1px solid var(--line);
-      border-radius: 22px;
-      display: grid;
-      gap: 26px;
-      grid-template-columns: minmax(0, 1.05fr) minmax(380px, .95fr);
-      overflow: hidden;
-      padding: 30px;
-      position: relative;
-    }
-    .docs-hero h1 {
-      font-size: 42px;
-      margin-bottom: 10px;
-    }
-    .docs-lede {
-      color: #344054;
-      font-size: 17px;
-      margin: 0 0 18px;
-      max-width: 780px;
-    }
-    .docs-actions,
-    .docs-chip-row,
-    .example-links,
-    .source-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .docs-button,
-    .docs-button-secondary,
-    .query-chip {
-      border-radius: 999px;
-      display: inline-flex;
-      font-weight: 750;
-      padding: 9px 14px;
-    }
-    .docs-button {
-      background: var(--accent);
-      color: #ffffff;
-    }
-    .docs-button:hover {
-      background: var(--accent-dark);
-      color: #ffffff;
-      text-decoration: none;
-    }
-    .docs-button-secondary,
-    .query-chip {
-      background: #ffffff;
-      border: 1px solid var(--line);
-      color: var(--ink);
-    }
-    .query-chip {
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      font-size: 13px;
-      padding: 6px 10px;
-    }
-    .hero-figure {
-      background: rgba(255,255,255,.72);
-      border: 1px solid #d7e7fb;
-      border-radius: 18px;
-      padding: 18px;
-    }
-    .mini-flow {
-      display: grid;
-      gap: 10px;
-    }
-    .mini-flow-row {
-      align-items: center;
-      display: grid;
-      gap: 10px;
-      grid-template-columns: 36px minmax(0, 1fr) auto;
-    }
-    .mini-flow-row b {
-      background: #eef5ff;
-      border: 1px solid #cfe1fb;
-      border-radius: 50%;
-      color: var(--accent-dark);
-      display: grid;
-      height: 36px;
-      place-items: center;
-      width: 36px;
-    }
-    .mini-flow-row span {
-      color: var(--ink);
-      font-weight: 750;
-    }
-    .mini-flow-row small {
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .docs-stat-strip {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    .docs-stat-strip div,
-    .docs-card,
-    .docs-panel,
-    .example-card,
-    .category-card {
-      background: #ffffff;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 18px;
-    }
-    .docs-stat-strip strong {
-      display: block;
-      font-size: 30px;
-      line-height: 1;
-    }
-    .docs-stat-strip span {
-      color: var(--muted);
-      display: block;
-      font-size: 13px;
-      margin-top: 6px;
-    }
-    .docs-section-head {
-      align-items: end;
-      display: flex;
-      gap: 14px;
-      justify-content: space-between;
-      margin: 8px 0 2px;
-    }
-    .docs-section-head p {
-      color: var(--muted);
-      margin: 0;
-      max-width: 560px;
-    }
-    .docs-grid-2,
-    .docs-grid-3,
-    .docs-grid-5 {
-      display: grid;
-      gap: 14px;
-    }
-    .docs-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .docs-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .docs-grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-    .category-card {
-      border-top: 4px solid #cfe1fb;
-      min-height: 190px;
-    }
-    .category-card strong {
-      display: block;
-      font-size: 20px;
-      margin-bottom: 6px;
-    }
-    .category-card em {
-      color: var(--muted);
-      display: block;
-      font-style: normal;
-      font-weight: 750;
-      margin-bottom: 12px;
-    }
-    .category-card p,
-    .docs-card p,
-    .docs-panel p,
-    .example-card p {
-      color: var(--muted);
-      margin: 0;
-    }
-    .category-count {
-      background: #f8fafc;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      color: var(--ink);
-      display: inline-flex;
-      font-size: 13px;
-      font-weight: 800;
-      margin-top: 14px;
-      padding: 5px 9px;
-    }
-    .workflow-map {
-      background: #ffffff;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      padding: 16px;
-    }
-    .workflow-step {
-      background: #fbfcfe;
-      border: 1px solid #e4e9f2;
-      border-radius: 14px;
-      padding: 14px;
-      position: relative;
-    }
-    .workflow-step:not(:last-child)::after {
-      color: #98a2b3;
-      content: "→";
-      font-size: 22px;
-      position: absolute;
-      right: -14px;
-      top: 42%;
-      z-index: 1;
-    }
-    .workflow-step span {
-      color: var(--accent-dark);
-      display: block;
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: .03em;
-      margin-bottom: 5px;
-      text-transform: uppercase;
-    }
-    .workflow-step h3 {
-      font-size: 16px;
-      margin-bottom: 8px;
-    }
-    .workflow-step p {
-      color: var(--muted);
-      font-size: 13px;
-      margin: 0;
-    }
-    .example-card {
-      display: grid;
-      gap: 12px;
-      min-height: 215px;
-    }
-    .example-card h3 {
-      margin-bottom: 0;
-    }
-    .code-box {
-      background: #111827;
-      border-radius: 12px;
-      color: #eef5ff;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-      font-size: 13px;
-      overflow-x: auto;
-      padding: 14px;
-      white-space: pre-wrap;
-    }
-    .tf-record-map {
-      display: grid;
-      gap: 10px;
-    }
-    .tf-record-map div {
-      align-items: center;
-      background: #fbfcfe;
-      border: 1px solid #e4e9f2;
-      border-radius: 12px;
-      display: grid;
-      gap: 10px;
-      grid-template-columns: 130px minmax(0, 1fr);
-      padding: 12px;
-    }
-    .tf-record-map b {
-      color: var(--accent-dark);
-    }
-    .docs-chip {
-      background: #eef5ff;
-      border: 1px solid #cfe1fb;
-      border-radius: 999px;
-      color: var(--accent-dark);
-      font-size: 13px;
-      font-weight: 800;
-      padding: 5px 9px;
-    }
-    .docs-mini-label {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .06em;
-      margin: 0 0 6px;
-      text-transform: uppercase;
-    }
-    .release-panel .bar-row {
-      margin-bottom: 9px;
-    }
-    .release-note {
-      color: var(--muted);
-      font-size: 13px;
-      margin-top: 10px;
-    }
-    @media (max-width: 1080px) {
-      .docs-hero,
-      .docs-grid-2,
-      .docs-grid-3,
-      .docs-grid-5,
-      .workflow-map {
-        grid-template-columns: 1fr;
-      }
-      .workflow-step::after { display: none; }
-      .docs-stat-strip { grid-template-columns: 1fr; }
-    }
-  </style>
-
   {% set ns = namespace(annotated_total=0) %}
   {% for row in primary_annotation_counts %}
     {% if row.label != 'Unannotated' %}
@@ -314,185 +20,196 @@
     {% endif %}
   {% endfor %}
 
-  <div class="docs-shell">
-    <section class="docs-hero">
-      <div>
-        <p class="eyebrow">Documentation</p>
-        <h1>ModCRE DB</h1>
-        <p class="docs-lede">
-          Human transcription-factor sequence records connected to motif databases, nearest-neighbour PWM transfer and ModCRE-derived structural models.
-        </p>
-        <div class="docs-actions">
-          <a class="docs-button" href="/search">Search</a>
-          <a class="docs-button-secondary" href="/scan">Scan DNA</a>
-          <a class="docs-button-secondary" href="#examples">Examples</a>
-          <a class="docs-button-secondary" href="#modcre">ModCRE</a>
-        </div>
-      </div>
-      <div class="hero-figure" aria-label="ModCRE DB construction summary">
-        <div class="mini-flow">
-          <div class="mini-flow-row"><b>1</b><span>Human TF sequence records</span><small>UniProt + domain filters</small></div>
-          <div class="mini-flow-row"><b>2</b><span>Known motif matches</span><small>JASPAR / CisBP / HOCOMOCO</small></div>
-          <div class="mini-flow-row"><b>3</b><span>Nearest-neighbour transfer</span><small>&gt;70% and 50–70%</small></div>
-          <div class="mini-flow-row"><b>4</b><span>Structure-derived motifs</span><small>ModCRE / AF3-derived ModCRE</small></div>
-          <div class="mini-flow-row"><b>5</b><span>Search, inspect, scan</span><small>TF pages + generated PWMs</small></div>
-        </div>
+  <div class="help-page">
+    <section class="help-intro">
+      <p class="eyebrow">Help</p>
+      <h1>ModCRE DB Help</h1>
+      <p class="help-lead">
+        ModCRE DB is a searchable human transcription-factor motif resource. It links UniProt sequence records to Known motif databases, nearest-neighbour PWM transfer, generated PWM files, DNA-scan results and ModCRE-derived structural models.
+      </p>
+      <nav class="help-index" aria-label="Help sections">
+        <a href="#contains">What the database contains</a>
+        <a href="#search">How to search</a>
+        <a href="#outputs">What each page outputs</a>
+        <a href="#categories">Motif categories</a>
+        <a href="#scan">Scan DNA</a>
+        <a href="#sources">Sources</a>
+        <a href="#release">Release summary</a>
+      </nav>
+    </section>
+
+    <section id="contains" class="help-section">
+      <h2>What the database contains</h2>
+      <div class="help-grid-3">
+        <article class="help-card">
+          <h3>TF sequence records</h3>
+          <p>Human UniProt records selected for transcription and DNA-binding annotations, after filtering non-TF DNA-associated proteins such as repair, recombination, replication, modification and nucleosome-related proteins.</p>
+        </article>
+        <article class="help-card">
+          <h3>Motif assignments</h3>
+          <p>Known motifs from JASPAR, CisBP and HOCOMOCO; transferred motifs from nearest neighbours; and structure-derived motifs from ModCRE or AF3-derived ModCRE.</p>
+        </article>
+        <article class="help-card">
+          <h3>Files and models</h3>
+          <p>Generated PWM matrices, MEME motif files, sequence-logo data, TF-motif links, DNA-binding regions, PFAM/domain annotations and indexed 3D model files where available.</p>
+        </article>
       </div>
     </section>
 
-    <section class="docs-stat-strip" aria-label="Current database summary">
-      <div><strong>{{ ns.annotated_total or stats.tf_count }}</strong><span>TF sequence records with motif annotation</span></div>
-      <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>Generated PWM matrices available for DNA scanning</span></div>
-      <div><strong>{{ stats.active_model_count }}</strong><span>Indexed 3D model files</span></div>
-    </section>
-
-    <section id="workflow">
-      <div class="docs-section-head">
-        <h2>Construction workflow</h2>
-        <p>One ordered workflow assigns the strongest available motif category while preserving the motif links and model files behind each record.</p>
-      </div>
-      <div class="workflow-map">
-        <article class="workflow-step"><span>input</span><h3>TF records</h3><p>Human UniProt records associated with transcription and DNA binding; non-TF DNA-associated functions filtered out.</p></article>
-        <article class="workflow-step"><span>known</span><h3>Database match</h3><p>Direct motif matches from JASPAR, CisBP and HOCOMOCO.</p></article>
-        <article class="workflow-step"><span>transfer</span><h3>Nearest neighbour</h3><p>MMseqs2 transfer from annotated TFs, split into close and intermediate identity tiers.</p></article>
-        <article class="workflow-step"><span>structure</span><h3>ModCRE</h3><p>Structure-based PWM derivation from modelled TF-DNA interfaces.</p></article>
-        <article class="workflow-step"><span>web db</span><h3>Records</h3><p>TF pages, motif pages, MEME files, sequence logos, regions, models and DNA scans.</p></article>
+    <section id="workflow" class="help-section">
+      <h2>Construction workflow</h2>
+      <div class="help-workflow">
+        <div class="help-step"><b>1. Human TF records</b><span>UniProt sequence records selected by transcription/DNA-binding annotation and filtered against non-TF DNA-associated functions.</span></div>
+        <div class="help-step"><b>2. Known motifs</b><span>Direct motif matches from JASPAR, CisBP and HOCOMOCO are assigned first.</span></div>
+        <div class="help-step"><b>3. Nearest neighbours</b><span>Unassigned records are compared with motif-bearing TFs and split into &gt;70% and 50–70% identity transfer categories.</span></div>
+        <div class="help-step"><b>4. Structural motifs</b><span>Remaining modellable records are processed with ModCRE; unresolved cases can use AF3-derived TF-DNA structures processed through ModCRE.</span></div>
+        <div class="help-step"><b>5. Web outputs</b><span>The web database exposes TF pages, motif pages, generated PWMs, scan results, model files and source links.</span></div>
       </div>
     </section>
 
-    <section id="categories">
-      <div class="docs-section-head">
-        <h2>Motif categories</h2>
-        <p>These labels describe how the motif was assigned. They are shown on TF pages, motif tables and scan results.</p>
-      </div>
-      <div class="docs-grid-5">
-        <article class="category-card"><strong>Known</strong><em>direct motif record</em><p>Direct match to a TF motif in JASPAR, CisBP or HOCOMOCO.</p><span class="category-count">2,160 records</span></article>
-        <article class="category-card"><strong>Nearest Neighbor (&gt;70%)</strong><em>close transfer</em><p>PWM transferred from a closely related motif-bearing TF.</p><span class="category-count">1,786 records</span></article>
-        <article class="category-card"><strong>Nearest Neighbor (50–70%)</strong><em>intermediate transfer</em><p>Transferred motif retained as a lower-confidence candidate.</p><span class="category-count">700 records</span></article>
-        <article class="category-card"><strong>ModCRE</strong><em>structure-derived PWM</em><p>Motif derived from a modelled protein-DNA interface.</p><span class="category-count">400 records</span></article>
-        <article class="category-card"><strong>AF3-derived ModCRE</strong><em>predicted complex + ModCRE</em><p>AlphaFold3 TF-DNA structure processed through the ModCRE workflow.</p><span class="category-count">242 records</span></article>
-      </div>
-    </section>
-
-    <section id="examples">
-      <div class="docs-section-head">
-        <h2>Examples</h2>
-        <p>Common entry points for using the web database.</p>
-      </div>
-      <div class="docs-grid-3">
-        <article class="example-card">
-          <p class="docs-mini-label">Search by TF</p>
-          <h3>Find motif records for a factor</h3>
-          <p>Use a gene name, UniProt accession or protein name. The TF page links motif records, generated PWMs, regions and 3D model files when available.</p>
-          <div class="example-links">
-            <a class="query-chip" href="/search?q=PPARG">PPARG</a>
-            <a class="query-chip" href="/search?q=TP53">TP53</a>
-            <a class="query-chip" href="/search?q=A0A0S2Z4K5">A0A0S2Z4K5</a>
+    <section id="search" class="help-section">
+      <h2>How to search</h2>
+      <div class="help-grid-3">
+        <article class="help-card">
+          <h3>By TF or accession</h3>
+          <p>Use a gene name, protein name or UniProt accession to find the TF record and its motif/model annotations.</p>
+          <div class="help-example-row">
+            <a class="help-chip" href="/search?q=TP53">TP53</a>
+            <a class="help-chip" href="/search?q=PPARG">PPARG</a>
+            <a class="help-chip" href="/search?q=P04637">P04637</a>
+            <a class="help-chip" href="/search?q=A0A0S2Z4K5">A0A0S2Z4K5</a>
           </div>
         </article>
-        <article class="example-card">
-          <p class="docs-mini-label">Search by family/domain</p>
-          <h3>Inspect a DNA-binding class</h3>
-          <p>Search PFAM identifiers, domain names or family labels to recover groups of TF records and compare their motif categories.</p>
-          <div class="example-links">
-            <a class="query-chip" href="/search?q=Homeobox">Homeobox</a>
-            <a class="query-chip" href="/search?q=PF00105">PF00105</a>
-            <a class="query-chip" href="/search?q=zf-C2H2">zf-C2H2</a>
+        <article class="help-card">
+          <h3>By family or domain</h3>
+          <p>Use a TF family, DNA-binding domain or PFAM identifier to recover groups of related TF records.</p>
+          <div class="help-example-row">
+            <a class="help-chip" href="/search?q=Homeobox">Homeobox</a>
+            <a class="help-chip" href="/search?q=C2H2">C2H2</a>
+            <a class="help-chip" href="/search?q=PF00105">PF00105</a>
           </div>
         </article>
-        <article class="example-card">
-          <p class="docs-mini-label">Scan DNA</p>
-          <h3>Test a sequence against generated PWMs</h3>
-          <p>Paste DNA or FASTA, choose a motif set, and inspect ranked motif occurrences with TF links and annotation categories.</p>
-          <div class="code-box">&gt;p53_site_test
+        <article class="help-card">
+          <h3>By motif or source</h3>
+          <p>Use a motif identifier or source name to inspect the motif page and the TF records linked to that motif.</p>
+          <div class="help-example-row">
+            <a class="help-chip" href="/search?q=JASPAR">JASPAR</a>
+            <a class="help-chip" href="/search?q=CisBP">CisBP</a>
+            <a class="help-chip" href="/search?q=HOCOMOCO">HOCOMOCO</a>
+            <a class="help-chip" href="/search?q=ModCRE">ModCRE</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="outputs" class="help-section">
+      <h2>What each page outputs</h2>
+      <div class="help-record-list">
+        <div><b>Search results</b><span>Matching TF records, motif records and domain/family hits, with links to the corresponding detail pages.</span></div>
+        <div><b>TF page</b><span>UniProt metadata, primary motif category, motif assignments, generated PWM status, sequence-logo/motif links, DNA-binding regions, PFAM/domain annotations and 3D model files.</span></div>
+        <div><b>Motif page</b><span>Motif source, motif identifier, matrix information, downloadable MEME file and TF records using that motif.</span></div>
+        <div><b>Scan DNA</b><span>Ranked motif hits in the submitted DNA sequence, including source, category, position, strand, matched sequence, score and p-value.</span></div>
+        <div><b>3D model links</b><span>Indexed model files and model-supported regions for ModCRE and AF3-derived ModCRE records where available.</span></div>
+      </div>
+    </section>
+
+    <section id="categories" class="help-section">
+      <h2>Motif categories</h2>
+      <div class="help-grid-5">
+        <article class="help-card help-category"><strong>Known</strong><span>direct motif record</span><p>Motif assigned from a direct match in JASPAR, CisBP or HOCOMOCO.</p></article>
+        <article class="help-card help-category"><strong>Nearest Neighbor (&gt;70%)</strong><span>close transfer</span><p>Motif transferred from a closely related motif-bearing TF.</p></article>
+        <article class="help-card help-category"><strong>Nearest Neighbor (50–70%)</strong><span>candidate transfer</span><p>Motif transferred from a more distant annotated TF and kept as a lower-confidence assignment.</p></article>
+        <article class="help-card help-category"><strong>ModCRE</strong><span>structure-derived</span><p>PWM derived by ModCRE from a modellable protein-DNA interface.</p></article>
+        <article class="help-card help-category"><strong>AF3-derived ModCRE</strong><span>predicted structure + ModCRE</span><p>AlphaFold3 TF-DNA structure processed through ModCRE after interface checks.</p></article>
+      </div>
+      <p class="help-note">The strongest available category is used as the primary category for a TF record. Supporting motif links and model files can still appear on the detail pages.</p>
+    </section>
+
+    <section id="scan" class="help-section">
+      <h2>Scan DNA</h2>
+      <div class="help-grid-2">
+        <article class="help-card">
+          <h3>Input</h3>
+          <p>Paste DNA or FASTA sequence. Scan against a TF-specific motif set, selected motif IDs or the generated-PWM collection with optional source/category filters.</p>
+          <div class="help-code">&gt;p53_site_test
 TTTTTTGAACATGTCCCAACATGTTGTTTTTT</div>
-          <a href="/scan">Open Scan DNA</a>
+        </article>
+        <article class="help-card">
+          <h3>Output</h3>
+          <p>Each hit links the matched motif back to the TF and motif records used for the scan.</p>
+          <div class="table-wrap" style="margin-top:12px">
+            <table class="help-compact-table">
+              <thead><tr><th>TF</th><th>Motif</th><th>Category</th><th>Position</th><th>Strand</th><th>p-value</th></tr></thead>
+              <tbody><tr><td>TP53</td><td>source|motif_id</td><td>Known</td><td>7–26</td><td>+</td><td>reported by scan</td></tr></tbody>
+            </table>
+          </div>
         </article>
       </div>
     </section>
 
-    <section class="docs-grid-2">
-      <article class="docs-panel">
-        <h2>TF record layout</h2>
-        <div class="tf-record-map">
-          <div><b>Header</b><span>UniProt accession, gene/protein annotation, organism, sequence length and category summary.</span></div>
-          <div><b>Motifs</b><span>Known, nearest-neighbour and ModCRE-derived motif links, with generated PWM status and source.</span></div>
-          <div><b>Regions</b><span>DNA-binding regions from UniProt/domain annotation and model-supported ranges.</span></div>
-          <div><b>3D models</b><span>Indexed PDB files, model source, template/model identifiers and linked motif records.</span></div>
-          <div><b>Downloads</b><span>MEME motif files and model files where present in the local index.</span></div>
-        </div>
-      </article>
-      <article class="docs-panel">
-        <h2>DNA scanning output</h2>
-        <p>The scanner reports motif occurrences, not new motif annotations. Results are ranked by motif match statistics and linked back to the TF/motif records used for the scan.</p>
-        <div class="docs-chip-row" style="margin-top:14px">
-          <span class="docs-chip">TF/gene</span>
-          <span class="docs-chip">motif ID</span>
-          <span class="docs-chip">source</span>
-          <span class="docs-chip">category</span>
-          <span class="docs-chip">strand</span>
-          <span class="docs-chip">matched DNA</span>
-          <span class="docs-chip">score</span>
-          <span class="docs-chip">p-value</span>
-        </div>
-      </article>
-    </section>
-
-    <section id="modcre" class="docs-grid-2">
-      <article class="docs-panel">
-        <h2>ModCRE and ModCRELib</h2>
-        <p>ModCRE derives DNA-binding preferences from protein-DNA structural models. In ModCRE DB, these records are kept distinct from Known and nearest-neighbour motif assignments.</p>
-        <p style="margin-top:10px">When indexed, the ModCRE/ModCRELib-derived model collection provides the 3D model files, model identifiers and structure-derived PWM records shown on TF pages.</p>
-        <div class="source-links" style="margin-top:14px">
-          <a class="docs-button-secondary" href="http://aleph.upf.edu/modcre/##intro" target="_blank" rel="noopener">ModCRE server</a>
-          <a class="docs-button-secondary" href="https://doi.org/10.1093/nargab/lqae068" target="_blank" rel="noopener">ModCRE paper</a>
-        </div>
-      </article>
-      <article class="docs-panel">
-        <h2>Source databases</h2>
-        <p>Known motifs are integrated from public PWM resources. Sequence metadata comes from UniProt and domain/family information from PFAM/InterPro-style annotations.</p>
-        <div class="source-links" style="margin-top:14px">
-          <a class="docs-button-secondary" href="https://jaspar.elixir.no/" target="_blank" rel="noopener">JASPAR</a>
-          <a class="docs-button-secondary" href="https://cisbp.ccbr.utoronto.ca/" target="_blank" rel="noopener">CisBP</a>
-          <a class="docs-button-secondary" href="https://hocomoco11.autosome.org/" target="_blank" rel="noopener">HOCOMOCO</a>
-          <a class="docs-button-secondary" href="https://www.uniprot.org/" target="_blank" rel="noopener">UniProt</a>
-        </div>
-      </article>
-    </section>
-
-    <section id="release" class="docs-grid-2">
-      <article class="docs-panel release-panel">
-        <h2>Release statistics</h2>
-        {% if primary_annotation_counts %}
-          <div class="bar-list compact">
-            {% for row in primary_annotation_counts %}
-              {% if row.label != 'Unannotated' %}
-                <div class="bar-row">
-                  <div><strong>{{ category_label(row.label) }}</strong><span>{{ row.count }} TF records{% if row.percent %}; {{ row.percent }}%{% endif %}</span></div>
-                  <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
-                </div>
-              {% endif %}
-            {% endfor %}
+    <section id="sources" class="help-section">
+      <h2>Sources and methods</h2>
+      <div class="help-grid-3">
+        <article class="help-card">
+          <h3>Motif databases</h3>
+          <p>Known motif assignments are integrated from public PWM resources.</p>
+          <div class="help-source-links">
+            <a class="help-link-pill" href="https://jaspar.elixir.no/" target="_blank" rel="noopener">JASPAR</a>
+            <a class="help-link-pill" href="https://cisbp.ccbr.utoronto.ca/" target="_blank" rel="noopener">CisBP</a>
+            <a class="help-link-pill" href="https://hocomoco11.autosome.org/" target="_blank" rel="noopener">HOCOMOCO</a>
           </div>
-        {% endif %}
-        <p class="release-note">Unannotated records are not shown in the public summary.</p>
-      </article>
-      <article class="docs-panel">
-        <h2>Current web index</h2>
-        <div class="annotation-grid">
-          <div><span>TF-motif assignments</span><strong>{{ stats.motif_ref_count }}</strong></div>
-          <div><span>Motif files</span><strong>{{ stats.motif_file_count }}</strong></div>
-          <div><span>Generated PWMs</span><strong>{{ stats.fimo_ready_motif_count }}</strong></div>
-          <div><span>3D model files</span><strong>{{ stats.active_model_count }}</strong></div>
-          <div><span>Motif-structure links</span><strong>{{ stats.motif_structure_count }}</strong></div>
-          <div><span>TFs with 3D models</span><strong>{{ stats.tf_with_active_model_count }}</strong></div>
-        </div>
-      </article>
+        </article>
+        <article class="help-card">
+          <h3>Sequence and domains</h3>
+          <p>UniProt provides sequence records and protein metadata. PFAM/domain annotations support family-level search and interpretation.</p>
+          <div class="help-source-links">
+            <a class="help-link-pill" href="https://www.uniprot.org/" target="_blank" rel="noopener">UniProt</a>
+            <a class="help-link-pill" href="https://www.ebi.ac.uk/interpro/" target="_blank" rel="noopener">InterPro/PFAM</a>
+          </div>
+        </article>
+        <article class="help-card">
+          <h3>Structure-derived motifs</h3>
+          <p>ModCRE-derived records use structural models of TF-DNA interfaces. AF3-derived ModCRE records use AlphaFold3 TF-DNA structures as input to ModCRE.</p>
+          <div class="help-source-links">
+            <a class="help-link-pill" href="http://aleph.upf.edu/modcre/##intro" target="_blank" rel="noopener">ModCRE</a>
+            <a class="help-link-pill" href="https://alphafoldserver.com/" target="_blank" rel="noopener">AlphaFold Server</a>
+          </div>
+        </article>
+      </div>
     </section>
 
-    <section id="citation" class="docs-panel">
-      <h2>Citation</h2>
-      <p>Cite ModCRE DB together with the source motif databases and structure-modelling resources used in the selected analysis.</p>
+    <section id="interpretation" class="help-section">
+      <h2>How to interpret results</h2>
+      <div class="help-grid-3">
+        <article class="help-card"><h3>Motif availability</h3><p>A generated PWM means the motif can be displayed and used by Scan DNA. It does not mean the TF is active in a specific cell type.</p></article>
+        <article class="help-card"><h3>Transferred motifs</h3><p>Nearest-neighbour assignments depend on sequence similarity to a motif-bearing TF. The 50–70% category should be treated as a candidate assignment.</p></article>
+        <article class="help-card"><h3>Structural motifs</h3><p>ModCRE and AF3-derived ModCRE records are computational structure-derived assignments. Inspect model support before treating them as high-confidence motifs.</p></article>
+      </div>
+    </section>
+
+    <section id="release" class="help-section">
+      <h2>Release summary</h2>
+      <div class="help-stats">
+        <div><strong>{{ ns.annotated_total or stats.tf_count }}</strong><span>TF records with motif annotation</span></div>
+        <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif assignments</span></div>
+        <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>Generated PWM matrices</span></div>
+        <div><strong>{{ stats.motif_file_count }}</strong><span>Motif files</span></div>
+        <div><strong>{{ stats.active_model_count }}</strong><span>3D model files</span></div>
+        <div><strong>{{ stats.motif_structure_count }}</strong><span>Motif-structure links</span></div>
+      </div>
+      {% if primary_annotation_counts %}
+        <h3 style="margin-top:18px">Primary motif categories</h3>
+        <div class="bar-list compact">
+          {% for row in primary_annotation_counts %}
+            {% if row.label != 'Unannotated' %}
+              <div class="bar-row">
+                <div><strong>{{ category_label(row.label) }}</strong><span>{{ row.count }} TF records{% if row.percent %}; {{ row.percent }}%{% endif %}</span></div>
+                <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
     </section>
   </div>
 {% endblock %}
