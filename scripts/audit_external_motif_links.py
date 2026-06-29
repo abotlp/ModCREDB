@@ -3,16 +3,19 @@
 
 Rules:
 - JASPAR motif IDs link directly to the JASPAR matrix page.
-- HOCOMOCO v11 IDs are converted to the HOCOMOCO v14 URL ID convention.
-- CisBP links are only emitted when a real M-motif to T-record mapping file is supplied.
-  The script does not invent CisBP T IDs from M IDs.
+- HOCOMOCO links are emitted only from an explicit validated mapping table.
+- CisBP links are emitted only when a real M-motif to T-record mapping file is supplied.
+  The T identifier is preserved in mapped_id/note, but the public button uses the
+  stable CisBP homepage because direct TFnewreport deep links were not validated.
+
+The script does not invent CisBP T IDs from M IDs and does not guess HOCOMOCO
+v11->v14 URLs by formula.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
-import re
 import sqlite3
 import urllib.error
 import urllib.request
@@ -22,27 +25,24 @@ from pathlib import Path
 from urllib.parse import quote
 
 SOURCE_ORDER = {"jaspar": 0, "cisbp": 1, "hocomoco": 2}
+LINK_FIELDS = ["source", "motif_id", "mapped_id", "label", "url", "note"]
 
 
-def hocomoco_v11_to_v14(motif_id: str) -> str:
-    match = re.fullmatch(r"(.+?)(?:_HUMAN)?\.H11MO\.([^.]+)\.([A-Za-z])", str(motif_id or "").strip())
-    if not match:
-        return str(motif_id or "").strip()
-    gene, subtype, quality = match.groups()
-    return f"{gene}.H14CORE.{subtype}.P.{quality.upper()}"
-
-
-def load_cisbp_map(path: str | None) -> dict[str, str]:
+def sniff_rows(path: str | None) -> list[list[str]]:
     if not path:
-        return {}
+        return []
     p = Path(path)
     if not p.exists():
-        raise SystemExit(f"CisBP mapping file does not exist: {p}")
+        raise SystemExit(f"Mapping file does not exist: {p}")
     with p.open(newline="") as handle:
         sample = handle.read(4096)
         handle.seek(0)
         dialect = csv.Sniffer().sniff(sample, delimiters="\t,") if sample.strip() else csv.excel_tab
-        rows = list(csv.reader(handle, dialect))
+        return list(csv.reader(handle, dialect))
+
+
+def load_cisbp_map(path: str | None) -> dict[str, str]:
+    rows = sniff_rows(path)
     if not rows:
         return {}
 
@@ -73,6 +73,47 @@ def load_cisbp_map(path: str | None) -> dict[str, str]:
     return mapping
 
 
+def load_hocomoco_map(path: str | None) -> dict[str, dict[str, str]]:
+    rows = sniff_rows(path)
+    if not rows:
+        return {}
+
+    header = [cell.strip().lower() for cell in rows[0]]
+    has_header = "motif_id" in header and "mapped_id" in header
+    if not has_header:
+        raise SystemExit("HOCOMOCO map must be a TSV/CSV with motif_id and mapped_id columns")
+
+    def col(name: str) -> int:
+        return header.index(name)
+
+    motif_col = col("motif_id")
+    mapped_col = col("mapped_id")
+    label_col = header.index("label") if "label" in header else None
+    url_col = header.index("url") if "url" in header else None
+    note_col = header.index("note") if "note" in header else None
+
+    mapping: dict[str, dict[str, str]] = {}
+    for row in rows[1:]:
+        if len(row) <= max(motif_col, mapped_col):
+            continue
+        motif_id = row[motif_col].strip()
+        mapped_id = row[mapped_col].strip()
+        if not motif_id or not mapped_id:
+            continue
+        url = row[url_col].strip() if url_col is not None and len(row) > url_col else ""
+        if not url:
+            url = f"https://hocomoco14.autosome.org/motif/{quote(mapped_id, safe='')}"
+        mapping[motif_id] = {
+            "source": "hocomoco",
+            "motif_id": motif_id,
+            "mapped_id": mapped_id,
+            "label": row[label_col].strip() if label_col is not None and len(row) > label_col and row[label_col].strip() else "Open in HOCOMOCO",
+            "url": url,
+            "note": row[note_col].strip() if note_col is not None and len(row) > note_col else "HOCOMOCO v14 motif page from validated annotation map",
+        }
+    return mapping
+
+
 def read_motifs(db_path: str) -> list[tuple[str, str]]:
     conn = sqlite3.connect(db_path)
     rows = conn.execute(
@@ -87,7 +128,12 @@ def read_motifs(db_path: str) -> list[tuple[str, str]]:
     return [(str(source), str(motif_id)) for source, motif_id in rows]
 
 
-def source_link(source: str, motif_id: str, cisbp_map: dict[str, str]) -> dict[str, str] | None:
+def source_link(
+    source: str,
+    motif_id: str,
+    cisbp_map: dict[str, str],
+    hocomoco_map: dict[str, dict[str, str]],
+) -> dict[str, str] | None:
     source = source.lower()
     if source == "jaspar":
         return {
@@ -99,15 +145,7 @@ def source_link(source: str, motif_id: str, cisbp_map: dict[str, str]) -> dict[s
             "note": "JASPAR matrix page",
         }
     if source == "hocomoco":
-        mapped = hocomoco_v11_to_v14(motif_id)
-        return {
-            "source": source,
-            "motif_id": motif_id,
-            "mapped_id": mapped,
-            "label": "Open in HOCOMOCO",
-            "url": f"https://hocomoco14.autosome.org/motif/{quote(mapped, safe='')}",
-            "note": "HOCOMOCO v14 motif page",
-        }
+        return hocomoco_map.get(motif_id)
     if source == "cisbp":
         mapped = cisbp_map.get(motif_id)
         if not mapped:
@@ -117,27 +155,31 @@ def source_link(source: str, motif_id: str, cisbp_map: dict[str, str]) -> dict[s
             "motif_id": motif_id,
             "mapped_id": mapped,
             "label": "Open in CisBP",
-            "url": f"https://cisbp.ccbr.utoronto.ca/TFnewreport.php?searchTF={quote(mapped, safe='')}",
-            "note": "CisBP TF report page",
+            "url": "https://cisbp.ccbr.utoronto.ca/",
+            "note": f"CisBP TF identifier: {mapped}; use Search for a TF / By Identifier",
         }
     return None
 
 
-def build_links(db_path: str, cisbp_map: dict[str, str]) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+def build_links(
+    db_path: str,
+    cisbp_map: dict[str, str],
+    hocomoco_map: dict[str, dict[str, str]],
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     links: list[dict[str, str]] = []
     missing: list[dict[str, str]] = []
     for source, motif_id in read_motifs(db_path):
-        link = source_link(source, motif_id, cisbp_map)
+        link = source_link(source, motif_id, cisbp_map, hocomoco_map)
         if link:
             links.append(link)
-        elif source == "cisbp":
+        elif source in {"cisbp", "hocomoco"}:
             missing.append({
                 "source": source,
                 "motif_id": motif_id,
                 "mapped_id": "",
                 "label": "",
                 "url": "",
-                "note": "Missing exact CisBP T..._2.00 mapping",
+                "note": "Missing exact validated external mapping",
             })
     return links, missing
 
@@ -145,9 +187,8 @@ def build_links(db_path: str, cisbp_map: dict[str, str]) -> tuple[list[dict[str,
 def write_link_map(path: str, rows: list[dict[str, str]]) -> None:
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["source", "motif_id", "mapped_id", "label", "url", "note"]
     with out.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer = csv.DictWriter(handle, fieldnames=LINK_FIELDS, delimiter="\t")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -176,7 +217,7 @@ def audit_links(rows: list[dict[str, str]], timeout: float, workers: int) -> lis
 def write_audit(path: str, rows: list[dict[str, str]]) -> None:
     out = Path(path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    fields = ["source", "motif_id", "mapped_id", "label", "url", "note", "status", "http_code", "error"]
+    fields = [*LINK_FIELDS, "status", "http_code", "error"]
     with out.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
         writer.writeheader()
@@ -199,8 +240,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", default="data/tf_webdb.sqlite")
     parser.add_argument("--cisbp-map", default="")
+    parser.add_argument("--hocomoco-map", default="data/hocomoco_v11_to_v14.tsv")
     parser.add_argument("--write-map", default="data/external_motif_links.tsv")
-    parser.add_argument("--write-missing-cisbp", default="outputs/cisbp_missing_external_ids.tsv")
+    parser.add_argument("--write-missing", default="outputs/external_motif_links_missing.tsv")
+    parser.add_argument("--write-missing-cisbp", default="", help="Backward-compatible alias; writes the same missing table when set")
     parser.add_argument("--out", default="outputs/external_motif_link_audit.tsv")
     parser.add_argument("--timeout", type=float, default=8.0)
     parser.add_argument("--workers", type=int, default=12)
@@ -208,11 +251,14 @@ def main() -> int:
     args = parser.parse_args()
 
     cisbp_map = load_cisbp_map(args.cisbp_map or None)
-    links, missing = build_links(args.db, cisbp_map)
+    hocomoco_map = load_hocomoco_map(args.hocomoco_map or None)
+    links, missing = build_links(args.db, cisbp_map, hocomoco_map)
     write_link_map(args.write_map, links)
-    write_link_map(args.write_missing_cisbp, missing)
+    write_link_map(args.write_missing, missing)
+    if args.write_missing_cisbp:
+        write_link_map(args.write_missing_cisbp, [row for row in missing if row["source"] == "cisbp"])
     print_counts("Generated external links", links)
-    print(f"Missing CisBP exact mappings: {len(missing)}")
+    print_counts("Missing exact external mappings", missing)
 
     if not args.no_http:
         audited = audit_links(links, args.timeout, args.workers)
