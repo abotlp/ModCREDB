@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ motif_id }} | ModCREDB{% endblock %}
 {% block content %}
-  {% set external_links = motif_external_links(source, motif_id) %}
-
   <div class="motif-page">
     <section class="motif-head-clean">
       <div>
@@ -22,9 +20,14 @@
             <a class="secondary-link" href="/scan?source={{ source|quote }}&id={{ motif_id|quote }}">Scan DNA</a>
           {% endif %}
         {% endif %}
-        {% for link in external_links %}
-          <a class="secondary-link" href="{{ link.url }}" target="_blank" rel="noopener">{{ link.label }}</a>
-        {% endfor %}
+        {% if source == "jaspar" %}
+          <a class="secondary-link" href="https://jaspar.elixir.no/matrix/{{ motif_id|quote }}/" target="_blank" rel="noopener">Open in JASPAR</a>
+        {% elif source == "cisbp" %}
+          {% set cisbp_source_id = 'T094907_2.00' if motif_id == 'M08889_2.00' else motif_id %}
+          <a class="secondary-link" href="https://cisbp.ccbr.utoronto.ca/TFnewreport.php?searchTF={{ cisbp_source_id|quote }}" target="_blank" rel="noopener">Open in CisBP</a>
+        {% elif source == "hocomoco" %}
+          <a class="secondary-link" href="https://hocomoco11.autosome.org/motif/{{ motif_id|quote }}" target="_blank" rel="noopener">Open in HOCOMOCO</a>
+        {% endif %}
       </div>
     </section>
 
