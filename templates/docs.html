@@ -1,184 +1,502 @@
 {% extends "base.html" %}
-{% block title %}Docs | ModCREDB{% endblock %}
-{% macro prediction_label(level) -%}
-  {%- if level in ['Identical_PWM','identical'] -%}Known
-  {%- elif level in ['Homologous_PWM','homologous'] -%}Nearest Neighbor (&gt;70%)
-  {%- elif level in ['Relatively_Homologous_PWM','relative_homologous'] -%}Nearest Neighbor (70% - 40%)
-  {%- elif level in ['ModCRE','AlphaFold','AlphaFold_ModCRE','AlphaFold3-assisted ModCRE','modcre','alphafold'] -%}Predicted
+{% block title %}Documentation | ModCRE DB{% endblock %}
+
+{% macro category_label(level) -%}
+  {%- if level in ['Identical_PWM', 'identical', 'Known'] -%}Known
+  {%- elif level in ['Homologous_PWM', 'homologous'] -%}Nearest Neighbor (&gt;70%)
+  {%- elif level in ['Relatively_Homologous_PWM', 'relative_homologous'] -%}Nearest Neighbor (50–70%)
+  {%- elif level in ['ModCRE', 'modcre'] -%}ModCRE
+  {%- elif level in ['AlphaFold', 'AlphaFold_ModCRE', 'AlphaFold3-assisted ModCRE', 'alphafold'] -%}AlphaFold3-assisted ModCRE
   {%- else -%}{{ level }}
   {%- endif -%}
 {%- endmacro %}
+
 {% macro matrix_label(status) -%}
   {%- if status == 'usable' -%}Generated PWM
   {%- elif status == 'width_zero_no_matrix' -%}Missing MEME
   {%- else -%}{{ matrix_status_labels.get(status, status) }}
   {%- endif -%}
 {%- endmacro %}
-{% block content %}
-  <section>
-    <p class="eyebrow">Documentation</p>
-    <h1>ModCREDB documentation</h1>
-    <p class="muted">ModCREDB is a searchable database of transcription-factor motif predictions and structural-model support. It links generated PWMs, public motif sources, UniProt TF accessions, PFAM/domain annotations, and available 3D models.</p>
-  </section>
 
-  <section>
-    <h2>Main Snapshot</h2>
-    <div class="stats">
-      <div><strong>{{ stats.tf_count }}</strong><span>TF entries</span></div>
-      <div><strong>{{ stats.annotated_tf_count }}</strong><span>UniProt-annotated TFs</span></div>
-      <div><strong>{{ stats.tf_with_usable_pwm_count }}</strong><span>TFs with generated PWM</span></div>
+{% block content %}
+  <style>
+    .docs-hero {
+      background: linear-gradient(135deg, #ffffff 0%, #eef5ff 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      display: grid;
+      gap: 22px;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+      padding: 28px;
+    }
+    .docs-hero h1 {
+      font-size: 38px;
+      margin-bottom: 12px;
+    }
+    .docs-hero p {
+      max-width: 820px;
+    }
+    .docs-actions,
+    .docs-chip-row,
+    .source-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .docs-actions {
+      margin-top: 18px;
+    }
+    .docs-button,
+    .docs-button-secondary {
+      border-radius: 999px;
+      display: inline-flex;
+      font-weight: 750;
+      padding: 9px 14px;
+    }
+    .docs-button {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .docs-button:hover {
+      color: #ffffff;
+      background: var(--accent-dark);
+      text-decoration: none;
+    }
+    .docs-button-secondary {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+    .docs-card,
+    .docs-panel {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .docs-quick-stats {
+      display: grid;
+      gap: 12px;
+    }
+    .docs-quick-stats div {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid #d7e7fb;
+      border-radius: 12px;
+      padding: 13px 14px;
+    }
+    .docs-quick-stats strong {
+      display: block;
+      font-size: 26px;
+      line-height: 1;
+    }
+    .docs-quick-stats span {
+      color: var(--muted);
+      display: block;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+    .docs-grid-2,
+    .docs-grid-3,
+    .docs-grid-4 {
+      display: grid;
+      gap: 14px;
+    }
+    .docs-grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .docs-grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .docs-grid-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .workflow {
+      counter-reset: workflow;
+    }
+    .workflow article {
+      position: relative;
+    }
+    .workflow article::before {
+      background: #eef5ff;
+      border: 1px solid #cfe1fb;
+      border-radius: 999px;
+      color: var(--accent-dark);
+      content: counter(workflow);
+      counter-increment: workflow;
+      display: inline-grid;
+      font-weight: 800;
+      height: 28px;
+      margin-bottom: 10px;
+      place-items: center;
+      width: 28px;
+    }
+    .docs-chip {
+      background: #eef5ff;
+      border: 1px solid #cfe1fb;
+      border-radius: 999px;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 9px;
+    }
+    .docs-muted-list {
+      color: var(--muted);
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+    .docs-muted-list li {
+      margin: 4px 0;
+    }
+    .docs-table-note {
+      color: var(--muted);
+      margin: -4px 0 12px;
+    }
+    .docs-category-table td:first-child,
+    .docs-category-table th:first-child {
+      width: 230px;
+    }
+    .docs-mini-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .bar-list.compact .bar-row {
+      margin-bottom: 10px;
+    }
+    .bar-row small {
+      color: var(--muted);
+      display: block;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    @media (max-width: 900px) {
+      .docs-hero,
+      .docs-grid-2,
+      .docs-grid-3,
+      .docs-grid-4 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  {% set ns = namespace(annotated_total=0) %}
+  {% for row in primary_annotation_counts %}
+    {% if row.level != 'Unannotated' and row.label != 'Unannotated' %}
+      {% set ns.annotated_total = ns.annotated_total + (row.count | int) %}
+    {% endif %}
+  {% endfor %}
+
+  <section class="docs-hero">
+    <div>
+      <p class="eyebrow">Documentation</p>
+      <h1>ModCRE DB</h1>
+      <p class="muted">
+        ModCRE DB annotates human transcription-factor sequence records with DNA-binding motif information from public PWM databases, nearest-neighbour sequence transfer and structure-based modelling with ModCRE.
+      </p>
+      <p class="muted">
+        The database is intended for motif lookup, provenance-aware PWM selection, structural inspection of model-supported entries, and sequence scanning against generated PWM matrices.
+      </p>
+      <div class="docs-actions">
+        <a class="docs-button" href="/search">Search the database</a>
+        <a class="docs-button-secondary" href="/scan">Scan DNA</a>
+        <a class="docs-button-secondary" href="#workflow">Construction workflow</a>
+      </div>
+    </div>
+    <div class="docs-quick-stats">
+      <div><strong>{{ ns.annotated_total or stats.records_with_pwm_annotation or stats.tf_count }}</strong><span>TF sequence records with motif annotation</span></div>
       <div><strong>{{ stats.fimo_ready_motif_count }}</strong><span>Generated PWM matrices</span></div>
-      <div><strong>{{ stats.tf_with_active_model_count }}</strong><span>TFs with 3D models</span></div>
       <div><strong>{{ stats.active_model_count }}</strong><span>3D model files</span></div>
-      <div><strong>{{ stats.motif_ref_count }}</strong><span>TF-motif assignments</span></div>
     </div>
   </section>
 
-  <section>
-    <h2>Primary Prediction Versus Supporting Assignments</h2>
-    <div class="docs-grid">
+  <section id="scope" class="docs-grid-2">
+    <article class="docs-panel">
+      <h2>Scope</h2>
+      <p class="muted">
+        The input set was compiled from human UniProt records associated with transcription and DNA binding, followed by negative filtering for DNA repair, recombination, replication, modification, nucleosome-related and other non-TF DNA-associated functions.
+      </p>
+      <p class="muted">
+        Entries are treated at the UniProt sequence-record level. This preserves isoforms and TrEMBL records that would otherwise be collapsed in a gene-level catalogue.
+      </p>
+    </article>
+    <article class="docs-panel">
+      <h2>Use cases</h2>
+      <ul class="docs-muted-list">
+        <li>Retrieve motif annotations for a TF accession, gene name, protein name, PFAM family or motif identifier.</li>
+        <li>Compare direct, transferred and structure-derived motif assignments before choosing a PWM for analysis.</li>
+        <li>Download MEME-format motif files and inspect generated sequence logos.</li>
+        <li>Scan user-provided DNA against selected motifs or the global generated-PWM collection.</li>
+        <li>Open model-supported TF-DNA structures when 3D models are indexed for the entry.</li>
+      </ul>
+    </article>
+  </section>
+
+  <section id="workflow">
+    <div class="section-head">
+      <h2>Construction workflow</h2>
+      <span class="muted">ordered by annotation strength</span>
+    </div>
+    <div class="docs-grid-4 workflow">
+      <article class="docs-card">
+        <h3>Direct PWM matching</h3>
+        <p class="muted">JASPAR, CisBP and HOCOMOCO are queried for motif records matching the TF accession or database-specific TF identifiers.</p>
+      </article>
+      <article class="docs-card">
+        <h3>Nearest-neighbour transfer</h3>
+        <p class="muted">Unassigned sequences are compared against PWM-bearing TFs with MMseqs2 and separated into &gt;70% and 50–70% identity tiers.</p>
+      </article>
+      <article class="docs-card">
+        <h3>ModCRE</h3>
+        <p class="muted">Remaining modellable TFs are submitted to ModCRE to derive PWMs from modelled protein-DNA interfaces.</p>
+      </article>
+      <article class="docs-card">
+        <h3>AlphaFold3 + ModCRE</h3>
+        <p class="muted">For unresolved cases, AlphaFold3-derived TF-DNA structures are converted and processed with ModCRE when the interface passes structural checks.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="categories">
+    <div class="section-head">
+      <h2>Motif annotation categories</h2>
+      <span class="muted">shown from strongest to most inferred assignment</span>
+    </div>
+    <p class="docs-table-note">The primary category is the strongest available assignment for the TF record. Additional motif links may still be shown on TF and motif pages.</p>
+    <div class="table-wrap">
+      <table class="docs-category-table">
+        <thead>
+          <tr><th>Category</th><th>Assignment rule</th><th>How to read it</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Known</strong></td>
+            <td>Direct PWM match in JASPAR, CisBP or HOCOMOCO.</td>
+            <td>Use as the strongest motif assignment for the corresponding TF record.</td>
+          </tr>
+          <tr>
+            <td><strong>Nearest Neighbor (&gt;70%)</strong></td>
+            <td>PWM transferred from a closely related TF with at least 70% sequence identity in the operational MMseqs2 search.</td>
+            <td>High-confidence transferred motif; source TF and identity should remain visible.</td>
+          </tr>
+          <tr>
+            <td><strong>Nearest Neighbor (50–70%)</strong></td>
+            <td>PWM transferred from a more distant annotated TF in the 50–70% identity interval.</td>
+            <td>Candidate motif assignment; appropriate for exploratory analyses or weighted scans.</td>
+          </tr>
+          <tr>
+            <td><strong>ModCRE</strong></td>
+            <td>Structure-based PWM derived by ModCRE from a modellable protein-DNA interface.</td>
+            <td>Useful when direct and close homology information is absent; inspect model/template details.</td>
+          </tr>
+          <tr>
+            <td><strong>AlphaFold3-assisted ModCRE</strong></td>
+            <td>AlphaFold3 TF-DNA structure processed through ModCRE after interface checks.</td>
+            <td>Most inferred motif layer; structure and interface quality should be considered before downstream use.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="query" class="docs-grid-4">
+    <article class="docs-card">
+      <p class="docs-mini-title">Browse</p>
+      <h3>Entry overview</h3>
+      <p class="muted">Start from the landing page to inspect the database composition and example records across annotation categories.</p>
+      <a href="/">Open browse page</a>
+    </article>
+    <article class="docs-card">
+      <p class="docs-mini-title">Search</p>
+      <h3>TF, motif or domain</h3>
+      <p class="muted">Search by UniProt accession, gene/protein text, PFAM identifier, family label, source database or motif identifier.</p>
+      <a href="/search">Open search</a>
+    </article>
+    <article class="docs-card">
+      <p class="docs-mini-title">TF page</p>
+      <h3>Per-record evidence</h3>
+      <p class="muted">A TF page shows motif assignments, generated PWMs, DNA-binding regions, PFAM domains and linked model files.</p>
+      <a href="/search?q=PPARG">Example search</a>
+    </article>
+    <article class="docs-card">
+      <p class="docs-mini-title">Scan DNA</p>
+      <h3>Sequence input</h3>
+      <p class="muted">Paste DNA or FASTA and scan against all generated PWMs, a filtered collection, a TF-specific set or selected motifs.</p>
+      <a href="/scan">Open scanner</a>
+    </article>
+  </section>
+
+  <section id="scan" class="docs-grid-2">
+    <article class="docs-panel">
+      <h2>Generated PWMs and DNA scanning</h2>
+      <p class="muted">
+        A motif file is labelled <strong>Generated PWM</strong> when a usable A/C/G/T probability matrix is available for sequence-logo rendering and DNA scanning. Entries marked <strong>Missing MEME</strong> are retained as provenance records but are not scanned.
+      </p>
+      <p class="muted">
+        The scanner accepts pasted DNA or FASTA sequence and reports ranked motif occurrences with motif identifier, source, TF link, annotation category, strand, genomic interval within the submitted sequence, score and p-value.
+      </p>
+      <div class="docs-chip-row">
+        <span class="docs-chip">DNA or FASTA input</span>
+        <span class="docs-chip">both strands</span>
+        <span class="docs-chip">MEME output available</span>
+        <span class="docs-chip">ranked motif hits</span>
+      </div>
+    </article>
+    <article class="docs-panel">
+      <h2>Structure-derived records</h2>
+      <p class="muted">
+        ModCRE models TF-DNA recognition from structural information and derives PWMs from the protein-DNA interface. In ModCRE DB, ModCRE records are kept separate from direct and nearest-neighbour assignments.
+      </p>
+      <p class="muted">
+        Where available, 3D model pages expose the indexed PDB model, source, template/model identifier, residue range and linked motif records. AlphaFold3-assisted entries use predicted TF-DNA structures as input to the same ModCRE PWM derivation step.
+      </p>
+      <div class="source-links">
+        <a href="http://aleph.upf.edu/modcre/##intro" target="_blank" rel="noopener">ModCRE server</a>
+        <a href="https://doi.org/10.1093/nargab/lqae068" target="_blank" rel="noopener">ModCRE publication</a>
+      </div>
+    </article>
+  </section>
+
+  <section id="sources">
+    <div class="section-head">
+      <h2>Data sources</h2>
+      <span class="muted">motif databases, sequence records and structural modelling</span>
+    </div>
+    <div class="docs-grid-3">
+      <article class="docs-card">
+        <h3>Public motif databases</h3>
+        <p class="muted">Direct PWM assignments are integrated from JASPAR, CisBP and HOCOMOCO, preserving source identifiers and motif files.</p>
+        <div class="source-links">
+          <a href="https://jaspar.elixir.no/" target="_blank" rel="noopener">JASPAR</a>
+          <a href="https://cisbp.ccbr.utoronto.ca/" target="_blank" rel="noopener">CisBP</a>
+          <a href="https://hocomoco11.autosome.org/" target="_blank" rel="noopener">HOCOMOCO</a>
+        </div>
+      </article>
+      <article class="docs-card">
+        <h3>Sequence and family annotations</h3>
+        <p class="muted">UniProt provides the human sequence records, gene/protein annotations and review status. PFAM/domain annotations support family-level interpretation and search.</p>
+        <div class="source-links">
+          <a href="https://www.uniprot.org/" target="_blank" rel="noopener">UniProt</a>
+          <a href="https://www.ebi.ac.uk/interpro/" target="_blank" rel="noopener">InterPro/PFAM</a>
+        </div>
+      </article>
+      <article class="docs-card">
+        <h3>Structural modelling</h3>
+        <p class="muted">ModCRE and AlphaFold3-assisted ModCRE records provide structure-derived motif assignments where direct and sequence-transfer evidence is insufficient.</p>
+        <div class="source-links">
+          <a href="http://aleph.upf.edu/modcre/##intro" target="_blank" rel="noopener">ModCRE</a>
+          <a href="https://alphafoldserver.com/" target="_blank" rel="noopener">AlphaFold Server</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="release">
+    <div class="section-head">
+      <h2>Release statistics</h2>
+      <span class="muted">current indexed database</span>
+    </div>
+    <div class="docs-grid-2">
       <article class="docs-panel">
-        <h3>Primary prediction</h3>
-        <p class="muted">The table <span class="mono">tf_primary_annotation</span> stores one final hierarchical prediction per TF.</p>
+        <h3>Primary motif annotation</h3>
         {% if primary_annotation_counts %}
-          <div class="bar-list">
+          <div class="bar-list compact">
             {% for row in primary_annotation_counts %}
-              <div class="bar-row"><div><strong>{{ prediction_label(row.label) }}</strong><span>{{ row.count }} TFs{% if row.percent %}; {{ row.percent }}%{% endif %}</span></div><div class="bar-track"><span style="width: {{ row.percent }}%"></span></div></div>
+              {% if row.level != 'Unannotated' and row.label != 'Unannotated' %}
+                <div class="bar-row">
+                  <div>
+                    <strong>{{ category_label(row.level or row.label) }}</strong>
+                    <span>{{ row.count }} TF records{% if row.percent %}; {{ row.percent }}%{% endif %}</span>
+                  </div>
+                  <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+                </div>
+              {% endif %}
             {% endfor %}
           </div>
+        {% else %}
+          <p class="muted">Primary annotation counts are not available in this database build.</p>
         {% endif %}
       </article>
       <article class="docs-panel">
-        <h3>Supporting assignments</h3>
-        <p class="muted">The table <span class="mono">motif_ref</span> preserves all TF-to-motif assignments. These records are not removed just because one primary prediction was selected.</p>
+        <h3>Indexed records</h3>
         <div class="annotation-grid">
+          <div><span>TF entries</span><strong>{{ stats.tf_count }}</strong></div>
           <div><span>TF-motif assignments</span><strong>{{ stats.motif_ref_count }}</strong></div>
           <div><span>Motif files</span><strong>{{ stats.motif_file_count }}</strong></div>
-          <div><span>Generated PWM matrices</span><strong>{{ stats.fimo_ready_motif_count }}</strong></div>
-          <div><span>3D models</span><strong>{{ stats.active_model_count }}</strong></div>
+          <div><span>Generated PWMs</span><strong>{{ stats.fimo_ready_motif_count }}</strong></div>
+          <div><span>3D model files</span><strong>{{ stats.active_model_count }}</strong></div>
           <div><span>Motif-structure links</span><strong>{{ stats.motif_structure_count }}</strong></div>
         </div>
       </article>
     </div>
   </section>
 
-  <section class="docs-grid">
+  <section class="docs-grid-2">
     <article class="docs-panel">
-      <h2>What Users Can Do</h2>
-      <ul>
-        <li>Search TFs by UniProt accession, gene/protein annotation, PFAM family/domain, legacy family tag, or motif ID.</li>
-        <li>Inspect PWM sequence logos and download MEME motif files.</li>
-        <li>View linked 3D models when model files are available.</li>
-        <li>Scan pasted DNA sequences using selected motifs or all generated PWMs linked to a TF.</li>
-        <li>Inspect model-supported DNA-binding regions and overlapping PFAM domains.</li>
-      </ul>
-    </article>
-    <article class="docs-panel">
-      <h2>Important Interpretation</h2>
-      <p class="muted">PWM prediction and 3D-model support are related but not identical. Many TFs have Known or nearest-neighbor motifs without a local structural model. Some model records support regions even when a particular motif file lacks a generated PWM.</p>
-      <p class="muted">The public label for structure-derived motifs is <strong>Predicted</strong>, not “low”. Use region, template, identity, and model support to interpret them.</p>
-    </article>
-  </section>
-
-  <section>
-    <h2>Data Sources and Releases</h2>
-    <p class="muted">This table separates the public/provenance source from the TF prediction labels. Fields marked pending confirmation should be checked with PI/Baldo before publication wording is finalized.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Source</th><th>Release</th><th>Collection</th><th>Species scope</th><th>Motif/model type</th><th>Links</th><th>Citation/license</th><th>Status</th><th>Notes</th></tr></thead>
-        <tbody>
-          {% for row in source_releases %}
-            <tr><td><strong>{{ source_labels.get(row.source, row.source) }}</strong></td><td>{{ row.release_name }}</td><td>{{ row.collection }}</td><td>{{ row.species_scope }}</td><td>{{ row.motif_or_model_type }}</td><td>{% if row.source_url and row.source_url != "pending confirmation" %}<a href="{{ row.source_url }}" target="_blank" rel="noopener">source</a>{% endif %}{% if row.download_url and row.download_url not in ["pending confirmation", "not public / pending confirmation"] %}<a href="{{ row.download_url }}" target="_blank" rel="noopener">download</a>{% elif row.download_url %}<span>{{ row.download_url }}</span>{% endif %}</td><td>{{ row.citation }}{% if row.license_note %}<br><span class="muted">{{ row.license_note }}</span>{% endif %}</td><td>{{ row.confirmation_status }}</td><td>{{ row.notes }}</td></tr>
-          {% else %}
-            <tr><td colspan="9">No source-release metadata has been loaded yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Prediction Semantics</h2>
-    <p class="muted">ModCREDB keeps source, prediction category, assignment type, and curation status separate.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Concept</th><th>Meaning</th><th>Example</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Source</strong></td><td>Where the motif/model record came from.</td><td>JASPAR, CisBP, HOCOMOCO, ModCRE, AlphaFold3-assisted ModCRE</td></tr>
-          <tr><td><strong>Prediction category</strong></td><td>How the TF motif is presented publicly.</td><td>Known, Nearest Neighbor (&gt;70%), Nearest Neighbor (70% - 40%), Predicted</td></tr>
-          <tr><td><strong>Assignment type</strong></td><td>How the TF-to-motif relationship should be interpreted.</td><td>Direct/identical, close homolog, distant homolog, structure-predicted</td></tr>
-          <tr><td><strong>Curation status</strong></td><td>Whether the public wording is imported, confirmed, or pending confirmation.</td><td>Pending confirmation</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>Prediction Sources</h2>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Prediction/source</th><th>What it means</th><th>Used for scanning?</th><th>3D model?</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Known</strong></td><td>Direct motif assignment from public motif metadata or the integrated chart.</td><td>Yes, when a generated PWM is present.</td><td>No local model required.</td></tr>
-          <tr><td><strong>Nearest Neighbor (&gt;70%)</strong></td><td>Motif assigned from a close homolog.</td><td>Yes, when a generated PWM is present.</td><td>No local model required.</td></tr>
-          <tr><td><strong>Nearest Neighbor (70% - 40%)</strong></td><td>Motif assigned from a more distant homolog.</td><td>Yes, when a generated PWM is present.</td><td>No local model required.</td></tr>
-          <tr><td><strong>Predicted</strong></td><td>Structure-based PWM/model prediction from ModCRE or AlphaFold-assisted ModCRE.</td><td>Yes, when the MEME file contains a generated PWM.</td><td>Often yes; linked 3D models are shown when available.</td></tr>
-          <tr><td><strong>DNA scan</strong></td><td>MEME/FIMO is used to scan user-provided DNA with selected PWM matrices.</td><td>This is the scan engine.</td><td>It scans motifs; it does not create new models.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section>
-    <h2>PWM Status</h2>
-    <p class="muted">PWM status is stored per motif file. It says whether that specific MEME/PWM file has a generated matrix for sequence-logo rendering and DNA scanning; it is not a TF-level failure label.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Status</th><th>Files</th><th>Logo?</th><th>Scan?</th><th>Meaning</th></tr></thead>
-        <tbody>
-          {% for key, info in matrix_status_info.items() %}
-            <tr><td><strong>{{ matrix_label(key) }}</strong><br><span class="mono">{{ key }}</span></td><td>{{ matrix_status_count_map.get(key, 0) }}</td><td>{{ info.supports_logo }}</td><td>{{ info.supports_fimo }}</td><td>{% if key == 'width_zero_no_matrix' %}No generated PWM is available in the MEME file.{% else %}{{ info.description.replace('FIMO', 'DNA scan').replace('no usable matrix rows were produced', 'no generated PWM is available') }}{% endif %}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <section class="docs-grid">
-    <article class="docs-panel">
-      <h2>PWM Availability</h2>
-      <p class="muted">These counts are motif-file counts. One TF may contribute many motif files.</p>
-      <div class="bar-list">
-        {% for row in motif_files_by_source %}
-          <div class="bar-row"><div><strong>{{ source_labels.get(row.source, row.source) }}</strong><span>{{ row.with_matrix or 0 }} generated PWM of {{ row.count }} files{% if row.without_matrix %}; {{ row.without_matrix }} without generated PWM{% endif %}</span></div><div class="bar-track"><span style="width: {{ row.percent }}%"></span></div></div>
+      <h2>Dominant DNA-binding families</h2>
+      <div class="bar-list compact">
+        {% for row in top_families %}
+          {% if row.label != 'Unclassified' %}
+            <div class="bar-row">
+              <div><strong>{{ row.label }}</strong><span>{{ row.count }} TF records</span></div>
+              <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+            </div>
+          {% endif %}
         {% endfor %}
       </div>
     </article>
     <article class="docs-panel">
-      <h2>UniProt Annotation</h2>
-      <p class="muted">UniProt annotations provide gene names, protein names, organism names, review status, and sequence length.</p>
-      <div class="bar-list">{% for row in annotation_status %}<div class="bar-row"><div><strong>{{ row.label }}</strong><span>{{ row.count }} TFs</span></div><div class="bar-track"><span style="width: {{ row.percent }}%"></span></div></div>{% endfor %}</div>
+      <h2>PWM availability by source</h2>
+      <div class="bar-list compact">
+        {% for row in motif_files_by_source %}
+          <div class="bar-row">
+            <div>
+              <strong>{{ source_labels.get(row.source, row.source) }}</strong>
+              <span>{{ row.with_matrix or 0 }} generated PWMs of {{ row.count }} motif files</span>
+            </div>
+            <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+          </div>
+        {% endfor %}
+      </div>
     </article>
   </section>
 
-  <section>
-    <details class="docs-panel">
-      <summary>Advanced Data Quality Notes</summary>
-      <p class="muted">This section is for data import and debugging. It is kept separate from the main snapshot because debug/intermediate folders should not be interpreted as public biological failure counts.</p>
-      <h2>Missing MEME / no generated PWM counts</h2>
-      <p class="muted">A no-matrix file means that a specific MEME/motif file has no generated PWM probability matrix. It is not a TF-level failure.</p>
-      <h2>Motif assignments by prediction</h2>
-      <div class="bar-list">{% for row in motif_links_by_evidence %}<div class="bar-row"><div><strong>{{ prediction_label(row.evidence_type) }}</strong><span>{{ row.count }} links{% if row.missing_count %}; {{ row.missing_count }} missing local files{% endif %}</span></div><div class="bar-track"><span style="width: {{ row.percent }}%"></span></div></div>{% endfor %}</div>
-      <h2>Internal Model File Inventory</h2>
-      <p class="muted">Rows labelled failed come from retained failed/debug folders in the provided archive. They are stored for provenance and troubleshooting; normal TF pages show 3D models.</p>
-      <div class="table-wrap"><table><thead><tr><th>Source</th><th>Folder status</th><th>File type</th><th>Count</th></tr></thead><tbody>{% for row in model_files_by_group %}<tr><td>{{ source_labels.get(row.source, row.source) }}</td><td>{{ row.status }}</td><td>{{ row.file_type }}</td><td>{{ row.count }}</td></tr>{% endfor %}</tbody></table></div>
-      <h2>Model Summary Rows</h2>
-      <div class="bar-list">{% for row in model_summary_by_status %}<div class="bar-row"><div><strong>{{ row.status }}</strong><span>{{ row.count }} rows; {{ row.linked_count or 0 }} linked to model files</span></div><div class="bar-track"><span style="width: {{ row.percent }}%"></span></div></div>{% endfor %}</div>
-      <h2>Missing Local Motif IDs</h2>
-      <p class="muted">These IDs are referenced by the TF chart but absent from the local motif archives.</p>
-      <div class="table-wrap"><table><thead><tr><th>Source</th><th>Motif ID</th><th>Links affected</th><th>Example TF</th></tr></thead><tbody>{% for row in missing_motifs %}<tr><td>{{ source_labels.get(row.source, row.source) }}</td><td class="mono">{{ row.motif_id }}</td><td>{{ row.count }}</td><td><a class="mono" href="/tf/{{ row.example_tf_id|quote }}">{{ row.example_tf_id }}</a></td></tr>{% else %}<tr><td colspan="4">No missing motif IDs.</td></tr>{% endfor %}</tbody></table></div>
-      <h2>Import Metadata</h2>
-      <div class="table-wrap"><table><tbody>{% for row in metadata %}<tr><th>{{ row.key }}</th><td>{{ row.value }}</td></tr>{% endfor %}</tbody></table></div>
-    </details>
+  {% if source_releases %}
+    <section>
+      <h2>Source metadata</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Source</th><th>Release</th><th>Collection</th><th>Record type</th><th>Link</th></tr>
+          </thead>
+          <tbody>
+            {% for row in source_releases %}
+              <tr>
+                <td><strong>{{ source_labels.get(row.source, row.source) }}</strong></td>
+                <td>{{ row.release_name }}</td>
+                <td>{{ row.collection }}</td>
+                <td>{{ row.motif_or_model_type }}</td>
+                <td>
+                  {% if row.source_url and row.source_url != 'pending confirmation' %}
+                    <a href="{{ row.source_url }}" target="_blank" rel="noopener">source</a>
+                  {% endif %}
+                  {% if row.download_url and row.download_url not in ['pending confirmation', 'not public / pending confirmation'] %}
+                    <a href="{{ row.download_url }}" target="_blank" rel="noopener">download</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  <section id="citation" class="docs-panel">
+    <h2>Citation</h2>
+    <p class="muted">
+      Cite ModCRE DB together with the original motif and modelling resources used in the selected analysis. Source-specific citations are retained in the database metadata where available.
+    </p>
   </section>
 {% endblock %}
