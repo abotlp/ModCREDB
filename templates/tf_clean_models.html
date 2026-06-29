@@ -130,7 +130,7 @@
 
     {% set full = namespace(count=0) %}
     {% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}{% set full.count = full.count + 1 %}{% endif %}{% endfor %}
-    {% if full.count %}
+    {% if region_groups and full.count %}
       <details class="model-region">
         <summary><span>Full sequence / unlocalized models</span><span>{{ full.count }} model{% if full.count != 1 %}s{% endif %}</span></summary>
         <div class="table-wrap"><table class="model-table"><thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead><tbody>{% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td><span class="muted">Full sequence / not localized</span></td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endif %}{% endfor %}</tbody></table></div>
