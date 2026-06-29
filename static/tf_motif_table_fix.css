@@ -1,15 +1,16 @@
+.tf-page .motif-table{table-layout:fixed !important;}
 .tf-page .motif-table th:nth-child(1),
-.tf-page .motif-table td:nth-child(1){width:25% !important;}
+.tf-page .motif-table td:nth-child(1){width:22% !important;}
 .tf-page .motif-table th:nth-child(2),
-.tf-page .motif-table td:nth-child(2){width:12% !important;overflow:hidden !important;}
+.tf-page .motif-table td:nth-child(2){width:10% !important;overflow:hidden !important;}
 .tf-page .motif-table th:nth-child(3),
-.tf-page .motif-table td:nth-child(3){width:13% !important;white-space:nowrap !important;word-break:normal !important;overflow-wrap:normal !important;}
+.tf-page .motif-table td:nth-child(3){width:15% !important;min-width:120px !important;white-space:nowrap !important;word-break:keep-all !important;overflow-wrap:normal !important;hyphens:none !important;}
 .tf-page .motif-table th:nth-child(4),
-.tf-page .motif-table td:nth-child(4){width:14% !important;}
+.tf-page .motif-table td:nth-child(4){width:16% !important;}
 .tf-page .motif-table th:nth-child(5),
 .tf-page .motif-table td:nth-child(5){width:13% !important;}
 .tf-page .motif-table th:nth-child(6),
-.tf-page .motif-table td:nth-child(6){width:16% !important;}
+.tf-page .motif-table td:nth-child(6){width:17% !important;}
 .tf-page .motif-table th:nth-child(7),
 .tf-page .motif-table td:nth-child(7){width:7% !important;}
 .tf-page .motif-table .chip{
