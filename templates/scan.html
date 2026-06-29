@@ -172,23 +172,6 @@
 </section>
 {% endif %}
 
-{% if method == "POST" and motifs %}
-<section>
-  <h2>Motifs used</h2>
-  <div class="motif-grid compact-motif-grid">
-    {% for motif in motifs %}
-      <article class="motif-card">
-        <div class="motif-card-head">
-          <a class="mono" href="/motif?source={{ motif.source|quote }}&id={{ motif.motif_id|quote }}">{{ motif.motif_id }}</a>
-          <span>{{ source_labels.get(motif.source, motif.source) }}</span>
-        </div>
-        <p class="muted">{% if motif.consensus %}Consensus <span class="mono">{{ motif.consensus }}</span>{% else %}Motif matrix{% endif %}</p>
-      </article>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
 <script>
 (() => {
   const motifInput = document.querySelector("[data-motif-input]");
