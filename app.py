@@ -933,14 +933,16 @@ def motif_source_link(source: str, motif_id: str) -> dict[str, str] | None:
             "note": "JASPAR matrix page",
         }
 
-    if source == "hocomoco":
-        mapped_id = hocomoco_v11_to_v14_motif_id(motif_id)
+    if source == "cisbp":
         return {
-            "label": "Open in HOCOMOCO",
-            "url": f"https://hocomoco14.autosome.org/motif/{quote(mapped_id, safe='')}",
-            "mapped_id": mapped_id,
-            "note": "HOCOMOCO v14 motif page",
+            "label": "Open in CisBP",
+            "url": "https://cisbp.ccbr.utoronto.ca/",
+            "mapped_id": motif_id,
+            "note": "CisBP motif identifier; search this motif ID in CisBP using version 2.00.",
         }
+
+    if source == "hocomoco":
+        return None
 
     return None
 
