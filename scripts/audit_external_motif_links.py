@@ -148,22 +148,13 @@ def source_link(
         return hocomoco_map.get(motif_id)
     if source == "cisbp":
         mapped = cisbp_map.get(motif_id)
-        if mapped:
-            return {
-                "source": source,
-                "motif_id": motif_id,
-                "mapped_id": mapped,
-                "label": "Open in CisBP",
-                "url": "https://cisbp.ccbr.utoronto.ca/",
-                "note": f"CisBP TF identifier: {mapped}; use Search for a TF / By Identifier",
-            }
         return {
             "source": source,
             "motif_id": motif_id,
             "mapped_id": motif_id,
             "label": "Open in CisBP",
             "url": "https://cisbp.ccbr.utoronto.ca/",
-            "note": "CisBP motif identifier; search this motif ID in CisBP using version 2.00.",
+            "note": "CisBP v2 motif identifier; search this motif ID in CisBP using VM/version 2.00.",
         }
     return None
 
