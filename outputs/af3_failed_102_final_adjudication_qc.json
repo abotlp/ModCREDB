@@ -1,0 +1,711 @@
+{
+  "all_checks_passed": true,
+  "checks": {
+    "FASTA_entries_exactly_equal_SEND_actions": {
+      "expected": "exact equality",
+      "observed": {
+        "fasta": [],
+        "send": []
+      },
+      "passed": true
+    },
+    "PDB_actual_accession_matches_model_bearing_accession": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "all_28_previous_manual_cases_represented": {
+      "expected": "28 represented",
+      "observed": [
+        "A0A0A7M2K0",
+        "A0A804HLH1",
+        "A8K549",
+        "A8MTU8",
+        "B1NY96",
+        "B3KU95",
+        "B4DL38",
+        "B4DTN3",
+        "B4E2G3",
+        "B5MCD3",
+        "B7Z8F5",
+        "C9JPH0",
+        "D1LUZ8",
+        "D6RID7",
+        "E9PKB7",
+        "F6X9D6",
+        "G3V0H1",
+        "G3V289",
+        "G3V302",
+        "G3V447",
+        "H0Y7E5",
+        "H0YNG1",
+        "H2BNB9",
+        "Q59EF3",
+        "Q5VVR5",
+        "Q68D60",
+        "Q6L9M1",
+        "Q86VD4"
+      ],
+      "passed": true
+    },
+    "all_partial_controls_incomplete_no_send": {
+      "expected": "all incomplete and no-send",
+      "observed": {
+        "B4DL38": [
+          "ACCESSION_CONTAINS_INCOMPLETE_DBD",
+          "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE"
+        ],
+        "B7Z8F5": [
+          "ACCESSION_CONTAINS_INCOMPLETE_DBD",
+          "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE"
+        ],
+        "F6X9D6": [
+          "ACCESSION_CONTAINS_INCOMPLETE_DBD",
+          "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE"
+        ],
+        "Q5VVR5": [
+          "ACCESSION_CONTAINS_INCOMPLETE_DBD",
+          "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE"
+        ]
+      },
+      "passed": true
+    },
+    "canonical_accessions_remain_separate": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "database_unchanged_after_analysis": {
+      "expected": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "observed": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "passed": true
+    },
+    "database_unchanged_after_outputs": {
+      "expected": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "observed": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "passed": true
+    },
+    "exactly_102_unique_accessions": {
+      "expected": {
+        "rows": 102,
+        "unique": 102
+      },
+      "observed": {
+        "rows": 102,
+        "unique": 102
+      },
+      "passed": true
+    },
+    "fusion_A0A0A7M2K0_both_parents_analyzed": {
+      "expected": "two parent rows",
+      "observed": [
+        {
+          "DBD_aligned_residues": 0,
+          "DBD_coverage_percent": 0.0,
+          "DBD_end": "",
+          "DBD_identity_percent": 0.0,
+          "DBD_start": "",
+          "complete_DBD": false,
+          "expected_DBD_type": "",
+          "failed_coordinates": "",
+          "matched_parent_span": "",
+          "parent_accession": "Q8WW38",
+          "parent_gene": "ZFPM2",
+          "parent_sequence_length": 1151,
+          "partial_DBD": false,
+          "relationship": "NO_CANONICAL_DBD_COORDINATES"
+        },
+        {
+          "DBD_aligned_residues": 3,
+          "DBD_coverage_percent": 3.7,
+          "DBD_end": 253,
+          "DBD_identity_percent": 100.0,
+          "DBD_start": 173,
+          "complete_DBD": false,
+          "expected_DBD_type": "PF00178:Ets-domain",
+          "failed_coordinates": "173-175",
+          "matched_parent_span": "2-257",
+          "parent_accession": "Q9UKW6",
+          "parent_gene": "ELF5",
+          "parent_sequence_length": 265,
+          "partial_DBD": false,
+          "relationship": "LACKS_DBD_UNRESOLVED_TOPOLOGY"
+        }
+      ],
+      "passed": true
+    },
+    "fusion_B1NY96_both_parents_analyzed": {
+      "expected": "two parent rows",
+      "observed": [
+        {
+          "DBD_aligned_residues": 9,
+          "DBD_coverage_percent": 16.67,
+          "DBD_end": 603,
+          "DBD_identity_percent": 77.78,
+          "DBD_start": 550,
+          "complete_DBD": false,
+          "expected_DBD_type": "PF00010:Helix-loop-helix DNA-binding domain",
+          "failed_coordinates": "171-179",
+          "matched_parent_span": "226-652",
+          "parent_accession": "P15923",
+          "parent_gene": "TCF3/E2A",
+          "parent_sequence_length": 654,
+          "partial_DBD": false,
+          "relationship": "PARTIAL_OR_DIVERGENT_DBD_UNRESOLVED"
+        },
+        {
+          "DBD_aligned_residues": 64,
+          "DBD_coverage_percent": 32.0,
+          "DBD_end": 455,
+          "DBD_identity_percent": 57.81,
+          "DBD_start": 256,
+          "complete_DBD": false,
+          "expected_DBD_type": "PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type",
+          "failed_coordinates": "99-162",
+          "matched_parent_span": "3-575",
+          "parent_accession": "Q8TF68",
+          "parent_gene": "ZNF384/NMP4",
+          "parent_sequence_length": 577,
+          "partial_DBD": false,
+          "relationship": "PARTIAL_OR_DIVERGENT_DBD_UNRESOLVED"
+        }
+      ],
+      "passed": true
+    },
+    "fusion_D1LUZ8_both_parents_analyzed": {
+      "expected": "two parent rows",
+      "observed": [
+        {
+          "DBD_aligned_residues": 0,
+          "DBD_coverage_percent": 0.0,
+          "DBD_end": "",
+          "DBD_identity_percent": 0.0,
+          "DBD_start": "",
+          "complete_DBD": false,
+          "expected_DBD_type": "",
+          "failed_coordinates": "",
+          "matched_parent_span": "",
+          "parent_accession": "Q96MY1",
+          "parent_gene": "NOL4L/C20orf112",
+          "parent_sequence_length": 436,
+          "partial_DBD": false,
+          "relationship": "NO_CANONICAL_DBD_COORDINATES"
+        },
+        {
+          "DBD_aligned_residues": 12,
+          "DBD_coverage_percent": 9.38,
+          "DBD_end": 179,
+          "DBD_identity_percent": 91.67,
+          "DBD_start": 52,
+          "complete_DBD": false,
+          "expected_DBD_type": "PF00853:Runt domain",
+          "failed_coordinates": "9-20",
+          "matched_parent_span": "18-453",
+          "parent_accession": "Q01196",
+          "parent_gene": "RUNX1",
+          "parent_sequence_length": 453,
+          "partial_DBD": true,
+          "relationship": "LACKS_DBD_UNRESOLVED_TOPOLOGY"
+        }
+      ],
+      "passed": true
+    },
+    "fusion_H2BNB9_both_parents_analyzed": {
+      "expected": "two parent rows",
+      "observed": [
+        {
+          "DBD_aligned_residues": 80,
+          "DBD_coverage_percent": 100.0,
+          "DBD_end": 420,
+          "DBD_identity_percent": 43.75,
+          "DBD_start": 341,
+          "complete_DBD": false,
+          "expected_DBD_type": "PF00178:Ets-domain",
+          "failed_coordinates": "371-539",
+          "matched_parent_span": "1-446",
+          "parent_accession": "P41212",
+          "parent_gene": "ETV6",
+          "parent_sequence_length": 452,
+          "partial_DBD": false,
+          "relationship": "COVERS_DBD_COORDINATE_SPAN_LOW_IDENTITY"
+        },
+        {
+          "DBD_aligned_residues": 0,
+          "DBD_coverage_percent": 0.0,
+          "DBD_end": "",
+          "DBD_identity_percent": 0.0,
+          "DBD_start": "",
+          "complete_DBD": false,
+          "expected_DBD_type": "",
+          "failed_coordinates": "",
+          "matched_parent_span": "",
+          "parent_accession": "Q53TQ3",
+          "parent_gene": "INO80D",
+          "parent_sequence_length": 1027,
+          "partial_DBD": false,
+          "relationship": "NO_CANONICAL_DBD_COORDINATES"
+        }
+      ],
+      "passed": true
+    },
+    "no_non_DBD_contacting_fragment_accepted": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "no_public_database_write_performed": {
+      "expected": true,
+      "observed": true,
+      "passed": true
+    },
+    "no_send_below_80_80_30": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "one_allowed_status_and_action_per_accession": {
+      "expected": true,
+      "observed": true,
+      "passed": true
+    },
+    "unresolved_A8K549_local_search_reported": {
+      "expected": "best local TF match reported",
+      "observed": {
+        "accession": "B3KU95",
+        "aligned_residues": 248,
+        "gene": "HOXA2",
+        "identity_percent": 99.19,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 248
+      },
+      "passed": true
+    },
+    "unresolved_B4DTN3_local_search_reported": {
+      "expected": "best local TF match reported",
+      "observed": {
+        "accession": "Q9BQA5",
+        "aligned_residues": 143,
+        "gene": "HINFP",
+        "identity_percent": 99.3,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 517
+      },
+      "passed": true
+    },
+    "unresolved_Q68D60_local_search_reported": {
+      "expected": "best local TF match reported",
+      "observed": {
+        "accession": "Q70SY1",
+        "aligned_residues": 150,
+        "gene": "CREB3L2",
+        "identity_percent": 99.33,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 520
+      },
+      "passed": true
+    }
+  },
+  "counts": {
+    "action_for_baldo": {
+      "MANUAL_REVIEW_BEFORE_SENDING": 21,
+      "NO_SEND_CANONICAL_REFERENCE_ONLY": 64,
+      "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE": 16,
+      "NO_SEND_USE_EXISTING_DBD_FRAGMENT": 1
+    },
+    "fasta_sequences": 0,
+    "final_manual_review": 21,
+    "primary_structural_status": {
+      "ACCESSION_CONTAINS_INCOMPLETE_DBD": 5,
+      "ACCESSION_LACKS_DBD": 73,
+      "COFACTOR_OR_NON_DNA_BINDING_COMPONENT": 2,
+      "UNCERTAIN_MANUAL_REVIEW": 21,
+      "VALID_DBD_FRAGMENT_MODEL": 1
+    }
+  },
+  "database_signature_after": {
+    "mtime_ns": 1782763306655388169,
+    "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+    "size": 112508928
+  },
+  "database_signature_before": {
+    "mtime_ns": 1782763306655388169,
+    "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+    "size": 112508928
+  },
+  "empty_fasta_explanation": "No accession satisfies a SEND action after the 80% coverage, 80% identity, >=30-residue, complete-extractable-DBD rules.",
+  "final_adjudication_is_draft": true,
+  "fusion_results": {
+    "A0A0A7M2K0": [
+      {
+        "DBD_aligned_residues": 0,
+        "DBD_coverage_percent": 0.0,
+        "DBD_end": "",
+        "DBD_identity_percent": 0.0,
+        "DBD_start": "",
+        "complete_DBD": false,
+        "expected_DBD_type": "",
+        "failed_coordinates": "",
+        "matched_parent_span": "",
+        "parent_accession": "Q8WW38",
+        "parent_gene": "ZFPM2",
+        "parent_sequence_length": 1151,
+        "partial_DBD": false,
+        "relationship": "NO_CANONICAL_DBD_COORDINATES"
+      },
+      {
+        "DBD_aligned_residues": 3,
+        "DBD_coverage_percent": 3.7,
+        "DBD_end": 253,
+        "DBD_identity_percent": 100.0,
+        "DBD_start": 173,
+        "complete_DBD": false,
+        "expected_DBD_type": "PF00178:Ets-domain",
+        "failed_coordinates": "173-175",
+        "matched_parent_span": "2-257",
+        "parent_accession": "Q9UKW6",
+        "parent_gene": "ELF5",
+        "parent_sequence_length": 265,
+        "partial_DBD": false,
+        "relationship": "LACKS_DBD_UNRESOLVED_TOPOLOGY"
+      }
+    ],
+    "B1NY96": [
+      {
+        "DBD_aligned_residues": 9,
+        "DBD_coverage_percent": 16.67,
+        "DBD_end": 603,
+        "DBD_identity_percent": 77.78,
+        "DBD_start": 550,
+        "complete_DBD": false,
+        "expected_DBD_type": "PF00010:Helix-loop-helix DNA-binding domain",
+        "failed_coordinates": "171-179",
+        "matched_parent_span": "226-652",
+        "parent_accession": "P15923",
+        "parent_gene": "TCF3/E2A",
+        "parent_sequence_length": 654,
+        "partial_DBD": false,
+        "relationship": "PARTIAL_OR_DIVERGENT_DBD_UNRESOLVED"
+      },
+      {
+        "DBD_aligned_residues": 64,
+        "DBD_coverage_percent": 32.0,
+        "DBD_end": 455,
+        "DBD_identity_percent": 57.81,
+        "DBD_start": 256,
+        "complete_DBD": false,
+        "expected_DBD_type": "PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type;PF00096:Zinc finger, C2H2 type",
+        "failed_coordinates": "99-162",
+        "matched_parent_span": "3-575",
+        "parent_accession": "Q8TF68",
+        "parent_gene": "ZNF384/NMP4",
+        "parent_sequence_length": 577,
+        "partial_DBD": false,
+        "relationship": "PARTIAL_OR_DIVERGENT_DBD_UNRESOLVED"
+      }
+    ],
+    "D1LUZ8": [
+      {
+        "DBD_aligned_residues": 0,
+        "DBD_coverage_percent": 0.0,
+        "DBD_end": "",
+        "DBD_identity_percent": 0.0,
+        "DBD_start": "",
+        "complete_DBD": false,
+        "expected_DBD_type": "",
+        "failed_coordinates": "",
+        "matched_parent_span": "",
+        "parent_accession": "Q96MY1",
+        "parent_gene": "NOL4L/C20orf112",
+        "parent_sequence_length": 436,
+        "partial_DBD": false,
+        "relationship": "NO_CANONICAL_DBD_COORDINATES"
+      },
+      {
+        "DBD_aligned_residues": 12,
+        "DBD_coverage_percent": 9.38,
+        "DBD_end": 179,
+        "DBD_identity_percent": 91.67,
+        "DBD_start": 52,
+        "complete_DBD": false,
+        "expected_DBD_type": "PF00853:Runt domain",
+        "failed_coordinates": "9-20",
+        "matched_parent_span": "18-453",
+        "parent_accession": "Q01196",
+        "parent_gene": "RUNX1",
+        "parent_sequence_length": 453,
+        "partial_DBD": true,
+        "relationship": "LACKS_DBD_UNRESOLVED_TOPOLOGY"
+      }
+    ],
+    "H2BNB9": [
+      {
+        "DBD_aligned_residues": 80,
+        "DBD_coverage_percent": 100.0,
+        "DBD_end": 420,
+        "DBD_identity_percent": 43.75,
+        "DBD_start": 341,
+        "complete_DBD": false,
+        "expected_DBD_type": "PF00178:Ets-domain",
+        "failed_coordinates": "371-539",
+        "matched_parent_span": "1-446",
+        "parent_accession": "P41212",
+        "parent_gene": "ETV6",
+        "parent_sequence_length": 452,
+        "partial_DBD": false,
+        "relationship": "COVERS_DBD_COORDINATE_SPAN_LOW_IDENTITY"
+      },
+      {
+        "DBD_aligned_residues": 0,
+        "DBD_coverage_percent": 0.0,
+        "DBD_end": "",
+        "DBD_identity_percent": 0.0,
+        "DBD_start": "",
+        "complete_DBD": false,
+        "expected_DBD_type": "",
+        "failed_coordinates": "",
+        "matched_parent_span": "",
+        "parent_accession": "Q53TQ3",
+        "parent_gene": "INO80D",
+        "parent_sequence_length": 1027,
+        "partial_DBD": false,
+        "relationship": "NO_CANONICAL_DBD_COORDINATES"
+      }
+    ]
+  },
+  "input_hashes": {
+    "/home/patricia/TF_database_Baldo_data/TF_without_model.fasta": "536b5f5f40010df69320d6504823c51bbd29d7e8c582c663887e8f811b91f7e1",
+    "/home/patricia/tf_webdb/data/tf_webdb.sqlite": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+    "/home/patricia/tf_webdb/data_sources/af3_failed_102_pfam_role_reviewed.tsv": "86948653670772319b836bde171ec62a1fac28c3b4b4fdb0c203ec93f82e6b89",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_102_full_length.fasta": "e8ff83939b7ea5555491695d1ae764c512af15417b2b7091d13657fc9d52e86c",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_same_gene_modcre_interface_audit.tsv": "c503f61b967ad8f0578ec0744f0d112b4dad8728fa636b414cb000a2fd17ceff",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_fragment_interface_summary.tsv": "aaf7c1fe2722e86937e9fd6fe325187a1d140647fa398ff2db270357a631da54",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_domain_inventory.tsv": "f1fbfbf4c9bd0a641d052e4c96b78538f57b2b0b5af47be25acf6e82e560653d",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_manual_review_alignments.tsv": "a2c0b48e73281ffea7e38c1ab6516238c82e4518b29d5b7137141134e24d0d25",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_manual_review_dossier.tsv": "fbafa77cab19f8c4eeb34c82260f14b65baa105476f3b00240e9efda4ed4b737",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_reference_alignments.tsv": "7ed698924f07f392eddea16c1765e5424b935120581a893e5b2b548528278ae6",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_structural_status_draft.tsv": "2944bd926ea4ed1082a6450258724ef6239f7175efe9aa61a8c24b0f3af274b1"
+  },
+  "local_sequence_searches": {
+    "A8K549": [
+      {
+        "accession": "B3KU95",
+        "aligned_residues": 248,
+        "gene": "HOXA2",
+        "identity_percent": 99.19,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 248
+      },
+      {
+        "accession": "Q9C0A1",
+        "aligned_residues": 248,
+        "gene": "ZFHX2",
+        "identity_percent": 90.73,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 2572
+      },
+      {
+        "accession": "A0A2P1H683",
+        "aligned_residues": 248,
+        "gene": "ZFHX2",
+        "identity_percent": 90.73,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 2572
+      },
+      {
+        "accession": "P10070",
+        "aligned_residues": 248,
+        "gene": "GLI2",
+        "identity_percent": 79.03,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 1586
+      },
+      {
+        "accession": "O43364",
+        "aligned_residues": 247,
+        "gene": "HOXA2",
+        "identity_percent": 74.09,
+        "query_coverage_percent": 99.6,
+        "sequence_length": 376
+      }
+    ],
+    "B4DTN3": [
+      {
+        "accession": "Q9BQA5",
+        "aligned_residues": 143,
+        "gene": "HINFP",
+        "identity_percent": 99.3,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 517
+      },
+      {
+        "accession": "Q15911",
+        "aligned_residues": 143,
+        "gene": "ZFHX3",
+        "identity_percent": 97.2,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 3703
+      },
+      {
+        "accession": "Q9C0A1",
+        "aligned_residues": 143,
+        "gene": "ZFHX2",
+        "identity_percent": 95.1,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 2572
+      },
+      {
+        "accession": "A0A2P1H683",
+        "aligned_residues": 143,
+        "gene": "ZFHX2",
+        "identity_percent": 95.1,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 2572
+      },
+      {
+        "accession": "B9EK48",
+        "aligned_residues": 143,
+        "gene": "ZFHX2",
+        "identity_percent": 81.12,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 1427
+      }
+    ],
+    "Q68D60": [
+      {
+        "accession": "Q70SY1",
+        "aligned_residues": 150,
+        "gene": "CREB3L2",
+        "identity_percent": 99.33,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 520
+      },
+      {
+        "accession": "A8KAI3",
+        "aligned_residues": 150,
+        "gene": "",
+        "identity_percent": 99.33,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 520
+      },
+      {
+        "accession": "Q86WD1",
+        "aligned_residues": 150,
+        "gene": "PPARG",
+        "identity_percent": 95.33,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 584
+      },
+      {
+        "accession": "A2RRN1",
+        "aligned_residues": 149,
+        "gene": "CREB3L2",
+        "identity_percent": 87.92,
+        "query_coverage_percent": 99.33,
+        "sequence_length": 174
+      },
+      {
+        "accession": "V9HVY5",
+        "aligned_residues": 150,
+        "gene": "HEL-S-89",
+        "identity_percent": 86.67,
+        "query_coverage_percent": 100.0,
+        "sequence_length": 1324
+      }
+    ]
+  },
+  "official_uniprot_sequences_retrieved": {
+    "Q53TQ3": {
+      "sequence": "MYEGKHIHFSEVDNKPLCSYSPKLCKQRRLNGYAFCIRHVLEDKTAPFKQCEYVAKYNSQRCTNPIPKSEDRRYCNSHLQVLGFIPKKERKKKNDPIDEVKVRHQMDTMAFSLTVPTLALKMPNGLDGMSLSPPGARVPLHYLETELEDPFAFNEEDDDLKKGATVRKKLQSKLAQNRQRQRETEILKVRQEHFSPPPAPSQQQPPQQHSHLSPLSTSLKPPAPPQGSVCKSPQPQNTSLPMQGVAPTTHTIAQARQLSHKRPLPLLPSSRAPTVDPPRTDRILMKATAFSPHFSCISRLQRLVKLCTQKHQLDTDLFPHLGLDWSEESGEEPEDSEQASPYQVAWSIRETLRYQRHASDDDDAESRSSRVTQLCTYFQQKYKHLCRLERAESRQKKCRHTFRKALLQAASKEPECTGQLIQELRRAACSRTSISRTKLREVEPAACSGTVKGEQCANKALPFTRHCFQHILLNHSQQLFSSCTAKFADGQQCSVPVFDITHQTPLCEEHAKKMDNFLRGDNSRKVQHQQQRKPRKKTKPPALTKKHKKKRRRGPRRPQKPIPPAVPQGNLSMPASVSLPVEASHIRSPSTPELSADELPDDIANEITDIPHDLELNQEDFSDVLPRLPDDLQDFDFFEGKNGDLLPTTEEAEELERALQAVTSLECLSTIGVLAQSDGVPVQELSDRGIGVFSTGTGASGIQSLSREVNTDLGELLNGRIVHDNFSSLELDENLLRSATLSNPPTPLAGQIQGQFSAPANVGLTSATLISQSALGERAFPGQFHGLHDGSHASQRPHPAQLLSKADDLITSRQQYSSDHSHSSPHGSHYDSEHVPSPYSDHITSPHTTSYSGDNMAATFSAEMPIMAQHLLPTQLEVPLGGVVNPRTHWGNLPVNLGDPSPFSNLLGADGHLLSTSLSTPPTTSNSETTQPAFATVTPSSSSVLPGLPQTSFSGMGPSAELMASTSPKQQLPQFSAAFGHQLSSHSGIPKDLQPSHSSIAPPTGFTVTGATATSTNNASSPFPSPN",
+      "sha256": "c40027ea332393a0725774ccffe5247ab327d59124e817ceab1424f698b46f61",
+      "url": "https://rest.uniprot.org/uniprotkb/Q53TQ3.fasta"
+    },
+    "Q8WW38": {
+      "sequence": "MSRRKQSKPRQIKRPLEDAIEDEEEECPSEETDIISKGDFPLEESFSTEFGPENLSCEEVEYFCNKGDDEGIQETAESDGDTQSEKPGQPGVETDDWDGPGELEVFQKDGERKIQSRQQLPVGTTWGPFPGKMDLNNNSLKTKAQVPMVLTAGPKWLLDVTWQGVEDNKNNCIVYSKGGQLWCTTTKAISEGEELIAFVVDFDSRLQAASQMTLTEGMYPARLLDSIQLLPQQAAMASILPTAIVNKDIFPCKSCGIWYRSERNLQAHLMYYCSGRQREAAPVSEENEDSAHQISSLCPFPQCTKSFSNARALEMHLNSHSGVKMEEFLPPGASLKCTVCSYTADSVINFHQHLFSHLTQAAFRCNHCHFGFQTQRELLQHQELHVPSGKLPRESDMEHSPSATEDSLQPATDLLTRSELPQSQKAMQTKDASSDTELDKCEKKTQLFLTNQRPEIQPTTNKQSFSYTKIKSEPSSPRLASSPVQPNIGPSFPVGPFLSQFSFPQDITMVPQASEILAKMSELVHRRLRHGSSSYPPVIYSPLMPKGATCFECNITFNNLDNYLVHKKHYCSSRWQQMAKSPEFPSVSEKMPEALSPNTGQTSINLLNPAAHSADPENPLLQTSCINSSTVLDLIGPNGKGHDKDFSTQTKKLSTSSNNDDKINGKPVDVKNPSVPLVDGESDPNKTTCEACNITFSRHETYMVHKQYYCATRHDPPLKRSASNKVPAMQRTMRTRKRRKMYEMCLPEQEQRPPLVQQRFLDVANLNNPCTSTQEPTEGLGECYHPRCDIFPGIVSKHLETSLTINKCVPVSKCDTTHSSVSCLEMDVPIDLSKKCLSQSERTTTSPKRLLDYHECTVCKISFNKVENYLAHKQNFCPVTAHQRNDLGQLDGKVFPNPESERNSPDVSYERSIIKCEKNGNLKQPSPNGNLFSSHLATLQGLKVFSEAAQLIATKEENRHLFLPQCLYPGAIKKAKGADQLSPYYGIKPSDYISGSLVIHNTDIEQSRNAENESPKGQASSNGCAALKKDSLPLLPKNRGMVIVNGGLKQDERPAANPQQENISQNPQHEDDHKSPSWISENPLAANENVSPGIPSAEEQLSSIAKGVNGSSQAPTSGKYCRLCDIQFNNLSNFITHKKFYCSSHAAEHVK",
+      "sha256": "e23789bd50696d499ed20457be8f2a684698d7e101560e49d45356b8ff089348",
+      "url": "https://rest.uniprot.org/uniprotkb/Q8WW38.fasta"
+    },
+    "Q96MY1": {
+      "sequence": "MSDSTWMSADPHLASSLSPSQDERMRSPQNLHSQEDDDSSSESGSGNGSSTLNPSTSSSTQGDPAFPEMNGNGAVAPMDFTTAAEDQPINLCDKLPPATALGTASYPSDGCGADGLRSRVKYGVKTTPESPPYSSGSYDSIKTEVSGCPEDLTVGRAPTADDDDDDHDDHEDNDKMNDSEGMDPERLKAFNMFVRLFVDENLDRMVPISKQPKEKIQAIIESCSRQFPEFQERARKRIRTYLKSCRRMKKNGMEMTRPTPPHLTSAMAENILAAACESETRKAAKRMRLEIYQSSQDEPIALDKQHSRDSAAITHSTYSLPASSYSQDPVYANGGLNYSYRGYGALSSNLQPPASLQTGNHSNGPTDLSMKGGASTTSTTPTPTPSSTSTSRPVPTAQLSPTEISAVRQLIAGYRESAAFLLRSADELENLILQQN",
+      "sha256": "dc4bdc9926913adf2e61a7219cec9767f5ddf46b67a1d482f36ac56fb41bd0ea",
+      "url": "https://rest.uniprot.org/uniprotkb/Q96MY1.fasta"
+    }
+  },
+  "output_hashes_excluding_qc_self_hash": {
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_baldo_fragments_DRAFT.fasta": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_baldo_package_DRAFT.tsv": "0a513c3b14cb356801653b721d375a8f65b6815bf553d6820245180a7d1805f0",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_database_display_DRAFT.tsv": "993a5251cdaa89e81dc6cbd72ded7d2db62b6ba258c7db510159d4f1bd96c160",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_final_adjudication_DRAFT.tsv": "ede1e5100282133bb5598200aa84724e3fa3c7977460a8265b0a8f3e20446042",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_final_manual_review_DRAFT.tsv": "c75becdaf8d2931e13056af99fdba44f83a2c80e0638496e7bfb6a67256e4a98"
+  },
+  "partial_DBD_results": {
+    "B4DL38": {
+      "action": "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE",
+      "aligned": 10,
+      "coverage": "12.35",
+      "identity": "100.00",
+      "status": "ACCESSION_CONTAINS_INCOMPLETE_DBD"
+    },
+    "B7Z8F5": {
+      "action": "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE",
+      "aligned": 15,
+      "coverage": "20.00",
+      "identity": "93.33",
+      "status": "ACCESSION_CONTAINS_INCOMPLETE_DBD"
+    },
+    "F6X9D6": {
+      "action": "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE",
+      "aligned": 30,
+      "coverage": "38.96",
+      "identity": "100.00",
+      "status": "ACCESSION_CONTAINS_INCOMPLETE_DBD"
+    },
+    "Q5VVR5": {
+      "action": "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE",
+      "aligned": 11,
+      "coverage": "15.94",
+      "identity": "81.82",
+      "status": "ACCESSION_CONTAINS_INCOMPLETE_DBD"
+    }
+  },
+  "public_database_write_performed": false,
+  "send_accessions": [],
+  "unresolved_accessions": [
+    "A0A0A7M2K0",
+    "A0A804HLH1",
+    "A8K549",
+    "A8MTU8",
+    "B1NY96",
+    "B3KU95",
+    "B4E2G3",
+    "B5MCD3",
+    "C9JPH0",
+    "D6RID7",
+    "E9PKB7",
+    "G3V0H1",
+    "G3V289",
+    "G3V302",
+    "G3V447",
+    "H0Y7E5",
+    "H0YNG1",
+    "H2BNB9",
+    "Q59EF3",
+    "Q6L9M1",
+    "Q86VD4"
+  ]
+}

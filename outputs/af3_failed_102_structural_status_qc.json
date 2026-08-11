@@ -1,0 +1,404 @@
+{
+  "all_checks_passed": true,
+  "checks": {
+    "all_102_in_action_summary": {
+      "expected": 102,
+      "observed": 102,
+      "passed": true
+    },
+    "all_uncertainty_visible": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "canonical_references_explicitly_separate": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "control_B4DHE0_nonDBD_contacts_not_valid_and_STAT2_compared": {
+      "expected": {
+        "non_DBD": "PF01017 and PF02865",
+        "primary": "not VALID_DBD_FRAGMENT_MODEL",
+        "reference": "P52630"
+      },
+      "observed": {
+        "canonical_reference_accession": "P52630",
+        "non_DBD_pfam_hits": "PF02865:2-122:STAT protein, protein interaction domain;PF01017:146-183:STAT transcription factor, coiled-coil domain",
+        "primary_structural_status": "ACCESSION_LACKS_DBD"
+      },
+      "passed": true
+    },
+    "control_B4DNX4_PF11914_manual": {
+      "expected": {
+        "manual": "YES",
+        "primary": "UNCERTAIN_MANUAL_REVIEW"
+      },
+      "observed": {
+        "manual_review_required": "YES",
+        "primary_structural_status": "UNCERTAIN_MANUAL_REVIEW",
+        "uncertain_pfam_hits": "PF11914:114-187:Domain of unknown function (DUF3432)"
+      },
+      "passed": true
+    },
+    "control_E9PN75_lacks_DBD_separate_valid_Q9NZC4": {
+      "expected": {
+        "action": "not SEND_NEW_DBD_FRAGMENT",
+        "primary": "ACCESSION_LACKS_DBD",
+        "reference": "Q9NZC4",
+        "reference_status": "CANONICAL_REFERENCE_INTERFACE_VALID"
+      },
+      "observed": {
+        "action_for_baldo": "NO_SEND_CANONICAL_REFERENCE_ONLY",
+        "canonical_reference_accession": "Q9NZC4",
+        "canonical_reference_status": "CANONICAL_REFERENCE_INTERFACE_VALID",
+        "primary_structural_status": "ACCESSION_LACKS_DBD"
+      },
+      "passed": true
+    },
+    "control_H7C4N4_PF03299_valid_existing": {
+      "expected": {
+        "action": "NO_SEND_USE_EXISTING_DBD_FRAGMENT",
+        "primary": "VALID_DBD_FRAGMENT_MODEL"
+      },
+      "observed": {
+        "action_for_baldo": "NO_SEND_USE_EXISTING_DBD_FRAGMENT",
+        "primary_structural_status": "VALID_DBD_FRAGMENT_MODEL",
+        "reviewed_DBD_pfam_hits": "PF03299:2-70:Transcription factor AP-2"
+      },
+      "passed": true
+    },
+    "control_Q59EF3_nonDBD_contact_not_valid_and_TEAD1_compared": {
+      "expected": {
+        "non_DBD": "PF17725",
+        "primary": "not VALID_DBD_FRAGMENT_MODEL",
+        "reference_gene": "TEAD1"
+      },
+      "observed": {
+        "canonical_reference_accession": "H0YE88",
+        "non_DBD_pfam_hits": "PF17725:160-368:YAP binding domain",
+        "primary_structural_status": "UNCERTAIN_MANUAL_REVIEW"
+      },
+      "passed": true
+    },
+    "control_Q9Y2W8_long_accession_to_model_match_revalidated": {
+      "expected": {
+        "PDB_reference_alignment": ">=30 residues and >=80% identity",
+        "not_prior_label_only": true
+      },
+      "observed": {
+        "DBD_aligned_residues": 0,
+        "DBD_coverage_percent": "0.00",
+        "DBD_identity_percent": "0.00",
+        "DBD_length": 69,
+        "DBD_matches": 0,
+        "aligned_non_DBD_identity_percent": "100.00",
+        "aligned_non_DBD_matches": 113,
+        "aligned_non_DBD_residues": 113,
+        "alignment_evidence_class": "HIGH_CONFIDENCE_DBD_ABSENT",
+        "canonical_DBD_context": "PF00105:184-252:Double treble clef zinc finger, C4 type",
+        "canonical_DBD_end": 252,
+        "canonical_DBD_interval_source": "CANONICAL_DBD_PFAM_WITHIN_MODEL_INTERVAL",
+        "canonical_DBD_start": 184,
+        "canonical_reference_accession": "P03372",
+        "canonical_reference_is_separate_accession": "YES",
+        "canonical_reference_sequence_length": 595,
+        "failed_accession": "Q9Y2W8",
+        "failed_coordinates_corresponding_to_DBD": "",
+        "failed_sequence_coverage_by_pdb_percent": "95.58",
+        "failed_sequence_length": 113,
+        "failed_to_pdb_aligned_residues": 108,
+        "failed_to_pdb_identity_percent": "100.00",
+        "full_aligned_residue_pairs": 113,
+        "full_alignment_columns": 595,
+        "full_alignment_matches": 113,
+        "full_identity_percent": "100.00",
+        "model_interval": "185-544",
+        "model_path": "/data/sbi/interchange/boliva/patricia/models/TFS_P03372:185:544_3e00_A_1.pdb",
+        "model_path_sha256": "6c723688317e114cd0143a3432d4249f0a091c24db45959e5e322d20a7820be8",
+        "pdb_chain_coverage_percent": "100.00",
+        "pdb_chain_sequence_length": 360,
+        "pdb_chain_sequence_sha256": "aa6b1ed4fa9c9e86085f7ca9deae5be1904fb7e5541c16fc60a1cd2afa5adb39",
+        "pdb_reconciliation_note": "PDB protein chain reconciles to the stated reference accession interval.",
+        "pdb_reference_reconciliation_status": "RECONCILED",
+        "pdb_selected_protein_chain": "A",
+        "pdb_to_reference_aligned_residues": 360,
+        "pdb_to_reference_identity_percent": "100.00",
+        "reference_selection_reason": "BLANK_GENE_MAPPING_TO_REVIEWED_CANONICAL_ACCESSION:clear_from_description:LONGEST_MODEL_INTERVAL_FOR_Q9Y2W8_CONTROL"
+      },
+      "passed": true
+    },
+    "control_other_EHF_isoforms_independently_aligned": {
+      "expected": "three independent alignment rows",
+      "observed": {
+        "E9PPS9": "ACCESSION_LACKS_DBD",
+        "E9PQR6": "ACCESSION_LACKS_DBD",
+        "E9PQX0": "ACCESSION_LACKS_DBD"
+      },
+      "passed": true
+    },
+    "database_unchanged_after_analysis": {
+      "expected": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "observed": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "passed": true
+    },
+    "database_unchanged_after_outputs": {
+      "expected": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "observed": {
+        "mtime_ns": 1782763306655388169,
+        "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+        "size": 112508928
+      },
+      "passed": true
+    },
+    "draft_FASTA_exactly_SEND_NEW_rows": {
+      "expected": "exact set equality",
+      "observed": {
+        "fasta": [],
+        "send_rows": []
+      },
+      "passed": true
+    },
+    "draft_FASTA_sequences_reconcile_to_failed_accessions": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "every_reference_PDB_sequence_reconciled_or_short_explicit": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "exactly_102_unique_failed_accessions": {
+      "expected": {
+        "rows": 102,
+        "unique": 102
+      },
+      "observed": {
+        "rows": 102,
+        "unique": 102
+      },
+      "passed": true
+    },
+    "exactly_one_allowed_primary_status": {
+      "expected": [
+        "ACCESSION_LACKS_DBD",
+        "COFACTOR_OR_NON_DNA_BINDING_COMPONENT",
+        "DBD_PRESENT_FRAGMENT_FAILED",
+        "DBD_PRESENT_FRAGMENT_NOT_SENT",
+        "UNCERTAIN_MANUAL_REVIEW",
+        "VALID_DBD_FRAGMENT_MODEL"
+      ],
+      "observed": [
+        "ACCESSION_LACKS_DBD",
+        "COFACTOR_OR_NON_DNA_BINDING_COMPONENT",
+        "UNCERTAIN_MANUAL_REVIEW",
+        "VALID_DBD_FRAGMENT_MODEL"
+      ],
+      "passed": true
+    },
+    "no_short_alignment_high_confidence": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "non_DBD_contacts_never_validate_DBD_fragment": {
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "reviewed_map_PF03299_yes": {
+      "expected": "YES",
+      "observed": "YES",
+      "passed": true
+    },
+    "reviewed_map_PF11914_uncertain": {
+      "expected": "UNCERTAIN",
+      "observed": "UNCERTAIN",
+      "passed": true
+    },
+    "reviewed_map_other_24_no": {
+      "expected": {
+        "NO": 24,
+        "UNCERTAIN": 1,
+        "YES": 1
+      },
+      "observed": {
+        "NO": 24,
+        "UNCERTAIN": 1,
+        "YES": 1
+      },
+      "passed": true
+    },
+    "reviewed_pfam_map_exactly_26": {
+      "expected": 26,
+      "observed": 26,
+      "passed": true
+    },
+    "upstream_inventory_qc_passed": {
+      "expected": true,
+      "observed": true,
+      "passed": true
+    }
+  },
+  "counts": {
+    "action_for_baldo": {
+      "MANUAL_REVIEW_BEFORE_SENDING": 36,
+      "NO_SEND_CANONICAL_REFERENCE_ONLY": 57,
+      "NO_SEND_MARK_DNA_STRUCTURE_UNAVAILABLE": 8,
+      "NO_SEND_USE_EXISTING_DBD_FRAGMENT": 1
+    },
+    "canonical_reference_status": {
+      "CANONICAL_REFERENCE_FOUND_NOT_VALIDATED": 8,
+      "CANONICAL_REFERENCE_INTERFACE_VALID": 81,
+      "NOT_APPLICABLE": 3,
+      "NO_CANONICAL_REFERENCE_FOUND": 9,
+      "UNCERTAIN": 1
+    },
+    "manual_review": 36,
+    "primary_structural_status": {
+      "ACCESSION_LACKS_DBD": 63,
+      "COFACTOR_OR_NON_DNA_BINDING_COMPONENT": 2,
+      "UNCERTAIN_MANUAL_REVIEW": 36,
+      "VALID_DBD_FRAGMENT_MODEL": 1
+    },
+    "reference_alignments": 90,
+    "send_new_DBD_fragment": 0
+  },
+  "database_signature_after": {
+    "mtime_ns": 1782763306655388169,
+    "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+    "size": 112508928
+  },
+  "database_signature_before": {
+    "mtime_ns": 1782763306655388169,
+    "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+    "size": 112508928
+  },
+  "draft_only": true,
+  "input_hashes": {
+    "/home/patricia/TF_database_Baldo_data/TF_without_model.fasta": "536b5f5f40010df69320d6504823c51bbd29d7e8c582c663887e8f811b91f7e1",
+    "/home/patricia/tf_webdb/data/tf_webdb.sqlite": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+    "/home/patricia/tf_webdb/data_sources/tf_family_tree.json": "f63a435a093c7953d62748250ff349b4592e7d71d7d9479deb27a1e1baad793b",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_blank_gene_candidate_mapping.tsv": "ebe0b71fe1656fde2bd85b081e2515fff744a958d97451ab69bef815ac97393e",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_102_full_length.fasta": "e8ff83939b7ea5555491695d1ae764c512af15417b2b7091d13657fc9d52e86c",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_102_pfam.tsv": "360e122d63f9b7364c7ee25c7f309b45d8287b97f7487091ed131fa68fd3b9dc",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_all_pfam_fragments.tsv": "dea216ca2e2e0904f08881583cefecb527a9225d2ee3b5dbf9ab6f4dcc5c1789",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_no_pfam_match.tsv": "e53f8d27a37363af845045aca63fd6bf338e1e0f2ae7411d19a8a0fe2d8b2399",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_same_gene_modcre_candidates_v2.tsv": "ed24a2d7cab3dc5156a4584b30f4da62332ff315c66c76f8887fc2fa317897e6",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_same_gene_modcre_interface_audit.tsv": "c503f61b967ad8f0578ec0744f0d112b4dad8728fa636b414cb000a2fd17ceff",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_same_gene_modcre_summary_v2.tsv": "8618f45763fc51f8e44c1e52f098023459dd778b14060c0742f512cc71b61c1e",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_tf_for_fragmentation.tsv": "292d5650593904c946b8291c67e53480d86d9a9bd9295ffe22c7615c19458ba9",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_fragment_all_model_interface_audit.tsv": "892e0d156eba58108964f5c2138d2ff7f4b607ca45ee5ecc75df636eaaab02a1",
+    "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_fragment_interface_summary.tsv": "aaf7c1fe2722e86937e9fd6fe325187a1d140647fa398ff2db270357a631da54",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_domain_inventory.tsv": "f1fbfbf4c9bd0a641d052e4c96b78538f57b2b0b5af47be25acf6e82e560653d",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_domain_inventory_qc.json": "cf646e944e03da84ce5a97c8a0827100faea6f6dd6bb3e598452ddc596e52701",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_domain_role_draft.tsv": "a2b64f3e4b8aeb28b7d431443447cdfdc8be354d9685ad54de543af1ecae3aef",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_unique_pfam_review.tsv": "68f2070f80f4b10880d45aa6d543c155cd250bdef658995ea253e514a6d50071"
+  },
+  "manual_review_accessions": [
+    "A0A0A7M2K0",
+    "A0A804HLH1",
+    "A0A994J7B2",
+    "A8K549",
+    "A8MTU8",
+    "B1NY96",
+    "B3KU95",
+    "B4DL38",
+    "B4DNX4",
+    "B4DTN3",
+    "B4E2G3",
+    "B5MCD3",
+    "B7Z8F5",
+    "C9JPH0",
+    "D1LUZ8",
+    "D6RID7",
+    "E9PKB7",
+    "E9PQA2",
+    "F6X9D6",
+    "G3V0H1",
+    "G3V289",
+    "G3V302",
+    "G3V447",
+    "H0Y7E5",
+    "H0YGT3",
+    "H0YNG1",
+    "H2BNB9",
+    "K7ELF3",
+    "K7ENI0",
+    "Q59EF3",
+    "Q5VVR5",
+    "Q68D60",
+    "Q6L9M1",
+    "Q709A9",
+    "Q86VD4",
+    "X5D8U0"
+  ],
+  "output_hashes_excluding_qc_self_hash": {
+    "/home/patricia/tf_webdb/data_sources/af3_failed_102_pfam_role_reviewed.tsv": "86948653670772319b836bde171ec62a1fac28c3b4b4fdb0c203ec93f82e6b89",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_baldo_action_summary.tsv": "2bed2d9f852ff7b0daa83d367e95223582b34335cb28c0ceaae8fd7f52c23322",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_baldo_new_fragments_DRAFT.fasta": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_manual_review.tsv": "3c6327a9342767579201edbd70350b253b10ca89c93aa88d72deabfac457edd1",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_reference_alignments.tsv": "7ed698924f07f392eddea16c1765e5424b935120581a893e5b2b548528278ae6",
+    "/home/patricia/tf_webdb/outputs/af3_failed_102_structural_status_draft.tsv": "2944bd926ea4ed1082a6450258724ef6239f7175efe9aa61a8c24b0f3af274b1"
+  },
+  "selected_reference_pdb_hashes": {
+    "/data/sbi/interchange/boliva/patricia/models/TFS_A0A0S2Z3C9:339:428_4mhg_A_1.pdb": "96ccdb0db2113285c805e110fccae45493b67146e95efdcc923f0167ee39361b",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_A0A669KB52:136:624_1bf5_A_1.pdb": "f3533d569be0e66e15c522f7d38e017dc3e83aa7691b7a96503665e942cfa0bf",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_A0A7I2YQR9:232:263_5nj8_B_1.pdb": "68117e4ce12dea1e3a09c022a4d3d94ff56414a72a1670a5b788fe42aae2a312",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_A0A7P0TAH1:289:362_1nkp_A_1.pdb": "8685763438c5b8d85168852531de58e937aa339538e4902e7d833b7dbd892f26",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_A0A8I5KYI5:350:435_4r2a_A_1.pdb": "03ed0cd6d64c6542752fc5deac3e71c3cbabf027aa6f4c2419baf31d6474d34a",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_B7ZKJ5:553:837_5wjq_D_1.pdb": "9b5521c29e0e266769b318fcaf92dfb57c6d44043db59a788462ec991ff4fa1e",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_E5RHL1:127:139_4euw_A_1.pdb": "42a94864e1a84cb4f0d4c7a2f95612309fc9fa5360fba082bd41d4efe92a5067",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_F5H0E9:1:19_1lo1_A_1.pdb": "5f81737b942e3bb6242de7680b4c202d9ebc036d88688f361db19c665fea3578",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_H0YD59:63:102_4h10_A_1.pdb": "3193b8d5c8f7e13477d05e1740f47488fa1ac013eb63cc0bbc2660c5a1d469f2",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_H0YE88:31:104_5nnx_A_1.pdb": "130e9796e11c9fd0884382153965087fc30c8c6ba6174fb2ad236c8dd46548da",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_H0YEE5:1:64_2lef_A_1.pdb": "cc449cf2ba853feb6925302c23fb2ef19b6a52d5f29a2d2008b1346c9f3fee4d",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_H7C4S2:423:450_2gzk_A_1.pdb": "7de60d530b2c7b2b779fa95bea503cc475c163ec60a06e829ced845bd379986d",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_K7ENH8:199:272_2ypb_B_1.pdb": "4b47e237d59ac0d3c8cbbe0c6bb296e5dc2867304079beb9fd1a257975b373d9",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_O15209:490:559_1a1f_A_1.pdb": "927ee351fc41cf1d3eae5c78422efc078c4c781e4817db380bd317c0d9b9e128",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_O43364:144:205_1ahd_P_1.pdb": "98ad1ce42732c25b3ec2e401646e9f395425a89d227d720872ff7157a8972864",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_O75030:308:363_4h10_B_1.pdb": "c8ce65a1a080c10c58d21f2618b02a93ddbec8ac12287066fb14052696504895",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P01100:135:193_2e42_B_1.pdb": "724042a7f86ae12209af55929cd2c64c57b73dedefe5387c2f119874084884dc",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P03372:183:263_1lo1_A_1.pdb": "23ed8ec461dc45e432e48ab2afa64759888d90a7b15d1fe7017daff7b36ae0f2",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P03372:185:544_3e00_A_1.pdb": "6c723688317e114cd0143a3432d4249f0a091c24db45959e5e322d20a7820be8",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P14921:302:439_3mfk_A_1.pdb": "5ece12d3a953a15409814594d41c1fb8a4b39386b5e7bb89e7cd1c8bea69a316",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P18146:335:421_4r2d_A_1.pdb": "1534b82c5ba75f7cdd902ab026efece83746e2e6bc07b857dac7c1a74f0fe50e",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P18848:279:338_2wt7_A_1.pdb": "59e2c309f4f577ffa786a492bf6a3254f5ebc77bae35ea42c8a9c9d75d642391",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P35452:203:259_5zjr_A_1.pdb": "773e2d612a04f18c8c0e63ecd354c49d0e5ba01394d0b9cb69caaf80fa8615c6",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P35711:553:634_1j46_A_1.pdb": "e650412cce38e0f818785072e64d8f7d3421b84f7859f8ae76503212cfb0e833",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P36956:316:404_5i50_B_1.pdb": "71565db3d8b7f680cb91b2d472052429bff215f6ee2f244251ac4ea504024dad",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P48436:103:174_4euw_A_1.pdb": "61675efc451ecdaea645f659ef37bcda1fe5393a5d62503dd1ab4691f4f27f4e",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_P52630:141:678_1bf5_A_1.pdb": "d3e458d2d038b1e6b31f156c8d57ea224f6852a6b2404c98155be261ef2be051",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q07869:100:468_3e00_D_1.pdb": "303e9541d01daf4c3aaeff396508a8d5f7974557309f91ab74a56924a8df8af2",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q10587:230:292_1gtw_B_1.pdb": "3d7b5ece80b5fbaf9f6a39477f6033bbe11d15027032a010f968ac535548b041",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q12772:323:398_1hlo_A_1.pdb": "104815a5c316cb942491b15950abe2ceb780c0a8836be40684b363969ad5deab",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q16665:11:358_4zpk_B_1.pdb": "0fcaff3100d6279f69833fb0102c4b0f76674ac0302a4cfae9c7dd4034e9a7f1",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q4W4C7:121:201_1a6y_B_1.pdb": "cfcad351e1dc61776aad8542fa412d5eab171c06e5fe87443c090a7839270631",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q6AZW6:326:381_1t2k_C_1.pdb": "c21719f104f3ecb9a64320e2a4b86ec200657b172cf9d7016ebfa876a8afe84c",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q70SY1:295:354_1t2k_C_1.pdb": "223464dee64cfdad948ff5f6442d8d8b8f2ac7bd543b82a2a2aed99fc32891eb",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q8TAX8:10:75_1am9_A_1.pdb": "89411b37ddb400c18facca5f9b871c89467d4d285fdcfa0cdae6a2e2164c25f9",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q8TE12:196:249_6a8r_B_1.pdb": "2a40626bce14f5582d474b922ff3745314717087521b83ddeb3b08d3ae4190be",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q8TEY5:218:259_1t2k_C_1.pdb": "ab1e82058fc715772271bca9bf704fb5d3ea6744d0b00667d0c5483f40bcae72",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q92985:17:122_1t2k_A_1.pdb": "b84a32613ce402c6abcd7eaee8f8b3153cd07f7cd55d7fbefafb52498f12d465",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q99592:409:485_1ubd_C_1.pdb": "3000af89e438c0f732edae90680e7ef6bfb066cf89c8be60b348c1777c28a0e7",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q9BQA5:174:365_5wjq_D_1.pdb": "1a5bc9cc67ae9401ca23a21f114a014bc0c061672137dcb66763e7c8a4b322c9",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q9NZC4:206:299_3jtg_A_1.pdb": "8b6170fd856ef625e641fb06fbe1f7b8d264cef56b2218da88f590a3021f4c04",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_Q9UJU2:297:366_4s2q_D_1.pdb": "652d19c72403682591ffd2ed31b8c0d46102aa9bf1aa01ed65b1d4d4ae5893c1",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_U3KQ96:189:262_1e3o_C_1.pdb": "47d52f8f808df558888385c737ce75507a535fdb0d4da8ab502dd936bba0a4b2",
+    "/data/sbi/interchange/boliva/patricia/models/TFS_X5DRE4:62:116_4zpr_A_1.pdb": "964c5e79f673212e9a9a2b3060353e0ae7615290066ebe5f55f530f2034067c6"
+  },
+  "send_new_DBD_fragment_accessions": []
+}

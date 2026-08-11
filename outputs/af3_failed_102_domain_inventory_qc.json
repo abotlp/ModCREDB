@@ -1,0 +1,391 @@
+{
+  "all_checks_passed": true,
+  "ambiguous_joins": [],
+  "checks": {
+    "control_B4DHE0_PF01017_contact_remains_unreviewed": {
+      "detail": "",
+      "expected": {
+        "domain_role_review": "UNREVIEWED",
+        "is_expected_DBD_review": "UNREVIEWED",
+        "passing_model_count": ">0",
+        "row_count": 1
+      },
+      "observed": [
+        {
+          "PWM_annotation_level": "Homologous_PWM",
+          "PWM_source_or_model": "M08019_2.00 (97.2%);MA0517.1 (99.4%);MA1623.1 (71.7%)",
+          "accepted_pfam_status": "ACCEPTED_PFAM38_HIT",
+          "candidate_interface_audit_results": "",
+          "candidate_modcre_model_intervals": "",
+          "candidate_modcre_model_paths": "",
+          "domain_role_evidence": "",
+          "domain_role_review": "UNREVIEWED",
+          "failed_accession": "B4DHE0",
+          "failed_sequence_length": 203,
+          "failed_sequence_sha256": "e9a803a26bd13b4e5e254d4c3350ad4cf2165add1abb8c1392dc6eb68072a09d",
+          "fragment_atom_contacts": "51",
+          "fragment_best_model_kind": "selected",
+          "fragment_best_model_path": "external/baldo_model_inventory/fragments_cif_audit/AF3/B4DHE0_PF01017_146-183/B4DHE0_PF01017_146-183_model.cif",
+          "fragment_contact_metric_source": "BEST_PASSING_MODEL",
+          "fragment_dna_interface_residues": "4",
+          "fragment_id": "B4DHE0|PF01017|146-183",
+          "fragment_models_checked": "6",
+          "fragment_passing_model_count": "5",
+          "fragment_protein_interface_residues": "2",
+          "fragment_selected_result": "PASS_NONEMPTY_PROTEIN_DNA_INTERFACE",
+          "fragment_sent_to_baldo": "YES",
+          "gene_names": "",
+          "interpro_id": "IPR013800",
+          "interpro_name": "STAT transcription factor, all-alpha domain",
+          "is_expected_DBD_review": "UNREVIEWED",
+          "legacy_family_text": "STAT_alpha,STAT_int,CorA",
+          "longer_same_gene_candidate_accessions": "",
+          "manual_review_notes": "",
+          "pfam_analysis": "Pfam",
+          "pfam_end": 183,
+          "pfam_evalue": "0.0081",
+          "pfam_fragment_length": 38,
+          "pfam_id": "PF01017",
+          "pfam_match_status": "T",
+          "pfam_name": "STAT transcription factor, coiled-coil domain",
+          "pfam_raw_row": "B4DHE0|gene=|primary=Homologous_PWM|family=STAT_alpha,STAT_int,CorA|no_active_pdb_model\tdd98106f3e6d0ee49f3bc4c542b61750\t203\tPfam\tPF01017\tSTAT transcription factor, coiled-coil domain\t146\t183\t0.0081\tT\t15-07-2026\tIPR013800\tSTAT transcription factor, all-alpha domain\t-\t-",
+          "pfam_scan_date": "15-07-2026",
+          "pfam_start": 146,
+          "protein_description": "cDNA FLJ56695, highly similar to Signal transducer and activator of transcription 2 (cDNA, FLJ79415, highly similar to Signal transducer and activator of transcription 2)",
+          "reviewed_same_gene_candidate_accessions": "",
+          "reviewed_status": "UNREVIEWED",
+          "same_gene_candidate_accessions": "",
+          "same_gene_candidate_pfam_domains": ""
+        }
+      ],
+      "passed": true
+    },
+    "control_E9PN75_has_PF02198_not_PF00178": {
+      "detail": "",
+      "expected": {
+        "contains": "PF02198",
+        "does_not_contain": "PF00178"
+      },
+      "observed": [
+        "PF02198"
+      ],
+      "passed": true
+    },
+    "control_Q59EF3_PF17725_contact_remains_unreviewed": {
+      "detail": "",
+      "expected": {
+        "domain_role_review": "UNREVIEWED",
+        "is_expected_DBD_review": "UNREVIEWED",
+        "passing_model_count": ">0",
+        "row_count": 1
+      },
+      "observed": [
+        {
+          "PWM_annotation_level": "Identical_PWM",
+          "PWM_source_or_model": "MA0090.1",
+          "accepted_pfam_status": "ACCEPTED_PFAM38_HIT",
+          "candidate_interface_audit_results": "",
+          "candidate_modcre_model_intervals": "",
+          "candidate_modcre_model_paths": "",
+          "domain_role_evidence": "",
+          "domain_role_review": "UNREVIEWED",
+          "failed_accession": "Q59EF3",
+          "failed_sequence_length": 371,
+          "failed_sequence_sha256": "e823627235a31c2c51e91d9f52bb4158011cf3308ba64c8bcdc95667e5f63f07",
+          "fragment_atom_contacts": "32",
+          "fragment_best_model_kind": "selected",
+          "fragment_best_model_path": "external/baldo_model_inventory/fragments_cif_audit/AF3/Q59EF3_PF17725_160-368/Q59EF3_PF17725_160-368_model.cif",
+          "fragment_contact_metric_source": "BEST_PASSING_MODEL",
+          "fragment_dna_interface_residues": "5",
+          "fragment_id": "Q59EF3|PF17725|160-368",
+          "fragment_models_checked": "6",
+          "fragment_passing_model_count": "2",
+          "fragment_protein_interface_residues": "6",
+          "fragment_selected_result": "PASS_NONEMPTY_PROTEIN_DNA_INTERFACE",
+          "fragment_sent_to_baldo": "YES",
+          "gene_names": "",
+          "interpro_id": "IPR041086",
+          "interpro_name": "YAP binding domain",
+          "is_expected_DBD_review": "UNREVIEWED",
+          "legacy_family_text": "TEA",
+          "longer_same_gene_candidate_accessions": "",
+          "manual_review_notes": "",
+          "pfam_analysis": "Pfam",
+          "pfam_end": 368,
+          "pfam_evalue": "4.6E-66",
+          "pfam_fragment_length": 209,
+          "pfam_id": "PF17725",
+          "pfam_match_status": "T",
+          "pfam_name": "YAP binding domain",
+          "pfam_raw_row": "Q59EF3|gene=|primary=Identical_PWM|family=TEA|no_active_pdb_model\t84ec53c4d6c7a17ecd02e88e9faf236a\t371\tPfam\tPF17725\tYAP binding domain\t160\t368\t4.6E-66\tT\t15-07-2026\tIPR041086\tYAP binding domain\t-\t-",
+          "pfam_scan_date": "15-07-2026",
+          "pfam_start": 160,
+          "protein_description": "TEA domain family member 1 variant",
+          "reviewed_same_gene_candidate_accessions": "",
+          "reviewed_status": "UNREVIEWED",
+          "same_gene_candidate_accessions": "",
+          "same_gene_candidate_pfam_domains": ""
+        }
+      ],
+      "passed": true
+    },
+    "control_Q9NZC4_is_separate_reference_evidence_only": {
+      "detail": "",
+      "expected": {
+        "is_failed_accession": false,
+        "reference_evidence_present": true
+      },
+      "observed": {
+        "failed_accessions_with_reference": [
+          "E9PN75",
+          "E9PPS9",
+          "E9PQR6",
+          "E9PQX0"
+        ],
+        "is_failed_accession": false,
+        "reference_evidence_row_count": 4
+      },
+      "passed": true
+    },
+    "every_accepted_pfam_row_in_inventory": {
+      "detail": "",
+      "expected": {
+        "inventory_keys": 67,
+        "missing": [],
+        "unexpected": []
+      },
+      "observed": {
+        "inventory_keys": 67,
+        "missing": [],
+        "unexpected": []
+      },
+      "passed": true
+    },
+    "every_fragment_maps_to_interface_summary": {
+      "detail": "",
+      "expected": {
+        "missing": [],
+        "summary_rows": 67
+      },
+      "observed": {
+        "missing": [],
+        "summary_rows": 67
+      },
+      "passed": true
+    },
+    "exactly_102_unique_failed_accessions": {
+      "detail": "",
+      "expected": {
+        "rows": 102,
+        "unique": 102
+      },
+      "observed": {
+        "rows": 102,
+        "unique": 102
+      },
+      "passed": true
+    },
+    "exactly_402_fragment_models_represented": {
+      "detail": "Derived by summing models_checked in the declared af3_fragment_interface_summary.tsv input.",
+      "expected": 402,
+      "observed": 402,
+      "passed": true
+    },
+    "exactly_45_accessions_without_accepted_pfam": {
+      "detail": "",
+      "expected": 45,
+      "observed": {
+        "inventory_no_pfam": 45,
+        "source_no_pfam": 45
+      },
+      "passed": true
+    },
+    "exactly_57_accessions_with_accepted_pfam": {
+      "detail": "",
+      "expected": 57,
+      "observed": 57,
+      "passed": true
+    },
+    "exactly_67_accepted_pfam_rows": {
+      "detail": "",
+      "expected": 67,
+      "observed": {
+        "rows": 67,
+        "unique_keys": 67
+      },
+      "passed": true
+    },
+    "exactly_nine_contacting_fragments": {
+      "detail": "",
+      "expected": 9,
+      "observed": {
+        "count": 9,
+        "fragment_ids": [
+          "A0A494C0B5_PF01017_142-179",
+          "B4DHE0_PF01017_146-183",
+          "B4E1B1_PF10401_2-170",
+          "C9J845_PF15951_4-86",
+          "D2KFR9_PF01017_144-185",
+          "E9PKB7_PF17725_119-327",
+          "H0YG25_PF02198_12-80",
+          "H7C4N4_PF03299_2-70",
+          "Q59EF3_PF17725_160-368"
+        ]
+      },
+      "passed": true
+    },
+    "failed_fasta_exact_accession_set": {
+      "detail": "",
+      "expected": 102,
+      "observed": 102,
+      "passed": true
+    },
+    "failed_sequences_match_source_fasta": {
+      "detail": "",
+      "expected": {
+        "mismatches": [],
+        "missing": []
+      },
+      "observed": {
+        "mismatches": [],
+        "missing": []
+      },
+      "passed": true
+    },
+    "fragment_coordinates_and_sequences_reconcile": {
+      "detail": "",
+      "expected": [],
+      "observed": [],
+      "passed": true
+    },
+    "no_final_dbd_or_rescue_classification_assigned": {
+      "detail": "",
+      "expected": {
+        "forbidden_values_found": [],
+        "review_fields_are_unreviewed": true
+      },
+      "observed": {
+        "forbidden_values_found": [],
+        "review_fields_are_unreviewed": true
+      },
+      "passed": true
+    }
+  },
+  "counts": {
+    "accepted_pfam_rows": 67,
+    "accessions_with_accepted_pfam": 57,
+    "accessions_without_accepted_pfam": 45,
+    "alternative_same_gene_candidate_accessions": 286,
+    "candidate_modcre_pdb_files_inventoried": 2462,
+    "contacting_fragments": 9,
+    "domain_inventory_rows": 112,
+    "failed_accessions": 102,
+    "fragment_models_represented": 402,
+    "reference_interface_audit_source_rows": 37,
+    "same_gene_candidate_source_rows": 705,
+    "unique_accepted_pfam_ids": 26
+  },
+  "generated_at_utc": "2026-07-30T21:58:08+00:00",
+  "inputs": {
+    "failed_accessions": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_tf_for_fragmentation.tsv",
+      "sha256": "292d5650593904c946b8291c67e53480d86d9a9bd9295ffe22c7615c19458ba9",
+      "size_bytes": 16652
+    },
+    "failed_fasta": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_102_full_length.fasta",
+      "sha256": "e8ff83939b7ea5555491695d1ae764c512af15417b2b7091d13657fc9d52e86c",
+      "size_bytes": 34065
+    },
+    "family_tree": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/data_sources/tf_family_tree.json",
+      "sha256": "f63a435a093c7953d62748250ff349b4592e7d71d7d9479deb27a1e1baad793b",
+      "size_bytes": 9671
+    },
+    "fragment_interface_summary": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_fragment_interface_summary.tsv",
+      "sha256": "aaf7c1fe2722e86937e9fd6fe325187a1d140647fa398ff2db270357a631da54",
+      "size_bytes": 8142
+    },
+    "models_directory": {
+      "file_count": 2462,
+      "kind": "directory_manifest_of_candidate_pdb_files",
+      "manifest_definition": "SHA256 of sorted tab-separated relative_path, size_bytes, file_sha256 lines for candidate ModCRE PDB files used",
+      "path": "/data/sbi/interchange/boliva/patricia/models",
+      "sha256": "a6a7e4ede7ba678c29c86cc0dda1664e64f8b7788b3d10de612c90376e6078c5",
+      "size_bytes": 392538467
+    },
+    "no_pfam": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_no_pfam_match.tsv",
+      "sha256": "e53f8d27a37363af845045aca63fd6bf338e1e0f2ae7411d19a8a0fe2d8b2399",
+      "size_bytes": 4228
+    },
+    "pfam38_tsv": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_102_pfam.tsv",
+      "sha256": "360e122d63f9b7364c7ee25c7f309b45d8287b97f7487091ed131fa68fd3b9dc",
+      "size_bytes": 16403
+    },
+    "reference_interface_audit": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_same_gene_modcre_interface_audit.tsv",
+      "sha256": "c503f61b967ad8f0578ec0744f0d112b4dad8728fa636b414cb000a2fd17ceff",
+      "size_bytes": 7092
+    },
+    "same_gene_candidates": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_same_gene_modcre_candidates_v2.tsv",
+      "sha256": "ed24a2d7cab3dc5156a4584b30f4da62332ff315c66c76f8887fc2fa317897e6",
+      "size_bytes": 207088
+    },
+    "sent_fragments": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/external/baldo_model_inventory/af3_failed_all_pfam_fragments.tsv",
+      "sha256": "dea216ca2e2e0904f08881583cefecb527a9225d2ee3b5dbf9ab6f4dcc5c1789",
+      "size_bytes": 18211
+    },
+    "source_fasta": {
+      "kind": "file",
+      "path": "/home/patricia/TF_database_Baldo_data/TF_without_model.fasta",
+      "sha256": "536b5f5f40010df69320d6504823c51bbd29d7e8c582c663887e8f811b91f7e1",
+      "size_bytes": 2282759
+    },
+    "sqlite_database": {
+      "kind": "file",
+      "path": "/home/patricia/tf_webdb/data/tf_webdb.sqlite",
+      "sha256": "85b7985f970b2497b6be1947cd83673465de18536bdacf4598d9815232ff1889",
+      "size_bytes": 112508928
+    }
+  },
+  "missing_source_evidence": [
+    "Blank-gene failed accessions have no alternative same-gene evidence in the declared v2 candidate input: A0A0A7M2K0,A8K549,A8MTU8,B3KU95,B4DHE0,B4DL38,B4DNX4,B4DTN3,B4DVG0,B4DW78,B4E2G3,B4E2U7,B4E374,B7Z5Z3,B7Z8F5,H2BNB9,O75780,Q59EB9,Q59EF3,Q9Y2W8",
+    "Failed accessions have no row in the declared same-gene reference interface audit: A0A0A7M2K0,A8K549,A8MTU8,B1NY96,B3KU95,B4DHE0,B4DL38,B4DNX4,B4DTN3,B4DVG0,B4DW78,B4E2G3,B4E2U7,B4E374,B7Z5Z3,B7Z8F5,D1LUZ8,F6X9D6,G3V447,H2BNB9,H7C4N4,O14593,O75780,Q13951,Q59EB9,Q59EF3,Q68D60,Q9Y2W8"
+  ],
+  "notes": [
+    "The 402-model count is derived from the declared fragment summary input; interface calculations were not rerun.",
+    "Candidate model paths and intervals are inventory evidence from existing filenames and are not accession substitutions.",
+    "The family-tree JSON is provenance-hashed and structurally validated, but its labels are not used to infer domain roles."
+  ],
+  "outputs": {
+    "domain_inventory": {
+      "path": "/home/patricia/tf_webdb/outputs/af3_failed_102_domain_inventory.tsv",
+      "row_count": 112
+    },
+    "qc": {
+      "path": "/home/patricia/tf_webdb/outputs/af3_failed_102_domain_inventory_qc.json"
+    },
+    "unique_pfam_review": {
+      "path": "/home/patricia/tf_webdb/outputs/af3_failed_102_unique_pfam_review.tsv",
+      "row_count": 26
+    }
+  },
+  "purpose": "Read-only evidence inventory; no domain-role, DBD, rescue, or final structural classification is assigned.",
+  "schema_version": "1.0",
+  "script": "/home/patricia/tf_webdb/scripts/build_af3_failed_102_domain_inventory.py",
+  "sqlite_open_mode": "ro"
+}
