@@ -1,4 +1,13 @@
-{% if region_groups or active_models %}
+{% if structure_status and structure_status.primary_structural_status == 'PWM_PRESENT_NO_VALIDATED_DNA_BOUND_STRUCTURE' %}
+<section class="tf-box" role="status">
+  <h2>PWM available; no validated DNA-bound structure</h2>
+  {% if structure_status.decision_reason %}
+  <p class="muted">{{ structure_status.decision_reason }}</p>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if region_groups or active_models or active_assignments %}
 {% if region_groups %}
 <section class="tf-box tf-regions">
   <div class="tf-section-head">
@@ -57,6 +66,39 @@
   </div>
   {% if region_groups|length > 6 %}<p class="muted">Showing first 6 modeled regions; the collapsible 3D Models table below includes all regions loaded for this TF page.</p>{% endif %}
 </section>
+{% endif %}
+
+{% if active_assignments %}
+<details class="tf-box tf-main-disclosure models" open>
+  <summary class="tf-disclosure-summary">
+    <div>
+      <div class="summary-title">AF3 model assignments</div>
+      <div class="summary-note">Validated exact-accession AF3 models stored in local staging. Confidence artifacts are indexed but not visualized yet.</div>
+    </div>
+    <div class="summary-pills">
+      <span class="tf-tag">{{ active_assignments|length }} active AF3 model{% if active_assignments|length != 1 %}s{% endif %}</span>
+    </div>
+  </summary>
+  <div class="disclosure-body">
+    <div class="table-wrap">
+      <table class="model-table">
+        <thead><tr><th>Type</th><th>Model</th><th>Residues / fragment</th><th>Interface</th><th>Confidence files</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for assignment in active_assignments %}
+          <tr>
+            <td>{{ assignment.model_label }}</td>
+            <td class="mono">{{ assignment.file_name }}</td>
+            <td class="mono">{{ assignment.residue_label }}</td>
+            <td>{{ assignment.interface_status }}</td>
+            <td>{{ assignment.artifact_count }} indexed</td>
+            <td><a href="/model?assignment={{ assignment.id }}">View model</a> · <a href="/download/model?assignment={{ assignment.id }}">mmCIF</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</details>
 {% endif %}
 
 {% if active_models %}

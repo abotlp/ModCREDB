@@ -9,6 +9,7 @@
 
 <style>
 .scan-compact-hero{margin-bottom:18px}.scan-compact-hero h1{margin-bottom:4px}.scan-global-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-bottom:20px}.scan-global-card summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-global-card summary::-webkit-details-marker{display:none}.scan-global-body{padding:20px;border-top:1px solid var(--line)}.scan-grid{display:grid;grid-template-columns:minmax(0,2fr) 260px;gap:16px}.scan-param-panel{background:#f8fbfe;border:1px solid var(--line);border-radius:14px;padding:14px}.scan-param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scan-actions{display:grid;gap:10px;margin-top:14px}.scan-button{border:1px solid var(--line);border-radius:10px;background:#fff;color:#243145;font-weight:850;text-decoration:none;padding:11px 16px;text-align:center;display:inline-flex;justify-content:center}.scan-button.primary{background:#117a46;border-color:#117a46;color:#fff}.scan-button.blue{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.scan-chip{display:inline-flex;border:1px solid #b9d2ff;background:#e9f2ff;color:#164f9f;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:850;white-space:nowrap}.scan-chip.orange{background:#fff2df;border-color:#efc58a;color:#b85b00}.scan-personalized{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-top:20px}.scan-personalized[open]{border-color:#a8c6ef}.scan-personalized summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-personalized summary::-webkit-details-marker{display:none}.scan-summary-title{font-size:19px;font-weight:900}.scan-summary-title:before{content:"▸";color:#2f5f86;display:inline-block;margin-right:8px;transition:transform .12s ease}.scan-personalized[open] .scan-summary-title:before,.scan-global-card[open] .scan-summary-title:before{transform:rotate(90deg)}.scan-summary-sub{display:block;color:#667085;font-size:13px;font-weight:500;margin-top:4px}.scan-personalized-body{padding:20px;border-top:1px solid var(--line)}.scan-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.scan-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.scan-filter-grid label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff;font-size:12px;font-weight:800;margin:0}.scan-filter-grid input{width:auto}.scan-textarea-motifs{min-height:160px}.scan-textarea-dna{min-height:150px}@media(max-width:900px){.scan-grid,.scan-two-col{grid-template-columns:1fr;display:grid;min-width:0}}
+.tf-level-results{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:14px;background:#f8fbfe}.tf-level-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.tf-level-head h3{margin:0}.tf-rank-controls{display:flex;gap:7px;flex-wrap:wrap}.tf-rank-button{border:1px solid #a8bfd8;border-radius:999px;background:#fff;color:#26425f;padding:6px 11px;font-size:12px;font-weight:800;cursor:pointer}.tf-rank-button[aria-pressed="true"]{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.tf-gene-name{display:block;color:#667085;font-size:11px;max-width:280px;margin-top:2px}
 </style>
 
 <section class="scan-compact-hero">
@@ -141,6 +142,39 @@
     <h2>Scan results</h2>
     <span class="muted">{{ hits|length }} hits shown · sequence length {{ sequence_length }} bp</span>
   </div>
+  <div class="tf-level-results">
+    <div class="tf-level-head">
+      <div>
+        <h3>TF-level results</h3>
+        <p class="muted">{{ tf_results|length }} TFs mapped by exact source and motif ID · {{ unmapped_motif_count }} unmapped motif identit{% if unmapped_motif_count == 1 %}y{% else %}ies{% endif %}</p>
+      </div>
+      {% if tf_results %}
+        <div class="tf-rank-controls" aria-label="Rank TF-level results">
+          <button class="tf-rank-button" type="button" data-tf-rank="best_pvalue" aria-pressed="true">Best p-value</button>
+          <button class="tf-rank-button" type="button" data-tf-rank="significant_motifs" aria-pressed="false">Number of significant motifs</button>
+        </div>
+      {% endif %}
+    </div>
+    <div class="table-wrap wide-table">
+      <table data-tf-results-table>
+        <thead><tr><th>TF</th><th>Gene</th><th>Best p-value</th><th>Best q-value</th><th>Significant motifs</th><th>Significant hits</th></tr></thead>
+        <tbody>
+          {% for result in tf_results %}
+            <tr data-best-pvalue="{{ result.best_pvalue if result.best_pvalue is not none else 'Infinity' }}" data-significant-motifs="{{ result.significant_motif_count }}" data-tf-id="{{ result.tf_id }}">
+              <td><a class="mono" href="/tf/{{ result.tf_id|quote }}">{{ result.tf_id }}</a></td>
+              <td>{% if result.gene %}{{ result.gene }}{% else %}—{% endif %}{% if result.protein_name %}<span class="tf-gene-name">{{ result.protein_name }}</span>{% endif %}</td>
+              <td>{% if result.best_pvalue is not none %}{{ "%.2e"|format(result.best_pvalue) }}{% endif %}</td>
+              <td>{% if result.best_qvalue is not none %}{{ "%.2e"|format(result.best_qvalue) }}{% else %}—{% endif %}</td>
+              <td>{{ result.significant_motif_count }}</td>
+              <td>{{ result.significant_hit_count }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="scanbot-placeholder">No returned significant motif hits map to a TF accession.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
   {% if profile_svg %}
     <div class="profile-panel">
       <div class="section-head"><h3>Motif-match profile</h3>{% if profile_summary %}<span class="muted">{{ profile_summary.profiled_hits }} hits profiled</span>{% endif %}</div>
@@ -192,6 +226,32 @@
   {% elif selected_motif or selected_tf %}
     if (personalized) requestAnimationFrame(() => personalized.scrollIntoView({ block: "start" }));
   {% endif %}
+
+  const tfTable = document.querySelector("[data-tf-results-table]");
+  const tfRankButtons = document.querySelectorAll("[data-tf-rank]");
+  if (tfTable && tfRankButtons.length) {
+    const body = tfTable.tBodies[0];
+    const numeric = (row, name) => {
+      const value = Number(row.dataset[name]);
+      return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
+    };
+    const rank = (mode) => {
+      const rows = Array.from(body.rows);
+      rows.sort((left, right) => {
+        const leftP = numeric(left, "bestPvalue");
+        const rightP = numeric(right, "bestPvalue");
+        const leftMotifs = Number(left.dataset.significantMotifs || 0);
+        const rightMotifs = Number(right.dataset.significantMotifs || 0);
+        if (mode === "significant_motifs") {
+          return (rightMotifs - leftMotifs) || (leftP - rightP) || left.dataset.tfId.localeCompare(right.dataset.tfId);
+        }
+        return (leftP - rightP) || (rightMotifs - leftMotifs) || left.dataset.tfId.localeCompare(right.dataset.tfId);
+      });
+      rows.forEach((row) => body.appendChild(row));
+      tfRankButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.tfRank === mode)));
+    };
+    tfRankButtons.forEach((button) => button.addEventListener("click", () => rank(button.dataset.tfRank)));
+  }
 })();
 </script>
 {% endblock %}

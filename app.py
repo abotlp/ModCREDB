@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import html
 import io
 import json
@@ -37,6 +38,14 @@ MODEL_CACHE_DIR = (
     Path(os.environ["TF_WEBDB_MODEL_CACHE_DIR"]).expanduser()
     if os.environ.get("TF_WEBDB_MODEL_CACHE_DIR")
     else None
+)
+LOCAL_AF3_MODEL_ROOT = Path("/data/sbi/interchange/boliva/patricia/AF3")
+LOCAL_AF3_UNRESOLVED_ROOT = Path("/data/sbi/interchange/boliva/patricia/AF3_unresolved")
+LOCAL_AF3_FRAGMENT_ROOT = APP_DIR / "external/baldo_model_inventory/fragments_cif_audit/AF3"
+LOCAL_AF3_ALLOWED_ROOTS = (
+    LOCAL_AF3_MODEL_ROOT,
+    LOCAL_AF3_UNRESOLVED_ROOT,
+    LOCAL_AF3_FRAGMENT_ROOT,
 )
 EVIDENCE_LABELS = {
     "identical": "Known",
@@ -84,6 +93,7 @@ SOURCE_LABELS = {
     "hocomoco": "HOCOMOCO",
     "modcre": "Predicted = Low",
     "alphafold": "Predicted = Low",
+    "AF3": "AF3",
     "uniprot": "UniProt",
 }
 PRIMARY_ANNOTATION_ORDER = [
@@ -250,6 +260,62 @@ def db_table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
         ).fetchone()
         is not None
     )
+
+
+def is_allowed_local_af3_path(path: Path) -> bool:
+    resolved = path.resolve()
+    return any(
+        resolved == root.resolve() or root.resolve() in resolved.parents
+        for root in LOCAL_AF3_ALLOWED_ROOTS
+    )
+
+
+def load_indexed_plddt_summary(artifact: dict[str, object]) -> dict[str, object] | None:
+    artifact_path = Path(str(artifact.get("artifact_path") or "")).resolve()
+    if not is_allowed_local_af3_path(artifact_path) or not artifact_path.is_file():
+        return None
+    try:
+        content = artifact_path.read_bytes()
+        if hashlib.sha256(content).hexdigest() != str(artifact.get("sha256") or ""):
+            return None
+        payload = json.loads(content)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    if isinstance(payload, dict):
+        raw_values = next(
+            (
+                payload[key]
+                for key in ("atom_plddts", "plddts", "plddt")
+                if isinstance(payload.get(key), list)
+            ),
+            None,
+        )
+    else:
+        raw_values = payload if isinstance(payload, list) else None
+    if not raw_values:
+        return None
+    values: list[float] = []
+    for raw_value in raw_values:
+        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
+            return None
+        value = float(raw_value)
+        if not math.isfinite(value) or value < 0 or value > 100:
+            return None
+        values.append(value)
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    median = (
+        ordered[middle]
+        if len(ordered) % 2
+        else (ordered[middle - 1] + ordered[middle]) / 2
+    )
+    return {
+        "mean": math.fsum(values) / len(values),
+        "median": median,
+        "minimum": ordered[0],
+        "maximum": ordered[-1],
+        "atom_count": len(values),
+    }
 
 
 def ensure_pfam_annotation_table(conn: sqlite3.Connection) -> None:
@@ -631,6 +697,44 @@ def model_link_status(exact_active_model_count: object, tf_active_model_count: o
     return "No active model link"
 
 
+def fetch_active_assignment_counts(
+    conn: sqlite3.Connection,
+    tf_ids: list[str],
+) -> dict[str, int]:
+    """Count active direct-file assignments without changing legacy PDB counts.
+
+    Exact path matches already represented by an active structure_file row are
+    excluded. The assignment schema also prevents duplicate active paths for a
+    display accession and role.
+    """
+    ids = list(dict.fromkeys(tf_id for tf_id in tf_ids if tf_id))
+    if not ids or not db_table_exists(conn, "structure_model_assignment"):
+        return {}
+    placeholders = ", ".join("?" for _ in ids)
+    return {
+        row["tf_id"]: int(row["count"] or 0)
+        for row in conn.execute(
+            f"""
+            SELECT sma.display_accession AS tf_id,
+                   COUNT(DISTINCT sma.model_path) AS count
+            FROM structure_model_assignment AS sma
+            WHERE sma.display_accession IN ({placeholders})
+              AND sma.is_active = 1
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM structure_file AS sf
+                  WHERE sf.tf_id = sma.display_accession
+                    AND sf.status = 'active'
+                    AND sf.file_type = 'pdb'
+                    AND (sf.archive_path = sma.model_path OR sf.member_path = sma.model_path)
+              )
+            GROUP BY sma.display_accession
+            """,
+            ids,
+        ).fetchall()
+    }
+
+
 def fetch_tf_statuses(conn: sqlite3.Connection, tf_ids: list[str]) -> dict[str, dict[str, object]]:
     ids = list(dict.fromkeys(tf_id for tf_id in tf_ids if tf_id))
     if not ids:
@@ -651,7 +755,7 @@ def fetch_tf_statuses(conn: sqlite3.Connection, tf_ids: list[str]) -> dict[str, 
             ids,
         ).fetchall()
     }
-    active_model_counts = {
+    legacy_active_model_counts = {
         row["tf_id"]: int(row["count"] or 0)
         for row in conn.execute(
             f"""
@@ -664,6 +768,12 @@ def fetch_tf_statuses(conn: sqlite3.Connection, tf_ids: list[str]) -> dict[str, 
             """,
             ids,
         ).fetchall()
+    }
+    assignment_active_model_counts = fetch_active_assignment_counts(conn, ids)
+    active_model_counts = {
+        tf_id: legacy_active_model_counts.get(tf_id, 0)
+        + assignment_active_model_counts.get(tf_id, 0)
+        for tf_id in ids
     }
     primary_by_tf: dict[str, sqlite3.Row] = {}
     if db_table_exists(conn, "tf_primary_annotation"):
@@ -700,6 +810,17 @@ def fetch_tf_statuses(conn: sqlite3.Connection, tf_ids: list[str]) -> dict[str, 
     ).fetchall():
         if row["tf_id"] not in fallback_by_tf:
             fallback_by_tf[row["tf_id"]] = (50, "AlphaFold") if row["source"] == "alphafold" else (40, "ModCRE")
+    if db_table_exists(conn, "structure_model_assignment"):
+        for row in conn.execute(
+            f"""
+            SELECT DISTINCT display_accession AS tf_id
+            FROM structure_model_assignment
+            WHERE display_accession IN ({placeholders}) AND is_active = 1
+            """,
+            ids,
+        ).fetchall():
+            if row["tf_id"] not in fallback_by_tf:
+                fallback_by_tf[row["tf_id"]] = (50, "AlphaFold")
 
     statuses: dict[str, dict[str, object]] = {}
     for tf_id in ids:
@@ -1255,6 +1376,130 @@ def enrich_scan_hits(conn: sqlite3.Connection, hits: list[dict[str, object]]) ->
             f"strand={hit.get('strand')}; "
             f"pvalue={pvalue_text}"
         )
+
+
+def finite_scan_metric(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    numeric = float(value)
+    return numeric if math.isfinite(numeric) else None
+
+
+def sort_tf_scan_results(
+    results: list[dict[str, object]],
+    ranking: str = "best_pvalue",
+) -> list[dict[str, object]]:
+    def best_pvalue(row: dict[str, object]) -> float:
+        value = finite_scan_metric(row.get("best_pvalue"))
+        return value if value is not None else float("inf")
+
+    if ranking == "significant_motifs":
+        return sorted(
+            results,
+            key=lambda row: (
+                -int(row.get("significant_motif_count") or 0),
+                best_pvalue(row),
+                str(row.get("tf_id") or ""),
+            ),
+        )
+    return sorted(
+        results,
+        key=lambda row: (
+            best_pvalue(row),
+            -int(row.get("significant_motif_count") or 0),
+            str(row.get("tf_id") or ""),
+        ),
+    )
+
+
+def aggregate_scan_hits_by_tf(
+    conn: sqlite3.Connection,
+    hits: list[dict[str, object]],
+) -> tuple[list[dict[str, object]], int]:
+    """Aggregate the exact FIMO hit set displayed by the scan page.
+
+    Motif-to-TF links are exact motif_ref (source, motif_id, tf_id) rows.
+    Distinct SQL rows prevent duplicate motif_ref evidence records from
+    multiplying a positional hit, while retaining every legitimate many-to-many
+    TF mapping.
+    """
+    hit_keys = {
+        (str(hit.get("source") or ""), str(hit.get("motif_id") or ""))
+        for hit in hits
+    }
+    valid_keys = {key for key in hit_keys if key[0] and key[1]}
+    mappings: dict[tuple[str, str], list[dict[str, str]]] = {}
+    keys_by_source: dict[str, list[str]] = {}
+    for source, motif_id in sorted(valid_keys):
+        keys_by_source.setdefault(source, []).append(motif_id)
+
+    # Stay below SQLite's parameter limit even if a large result set is
+    # requested. The scan page currently caps displayed hits at 1,000.
+    chunk_size = 400
+    for source, motif_ids in keys_by_source.items():
+        for offset in range(0, len(motif_ids), chunk_size):
+            chunk = motif_ids[offset : offset + chunk_size]
+            placeholders = ", ".join("?" for _ in chunk)
+            rows = conn.execute(
+                f"""
+                SELECT DISTINCT mr.source, mr.motif_id, mr.tf_id,
+                       COALESCE(ta.gene_names, '') AS gene_names,
+                       COALESCE(ta.protein_name, '') AS protein_name
+                FROM motif_ref AS mr
+                LEFT JOIN tf_annotation AS ta ON ta.tf_id = mr.tf_id
+                WHERE mr.source = ? AND mr.motif_id IN ({placeholders})
+                ORDER BY mr.source, mr.motif_id, mr.tf_id
+                """,
+                [source, *chunk],
+            ).fetchall()
+            for row in rows:
+                key = (str(row["source"]), str(row["motif_id"]))
+                gene_names = str(row["gene_names"] or "").strip()
+                mappings.setdefault(key, []).append(
+                    {
+                        "tf_id": str(row["tf_id"]),
+                        "gene": gene_names.split()[0] if gene_names else "",
+                        "protein_name": str(row["protein_name"] or "").strip(),
+                    }
+                )
+
+    summaries: dict[str, dict[str, object]] = {}
+    for hit in hits:
+        key = (str(hit.get("source") or ""), str(hit.get("motif_id") or ""))
+        pvalue = finite_scan_metric(hit.get("pvalue"))
+        qvalue = finite_scan_metric(hit.get("qvalue"))
+        for mapping in mappings.get(key, []):
+            tf_id = mapping["tf_id"]
+            summary = summaries.setdefault(
+                tf_id,
+                {
+                    "tf_id": tf_id,
+                    "gene": mapping["gene"],
+                    "protein_name": mapping["protein_name"],
+                    "best_pvalue": None,
+                    "best_qvalue": None,
+                    "significant_motif_keys": set(),
+                    "significant_hit_count": 0,
+                },
+            )
+            summary["significant_motif_keys"].add(key)
+            summary["significant_hit_count"] = int(summary["significant_hit_count"]) + 1
+            if pvalue is not None and (
+                summary["best_pvalue"] is None or pvalue < float(summary["best_pvalue"])
+            ):
+                summary["best_pvalue"] = pvalue
+            if qvalue is not None and (
+                summary["best_qvalue"] is None or qvalue < float(summary["best_qvalue"])
+            ):
+                summary["best_qvalue"] = qvalue
+
+    results: list[dict[str, object]] = []
+    for summary in summaries.values():
+        motif_keys = summary.pop("significant_motif_keys")
+        summary["significant_motif_count"] = len(motif_keys)
+        results.append(summary)
+    unmapped_motif_count = sum(1 for key in hit_keys if not mappings.get(key))
+    return sort_tf_scan_results(results), unmapped_motif_count
 
 
 def normalize_tf_id(tf_id: str) -> str:
@@ -2139,14 +2384,35 @@ class TFWebApp:
         self.templates.globals["model_link_status"] = model_link_status
 
     def stats(self, conn: sqlite3.Connection) -> dict[str, int | str]:
+        legacy_active_model_count = conn.execute(
+            "SELECT COUNT(*) FROM structure_file WHERE status = 'active' AND file_type = 'pdb'"
+        ).fetchone()[0]
+        assignment_active_model_count = safe_count(
+            conn,
+            """
+            SELECT COUNT(*)
+            FROM (
+                SELECT sma.display_accession, sma.model_path
+                FROM structure_model_assignment AS sma
+                WHERE sma.is_active = 1
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM structure_file AS sf
+                      WHERE sf.tf_id = sma.display_accession
+                        AND sf.status = 'active'
+                        AND sf.file_type = 'pdb'
+                        AND (sf.archive_path = sma.model_path OR sf.member_path = sma.model_path)
+                  )
+                GROUP BY sma.display_accession, sma.model_path
+            )
+            """,
+        )
         return {
             "tf_count": conn.execute("SELECT COUNT(*) FROM tf").fetchone()[0],
             "annotated_tf_count": safe_count(conn, "SELECT COUNT(*) FROM tf_annotation"),
             "motif_ref_count": conn.execute("SELECT COUNT(*) FROM motif_ref").fetchone()[0],
             "motif_file_count": conn.execute("SELECT COUNT(*) FROM motif_file").fetchone()[0],
-            "active_model_count": conn.execute(
-                "SELECT COUNT(*) FROM structure_file WHERE status = 'active' AND file_type = 'pdb'"
-            ).fetchone()[0],
+            "active_model_count": legacy_active_model_count + assignment_active_model_count,
             "model_summary_count": safe_count(conn, "SELECT COUNT(*) FROM model_summary"),
             "fimo_ready_motif_count": safe_count(conn, "SELECT COUNT(*) FROM motif_file WHERE matrix_status = 'usable'"),
             "tf_with_fimo_ready_pwm_count": safe_count(
@@ -2340,6 +2606,20 @@ class TFWebApp:
                 return self.not_found(f"Unknown TF: {html.escape(tf_id)}")
             primary_annotation = fetch_primary_annotation(conn, tf_id)
             tf_status = fetch_tf_statuses(conn, [tf_id])[tf_id]
+            structure_status = (
+                dict_row(
+                    conn.execute(
+                        """
+                        SELECT *
+                        FROM tf_structure_status
+                        WHERE tf_id = ? AND uniprot_accession = ?
+                        """,
+                        (tf_id, tf_id),
+                    ).fetchone()
+                )
+                if db_table_exists(conn, "tf_structure_status")
+                else {}
+            )
             families = conn.execute(
                 "SELECT family FROM tf_family WHERE tf_id = ? ORDER BY family", (tf_id,)
             ).fetchall()
@@ -2407,6 +2687,22 @@ class TFWebApp:
                 """,
                 (tf_id,),
             ).fetchall()
+            active_assignment_rows = (
+                conn.execute(
+                    """
+                    SELECT sma.*,
+                           (SELECT COUNT(*)
+                            FROM structure_confidence_artifact AS sca
+                            WHERE sca.model_path = sma.model_path) AS artifact_count
+                    FROM structure_model_assignment AS sma
+                    WHERE sma.display_accession = ? AND sma.is_active = 1
+                    ORDER BY sma.model_role, sma.model_path
+                    """,
+                    (tf_id,),
+                ).fetchall()
+                if db_table_exists(conn, "structure_model_assignment")
+                else []
+            )
             model_summaries = conn.execute(
                 """
                 SELECT ms.*, sf.id AS matched_file_id, sf.model_id AS matched_model_id,
@@ -2419,6 +2715,30 @@ class TFWebApp:
                 """,
                 (tf_id,),
             ).fetchall()
+
+        active_assignments: list[dict[str, object]] = []
+        for assignment_row in active_assignment_rows:
+            assignment = dict(assignment_row)
+            try:
+                notes = json.loads(str(assignment.get("notes") or "{}"))
+            except json.JSONDecodeError:
+                notes = {}
+            fragment_id = str(notes.get("domain_or_fragment_id") or "")
+            assignment["candidate_type"] = str(notes.get("candidate_type") or "")
+            assignment["domain_or_fragment_id"] = fragment_id
+            assignment["model_label"] = (
+                "AF3 DBD fragment model"
+                if assignment["model_role"] == "DBD_FRAGMENT_MODEL"
+                else "AF3 full-length model"
+            )
+            assignment["file_name"] = Path(str(assignment["model_path"])).name
+            assignment["residue_label"] = "Full sequence"
+            fragment_match = re.search(r"_(PF\d{5})_(\d+)-(\d+)$", fragment_id)
+            if fragment_match:
+                assignment["residue_label"] = (
+                    f"{fragment_match.group(1)} {fragment_match.group(2)}-{fragment_match.group(3)}"
+                )
+            active_assignments.append(assignment)
 
         grouped: dict[str, list[sqlite3.Row]] = {key: [] for key in EVIDENCE_LABELS}
         for row in sorted(motif_rows, key=evidence_sort_key):
@@ -2464,6 +2784,7 @@ class TFWebApp:
                 "tf.html",
                 tf=tf,
                 tf_status=tf_status,
+                structure_status=structure_status,
                 primary_annotation=primary_annotation,
                 families=families,
                 pfam_annotations=pfam_annotations,
@@ -2477,6 +2798,7 @@ class TFWebApp:
                 audit_summary=audit_summary,
                 region_groups=region_groups,
                 active_models=active_models,
+                active_assignments=active_assignments,
                 active_model_source_counts=active_model_source_counts,
                 model_summaries=model_summaries,
                 matrix_status_counts=matrix_status_counts,
@@ -2746,6 +3068,8 @@ class TFWebApp:
         profile_summary: dict[str, object] | None = None
         hits_csv_uri = ""
         profile_csv_uri = ""
+        tf_results: list[dict[str, object]] = []
+        unmapped_motif_count = 0
         if method == "POST":
             if not motifs:
                 errors.append("No generated PWMs matched the selected inputs.")
@@ -2759,6 +3083,7 @@ class TFWebApp:
                 if hits:
                     with connect(self.db_path) as conn:
                         enrich_scan_hits(conn, hits)
+                        tf_results, unmapped_motif_count = aggregate_scan_hits_by_tf(conn, hits)
                     hits_csv_uri = build_hits_csv_uri(hits)
                 if profile_summary:
                     profile_csv_uri = build_profile_csv_uri(profile_summary)
@@ -2789,6 +3114,8 @@ class TFWebApp:
                 max_hits=max_hits,
                 motifs=motifs,
                 hits=hits,
+                tf_results=tf_results,
+                unmapped_motif_count=unmapped_motif_count,
                 profile_svg=profile_svg,
                 profile_summary=profile_summary,
                 hits_csv_uri=hits_csv_uri,
@@ -3111,7 +3438,101 @@ class TFWebApp:
             content = extracted.read()
         return row, content, member_path.name
 
+    def get_assignment_model_file(
+        self,
+        assignment_id: str,
+    ) -> tuple[dict[str, object] | None, bytes | None, str | None]:
+        if not assignment_id.isdigit():
+            return None, None, None
+        with connect(self.db_path) as conn:
+            if not db_table_exists(conn, "structure_model_assignment"):
+                return None, None, None
+            row = dict_row(
+                conn.execute(
+                    """
+                    SELECT sma.*, ta.gene_names, ta.protein_name, ta.organism_name
+                    FROM structure_model_assignment AS sma
+                    LEFT JOIN tf_annotation AS ta ON ta.tf_id = sma.display_accession
+                    WHERE sma.id = ? AND sma.is_active = 1
+                    """,
+                    (int(assignment_id),),
+                ).fetchone()
+            )
+        if not row:
+            return None, None, None
+        model_path = Path(str(row["model_path"])).resolve()
+        if not is_allowed_local_af3_path(model_path):
+            return row, None, None
+        if not model_path.is_file():
+            return row, None, None
+        try:
+            return row, model_path.read_bytes(), model_path.name
+        except OSError:
+            return row, None, None
+
     def model_viewer(self, params: dict[str, list[str]]) -> tuple[bytes, str, int]:
+        assignment_id = params.get("assignment", [""])[0].strip()
+        if assignment_id:
+            assignment, content, filename = self.get_assignment_model_file(assignment_id)
+            if not assignment:
+                return self.not_found("Active AF3 model assignment is not indexed.")
+            if content is None or filename is None:
+                return self.not_found("Assigned AF3 model file is unavailable.")
+            try:
+                notes = json.loads(str(assignment.get("notes") or "{}"))
+            except json.JSONDecodeError:
+                notes = {}
+            fragment_id = str(notes.get("domain_or_fragment_id") or "")
+            fragment_match = re.search(r"_(PF\d{5})_(\d+)-(\d+)$", fragment_id)
+            plddt_summary = None
+            with connect(self.db_path) as conn:
+                if db_table_exists(conn, "structure_confidence_artifact"):
+                    artifacts = conn.execute(
+                        """
+                        SELECT *
+                        FROM structure_confidence_artifact
+                        WHERE model_path = ? AND artifact_type = 'PLDDT_JSON'
+                        ORDER BY id
+                        """,
+                        (assignment["model_path"],),
+                    ).fetchall()
+                    for artifact_row in artifacts:
+                        plddt_summary = load_indexed_plddt_summary(dict(artifact_row))
+                        if plddt_summary is not None:
+                            break
+            model = {
+                **assignment,
+                "model_id": Path(str(assignment["model_path"])).stem,
+                "tf_id": assignment["display_accession"],
+                "file_type": "cif",
+                "template_pdb": None,
+                "residue_start": int(fragment_match.group(2)) if fragment_match else None,
+                "residue_end": int(fragment_match.group(3)) if fragment_match else None,
+                "fragment_identity": (
+                    f"{fragment_match.group(1)} {fragment_match.group(2)}-{fragment_match.group(3)}"
+                    if fragment_match else ""
+                ),
+                "model_label": (
+                    "AF3 DBD fragment model"
+                    if assignment["model_role"] == "DBD_FRAGMENT_MODEL"
+                    else "AF3 full-length model"
+                ),
+            }
+            return (
+                self.render(
+                    "model.html",
+                    model=model,
+                    summary=None,
+                    model_data_url=f"/model-data?assignment={assignment_id}",
+                    download_model_url=f"/download/model?assignment={assignment_id}",
+                    viewer_extension="cif",
+                    download_format="mmCIF",
+                    is_af3_assignment=True,
+                    plddt_summary=plddt_summary,
+                ),
+                "text/html",
+                200,
+            )
         file_id = params.get("id", [""])[0].strip()
         if not file_id.isdigit():
             return self.not_found("Model id is required.")
@@ -3140,9 +3561,34 @@ class TFWebApp:
             ).fetchone()
         if model["file_type"] != "pdb":
             return self.not_found("Only PDB files can be viewed in 3D.")
-        return self.render("model.html", model=model, summary=summary), "text/html", 200
+        model["model_label"] = f"{SOURCE_LABELS.get(model['source'], model['source'])} model"
+        return (
+            self.render(
+                "model.html",
+                model=model,
+                summary=summary,
+                model_data_url=f"/model-data?id={file_id}",
+                download_model_url=f"/download/model?id={file_id}",
+                viewer_extension="pdb",
+                download_format="PDB",
+                is_af3_assignment=False,
+                plddt_summary=None,
+            ),
+            "text/html",
+            200,
+        )
 
     def model_data(self, params: dict[str, list[str]]) -> tuple[bytes, str, int, dict[str, str]]:
+        assignment_id = params.get("assignment", [""])[0].strip()
+        if assignment_id:
+            row, content, filename = self.get_assignment_model_file(assignment_id)
+            if not row:
+                body, content_type, status = self.not_found("Active AF3 model assignment is not indexed.")
+                return body, content_type, status, {}
+            if content is None or filename is None:
+                body, content_type, status = self.not_found("Assigned AF3 model file is unavailable.")
+                return body, content_type, status, {}
+            return content, "chemical/x-mmcif", 200, {"Cache-Control": "no-store"}
         file_id = params.get("id", [""])[0].strip()
         row, content, filename = self.get_model_file(file_id)
         if not row:
@@ -3156,6 +3602,21 @@ class TFWebApp:
         }
 
     def download_model(self, params: dict[str, list[str]]) -> tuple[bytes, str, int, dict[str, str]]:
+        assignment_id = params.get("assignment", [""])[0].strip()
+        if assignment_id:
+            row, content, filename = self.get_assignment_model_file(assignment_id)
+            if not row:
+                body, content_type, status = self.not_found("Active AF3 model assignment is not indexed.")
+                return body, content_type, status, {}
+            if content is None or filename is None:
+                body, content_type, status = self.not_found("Assigned AF3 model file is unavailable.")
+                return body, content_type, status, {}
+            return (
+                content,
+                "chemical/x-mmcif",
+                200,
+                {"Content-Disposition": f'attachment; filename="{filename}"'},
+            )
         file_id = params.get("id", [""])[0].strip()
         row, content, filename = self.get_model_file(file_id)
         if not row:

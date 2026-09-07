@@ -3,7 +3,7 @@
 {% block content %}
   <section class="record-head">
     <div>
-      <p class="eyebrow">{{ source_labels.get(model.source, model.source) }} model</p>
+      <p class="eyebrow">{{ model.model_label or (source_labels.get(model.source, model.source) ~ " model") }}</p>
       <h1 class="mono">{{ model.model_id }}</h1>
       <p>
         <a class="mono" href="/tf/{{ model.tf_id|quote }}">{{ model.tf_id }}</a>
@@ -12,7 +12,7 @@
       </p>
     </div>
     <div class="actions">
-      <a class="button-link" href="/download/model?id={{ model.id }}">Download PDB</a>
+      <a class="button-link" href="{{ download_model_url }}">Download {{ download_format }}</a>
       {% if model.template_pdb %}
         <a class="secondary-link" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">Template PDB</a>
       {% endif %}
@@ -24,11 +24,38 @@
     <div id="viewer-status" class="viewer-status">Loading model...</div>
   </section>
 
+  {% if is_af3_assignment %}
+  <section aria-labelledby="plddt-heading">
+    <h2 id="plddt-heading">Model confidence (pLDDT)</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin:10px 0" aria-label="AlphaFold pLDDT color legend">
+      <span><span aria-hidden="true" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#0053d6;margin-right:6px"></span><strong>Very high</strong> (≥90)</span>
+      <span><span aria-hidden="true" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#65cbf3;margin-right:6px"></span><strong>Confident</strong> (70–89)</span>
+      <span><span aria-hidden="true" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ffdb13;margin-right:6px"></span><strong>Low</strong> (50–69)</span>
+      <span><span aria-hidden="true" style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ff7d45;margin-right:6px"></span><strong>Very low</strong> (&lt;50)</span>
+    </div>
+    {% if plddt_summary %}
+    <div class="annotation-grid">
+      <div><span>Mean pLDDT</span><strong>{{ "%.1f"|format(plddt_summary.mean) }}</strong></div>
+      <div><span>Median pLDDT</span><strong>{{ "%.1f"|format(plddt_summary.median) }}</strong></div>
+      <div><span>Minimum</span><strong>{{ "%.1f"|format(plddt_summary.minimum) }}</strong></div>
+      <div><span>Maximum</span><strong>{{ "%.1f"|format(plddt_summary.maximum) }}</strong></div>
+      <div><span>Atoms summarized</span><strong>{{ plddt_summary.atom_count }}</strong></div>
+    </div>
+    {% else %}
+    <p class="muted">An indexed pLDDT summary is not available for this model.</p>
+    {% endif %}
+    <p class="muted">Protein colors use pLDDT values stored in the mmCIF B-factor field. DNA retains separate residue and element colors.</p>
+  </section>
+  {% endif %}
+
   <section>
     <h2>Model details</h2>
     <div class="annotation-grid">
       <div><span>TF</span><strong class="mono">{{ model.tf_id }}</strong></div>
       <div><span>Source</span><strong>{{ source_labels.get(model.source, model.source) }}</strong></div>
+      {% if model.model_role %}<div><span>Assignment</span><strong>{{ model.model_label }}</strong></div>{% endif %}
+      {% if model.fragment_identity %}<div><span>Fragment identity</span><strong class="mono">{{ model.fragment_identity }}</strong></div>{% endif %}
+      {% if model.interface_status %}<div><span>Interface</span><strong>{{ model.interface_status }}</strong></div>{% endif %}
       <div><span>Template</span><strong class="mono">{{ model.template_pdb or "unknown" }}</strong></div>
       <div><span>Residues</span><strong>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}unknown{% endif %}</strong></div>
       {% if summary %}
@@ -46,12 +73,30 @@
     const statusEl = document.getElementById("viewer-status");
     const stage = new NGL.Stage("viewer", { backgroundColor: "white" });
     window.addEventListener("resize", () => stage.handleResize());
-    stage.loadFile("/model-data?id={{ model.id }}", { ext: "pdb" }).then(component => {
+    stage.loadFile("{{ model_data_url }}", { ext: "{{ viewer_extension }}" }).then(component => {
+      {% if is_af3_assignment %}
+      const plddtScheme = NGL.ColormakerRegistry.addScheme(function () {
+        this.atomColor = atom => {
+          const plddt = Number(atom.bfactor);
+          if (!Number.isFinite(plddt)) return 0xbdbdbd;
+          if (plddt >= 90) return 0x0053d6;
+          if (plddt >= 70) return 0x65cbf3;
+          if (plddt >= 50) return 0xffdb13;
+          return 0xff7d45;
+        };
+      });
+      component.addRepresentation("cartoon", { sele: "protein", color: plddtScheme });
+      {% else %}
       component.addRepresentation("cartoon", { sele: "protein", color: "chainindex" });
+      {% endif %}
       component.addRepresentation("base", { sele: "nucleic", color: "resname" });
       component.addRepresentation("licorice", { sele: "nucleic", color: "element", radius: 0.18 });
       component.autoView();
+      {% if is_af3_assignment %}
+      statusEl.textContent = "Protein colored by pLDDT; DNA shown as bases/licorice.";
+      {% else %}
       statusEl.textContent = "Protein shown as cartoon; DNA shown as bases/licorice.";
+      {% endif %}
     }).catch(error => {
       statusEl.textContent = "Could not load 3D model: " + error;
     });
