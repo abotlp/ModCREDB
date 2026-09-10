@@ -24,7 +24,7 @@
     <div id="viewer-status" class="viewer-status">Loading model...</div>
   </section>
 
-  {% if is_af3_assignment %}
+  {% if is_alphafold_model %}
   <section aria-labelledby="plddt-heading">
     <h2 id="plddt-heading">Model confidence (pLDDT)</h2>
     <div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin:10px 0" aria-label="AlphaFold pLDDT color legend">
@@ -44,7 +44,7 @@
     {% else %}
     <p class="muted">An indexed pLDDT summary is not available for this model.</p>
     {% endif %}
-    <p class="muted">Protein colors use pLDDT values stored in the mmCIF B-factor field. DNA retains separate residue and element colors.</p>
+    <p class="muted">Protein colors use pLDDT values stored in the coordinate file's B-factor field. DNA retains separate residue and element colors.</p>
   </section>
   {% endif %}
 
@@ -74,7 +74,7 @@
     const stage = new NGL.Stage("viewer", { backgroundColor: "white" });
     window.addEventListener("resize", () => stage.handleResize());
     stage.loadFile("{{ model_data_url }}", { ext: "{{ viewer_extension }}" }).then(component => {
-      {% if is_af3_assignment %}
+      {% if is_alphafold_model %}
       const plddtScheme = NGL.ColormakerRegistry.addScheme(function () {
         this.atomColor = atom => {
           const plddt = Number(atom.bfactor);
@@ -92,7 +92,7 @@
       component.addRepresentation("base", { sele: "nucleic", color: "resname" });
       component.addRepresentation("licorice", { sele: "nucleic", color: "element", radius: 0.18 });
       component.autoView();
-      {% if is_af3_assignment %}
+      {% if is_alphafold_model %}
       statusEl.textContent = "Protein colored by pLDDT; DNA shown as bases/licorice.";
       {% else %}
       statusEl.textContent = "Protein shown as cartoon; DNA shown as bases/licorice.";

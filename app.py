@@ -47,6 +47,13 @@ LOCAL_AF3_ALLOWED_ROOTS = (
     LOCAL_AF3_UNRESOLVED_ROOT,
     LOCAL_AF3_FRAGMENT_ROOT,
 )
+PDB_PROTEIN_RESIDUE_NAMES = frozenset(
+    {
+        "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
+        "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
+        "ASX", "GLX", "HYP", "MSE", "PYL", "SEC", "XLE",
+    }
+)
 EVIDENCE_LABELS = {
     "identical": "Known",
     "homologous": "Nearest Neighbor (>70%)",
@@ -302,6 +309,39 @@ def load_indexed_plddt_summary(artifact: dict[str, object]) -> dict[str, object]
         if not math.isfinite(value) or value < 0 or value > 100:
             return None
         values.append(value)
+    ordered = sorted(values)
+    middle = len(ordered) // 2
+    median = (
+        ordered[middle]
+        if len(ordered) % 2
+        else (ordered[middle - 1] + ordered[middle]) / 2
+    )
+    return {
+        "mean": math.fsum(values) / len(values),
+        "median": median,
+        "minimum": ordered[0],
+        "maximum": ordered[-1],
+        "atom_count": len(values),
+    }
+
+
+def load_pdb_protein_plddt_summary(content: bytes) -> dict[str, object] | None:
+    """Summarize protein-atom pLDDT stored in PDB B-factor columns."""
+    values: list[float] = []
+    for line in content.decode("ascii", errors="replace").splitlines():
+        if len(line) < 66 or line[0:6].strip() not in {"ATOM", "HETATM"}:
+            continue
+        if line[17:20].strip().upper() not in PDB_PROTEIN_RESIDUE_NAMES:
+            continue
+        try:
+            value = float(line[60:66])
+        except ValueError:
+            return None
+        if not math.isfinite(value) or value < 0 or value > 100:
+            return None
+        values.append(value)
+    if not values:
+        return None
     ordered = sorted(values)
     middle = len(ordered) // 2
     median = (
@@ -3484,9 +3524,10 @@ class TFWebApp:
                 notes = {}
             fragment_id = str(notes.get("domain_or_fragment_id") or "")
             fragment_match = re.search(r"_(PF\d{5})_(\d+)-(\d+)$", fragment_id)
+            is_alphafold_model = str(assignment.get("source") or "").casefold() == "af3"
             plddt_summary = None
             with connect(self.db_path) as conn:
-                if db_table_exists(conn, "structure_confidence_artifact"):
+                if is_alphafold_model and db_table_exists(conn, "structure_confidence_artifact"):
                     artifacts = conn.execute(
                         """
                         SELECT *
@@ -3527,7 +3568,7 @@ class TFWebApp:
                     download_model_url=f"/download/model?assignment={assignment_id}",
                     viewer_extension="cif",
                     download_format="mmCIF",
-                    is_af3_assignment=True,
+                    is_alphafold_model=is_alphafold_model,
                     plddt_summary=plddt_summary,
                 ),
                 "text/html",
@@ -3561,6 +3602,12 @@ class TFWebApp:
             ).fetchone()
         if model["file_type"] != "pdb":
             return self.not_found("Only PDB files can be viewed in 3D.")
+        is_alphafold_model = str(model.get("source") or "").casefold() == "alphafold"
+        plddt_summary = None
+        if is_alphafold_model:
+            _, pdb_content, _ = self.get_model_file(file_id)
+            if pdb_content is not None:
+                plddt_summary = load_pdb_protein_plddt_summary(pdb_content)
         model["model_label"] = f"{SOURCE_LABELS.get(model['source'], model['source'])} model"
         return (
             self.render(
@@ -3571,8 +3618,8 @@ class TFWebApp:
                 download_model_url=f"/download/model?id={file_id}",
                 viewer_extension="pdb",
                 download_format="PDB",
-                is_af3_assignment=False,
-                plddt_summary=None,
+                is_alphafold_model=is_alphafold_model,
+                plddt_summary=plddt_summary,
             ),
             "text/html",
             200,
