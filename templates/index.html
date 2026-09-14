@@ -14,8 +14,8 @@
       <form class="home-search" action="/search" method="get">
         <label class="visually-hidden" for="home-search">Search ModCREDB</label>
         <input id="home-search" name="q" placeholder="TP53, P04637, MA0065.1, C2H2, Homeobox, PF00096" autofocus>
-        <select name="evidence" aria-label="Prediction filter"><option value="">Any prediction</option><option value="identical">Known</option><option value="homologous">Nearest Neighbor &gt;70%</option><option value="relative_homologous">Nearest Neighbor 50–70%</option><option value="modcre">Predicted Low: ModCRE</option><option value="alphafold">Predicted Low: AlphaFold3</option></select>
-        <select name="source" aria-label="Source filter"><option value="">Any source</option><option value="jaspar">JASPAR</option><option value="cisbp">CisBP</option><option value="hocomoco">HOCOMOCO</option><option value="modcre">ModCRE</option><option value="alphafold">AlphaFold3-ModCRE</option></select>
+        <select name="evidence" aria-label="Prediction filter"><option value="">Any prediction</option><option value="identical">Known</option><option value="homologous">Nearest Neighbor &gt;70%</option><option value="relative_homologous">Nearest Neighbor 50–70%</option><option value="modcre">ModCRE</option></select>
+        <select name="source" aria-label="Source filter"><option value="">Any source</option><option value="jaspar">JASPAR</option><option value="cisbp">CisBP</option><option value="modcre">Homology model</option><option value="alphafold">AlphaFold3 model</option></select>
         <button type="submit">Search</button>
       </form>
       <div class="home-search-examples"><span>Try</span><a href="/search?q=TP53">TP53</a><a href="/search?q=P04637">P04637</a><a href="/search?q=MA0065.1">MA0065.1</a><a href="/search?q=C2H2">C2H2</a><a href="/search?q=Homeobox">Homeobox</a></div>
@@ -61,8 +61,12 @@
                   <span class="muted">{{ row.protein_name or "No protein name available" }}</span>
                 </td>
                 <td>
-                  <strong>{{ row.primary_evidence_label }}</strong><br>
-                  <span class="muted">{{ row.evidence_tier }}</span>
+                  <strong>{{ row.primary_evidence_label }}</strong>
+                  {% if row.primary_evidence_raw == 'ModCRE' %}
+                    <br><span class="muted">Source: Homology model</span>
+                  {% elif row.primary_evidence_raw == 'AlphaFold' %}
+                    <br><span class="muted">Source: AlphaFold3 model</span>
+                  {% endif %}
                 </td>
                 <td>{{ row.family_text or "—" }}</td>
                 <td>{{ row.fimo_ready_pwm_count }}</td>
