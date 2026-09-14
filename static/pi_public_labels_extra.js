@@ -1,7 +1,8 @@
 (() => {
   const pairs = [
-    ["Nearest Neighbor 50-70%", "Nearest Neighbor (70% - 40%)"],
-    ["Nearest Neighbor 70-40%", "Nearest Neighbor (70% - 40%)"],
+    ["Nearest Neighbor (70% - 40%)", "Nearest Neighbor (50–70%)"],
+    ["Nearest Neighbor 70-40%", "Nearest Neighbor (50–70%)"],
+    ["Nearest Neighbor 50-70%", "Nearest Neighbor (50–70%)"],
     ["Nearest Neighbor >70%", "Nearest Neighbor (>70%)"]
   ];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
