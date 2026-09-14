@@ -560,6 +560,108 @@ def primary_evidence_sort_priority(level: object) -> int:
     return priorities.get(normalize_primary_evidence(level), 6)
 
 
+SEARCH_PREDICTION_LEVELS = {
+    "identical": ("Identical_PWM",),
+    "homologous": ("Homologous_PWM",),
+    "relative_homologous": ("Relatively_Homologous_PWM",),
+    "modcre": ("ModCRE", "AlphaFold"),
+}
+SEARCH_SOURCE_LABELS = {
+    "jaspar": "JASPAR",
+    "cisbp": "CisBP",
+    "hocomoco": "HOCOMOCO",
+    "modcre": "Homology model",
+    "alphafold": "AlphaFold3 model",
+}
+PWM_PRIMARY_LEVELS = {"Identical_PWM", "Homologous_PWM", "Relatively_Homologous_PWM"}
+SELECTED_MOTIF_IDENTITY_SUFFIX = re.compile(r"\s+\(\d+(?:\.\d+)?%\)\s*$")
+
+
+def selected_primary_motif_ids(value: object) -> list[str]:
+    return [
+        SELECTED_MOTIF_IDENTITY_SUFFIX.sub("", item.strip())
+        for item in str(value or "").split(";")
+        if item.strip()
+    ]
+
+
+def resolve_final_prediction_sources(
+    conn: sqlite3.Connection,
+    rows: list[dict[str, object]],
+) -> dict[str, tuple[str, ...]]:
+    """Resolve source only from each TF's final selected prediction evidence."""
+    sources_by_tf: dict[str, set[str]] = {str(row["tf_id"]): set() for row in rows}
+    selected_by_tf: dict[str, list[str]] = {}
+    for row in rows:
+        tf_id = str(row["tf_id"])
+        level = normalize_primary_evidence(row.get("best_annotation_level"))
+        if level == "ModCRE":
+            sources_by_tf[tf_id].add("modcre")
+        elif level == "AlphaFold":
+            sources_by_tf[tf_id].add("alphafold")
+        elif level in PWM_PRIMARY_LEVELS:
+            selected_by_tf[tf_id] = selected_primary_motif_ids(row.get("best_pwm_or_model"))
+
+    selected_ids = sorted({motif_id for values in selected_by_tf.values() for motif_id in values})
+    exact_sources: dict[tuple[str, str], set[str]] = {}
+    global_sources: dict[str, set[str]] = {}
+    chunk_size = 400
+    for offset in range(0, len(selected_ids), chunk_size):
+        chunk = selected_ids[offset : offset + chunk_size]
+        placeholders = ", ".join("?" for _ in chunk)
+        for ref in conn.execute(
+            f"""
+            SELECT DISTINCT tf_id, motif_id, source
+            FROM motif_ref
+            WHERE motif_id IN ({placeholders})
+            """,
+            chunk,
+        ).fetchall():
+            key = (str(ref["tf_id"]), str(ref["motif_id"]))
+            exact_sources.setdefault(key, set()).add(str(ref["source"]))
+            global_sources.setdefault(str(ref["motif_id"]), set()).add(str(ref["source"]))
+
+    for tf_id, motif_ids in selected_by_tf.items():
+        for motif_id in motif_ids:
+            selected_sources = exact_sources.get((tf_id, motif_id))
+            if selected_sources:
+                sources_by_tf[tf_id].update(selected_sources)
+            else:
+                sources_by_tf[tf_id].update(global_sources.get(motif_id, set()))
+    source_order = {source: index for index, source in enumerate(SEARCH_SOURCE_LABELS)}
+    return {
+        tf_id: tuple(sorted(sources, key=lambda source: (source_order.get(source, 99), source)))
+        for tf_id, sources in sources_by_tf.items()
+    }
+
+
+def parse_search_page(value: object) -> int:
+    try:
+        page = int(str(value or "1"))
+    except ValueError:
+        return 1
+    return max(1, page)
+
+
+def compact_page_items(current_page: int, total_pages: int) -> list[int | None]:
+    pages = sorted(
+        page
+        for page in {1, 2, total_pages - 1, total_pages, *range(current_page - 2, current_page + 3)}
+        if 1 <= page <= total_pages
+    )
+    items: list[int | None] = []
+    previous = 0
+    for page in pages:
+        gap = page - previous
+        if previous and gap == 2:
+            items.append(previous + 1)
+        elif previous and gap > 2:
+            items.append(None)
+        items.append(page)
+        previous = page
+    return items
+
+
 def tf_search_sort_key(row: dict[str, object], query: str) -> tuple[object, ...]:
     query_upper = (query or "").upper()
     return (
@@ -574,7 +676,11 @@ def tf_search_sort_key(row: dict[str, object], query: str) -> tuple[object, ...]
     )
 
 
-def fetch_gene_summaries(conn: sqlite3.Connection, query: str) -> list[dict[str, object]]:
+def fetch_gene_summaries(
+    conn: sqlite3.Connection,
+    query: str,
+    allowed_tf_ids: set[str] | None = None,
+) -> list[dict[str, object]]:
     if not is_gene_symbol_like(query):
         return []
     token_pattern = f"% {query.upper()} %"
@@ -588,6 +694,8 @@ def fetch_gene_summaries(conn: sqlite3.Connection, query: str) -> list[dict[str,
         """,
         (token_pattern,),
     ).fetchall()
+    if allowed_tf_ids is not None:
+        raw_rows = [row for row in raw_rows if str(row["tf_id"]) in allowed_tf_ids]
     if not raw_rows:
         return []
     statuses = fetch_tf_statuses(conn, [row["tf_id"] for row in raw_rows])
@@ -2518,10 +2626,13 @@ class TFWebApp:
         evidence = params.get("evidence", [""])[0].strip()
         if evidence == "alphafold":
             evidence = "modcre"
-        if evidence not in {"identical", "homologous", "relative_homologous", "modcre"}:
+        if evidence not in SEARCH_PREDICTION_LEVELS:
             evidence = ""
         source = params.get("source", [""])[0].strip()
+        if source not in {"jaspar", "cisbp", "modcre", "alphafold"}:
+            source = ""
         limit = 60
+        requested_page = parse_search_page(params.get("page", ["1"])[0])
 
         where = []
         args: list[object] = []
@@ -2529,6 +2640,7 @@ class TFWebApp:
         LEFT JOIN motif_ref AS mr ON mr.tf_id = tf.tf_id
         LEFT JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
         LEFT JOIN tf_pfam_annotation AS tpa ON tpa.tf_id = tf.tf_id
+        JOIN tf_primary_annotation AS primary_annotation ON primary_annotation.tf_id = tf.tf_id
         """
         if q:
             like = f"%{q}%"
@@ -2542,13 +2654,20 @@ class TFWebApp:
             )
             args.extend([like, like, like, like, like, like, like, like, like, like])
         if evidence:
-            evidence_values = ("modcre", "alphafold") if evidence == "modcre" else (evidence,)
-            evidence_placeholders = ", ".join("?" for _ in evidence_values)
-            where.append(f"mr.evidence_type IN ({evidence_placeholders})")
-            args.extend(evidence_values)
+            prediction_levels = SEARCH_PREDICTION_LEVELS[evidence]
+            level_placeholders = ", ".join("?" for _ in prediction_levels)
+            where.append(f"primary_annotation.best_annotation_level IN ({level_placeholders})")
+            args.extend(prediction_levels)
         if source:
-            where.append("mr.source = ?")
-            args.append(source)
+            if source == "modcre":
+                where.append("primary_annotation.best_annotation_level = 'ModCRE'")
+            elif source == "alphafold":
+                where.append("primary_annotation.best_annotation_level = 'AlphaFold'")
+            else:
+                where.append(
+                    "primary_annotation.best_annotation_level IN "
+                    "('Identical_PWM', 'Homologous_PWM', 'Relatively_Homologous_PWM')"
+                )
         where_sql = "WHERE " + " AND ".join(where) if where else ""
 
         with connect(self.db_path) as conn:
@@ -2556,7 +2675,9 @@ class TFWebApp:
             raw_rows = conn.execute(
                 f"""
                 SELECT DISTINCT tf.tf_id, tf.family_text, tf.motif_ref_count, tf.active_model_count,
-                       ta.gene_names, ta.protein_name, ta.organism_name, ta.reviewed
+                       ta.gene_names, ta.protein_name, ta.organism_name, ta.reviewed,
+                       primary_annotation.best_annotation_level,
+                       primary_annotation.best_pwm_or_model
                 FROM tf
                 {joins}
                 {where_sql}
@@ -2573,14 +2694,31 @@ class TFWebApp:
                 row["pfam_annotations"] = pfam_by_tf.get(row["tf_id"], [])
                 row["pfam_match_summary"] = pfam_match_summary(row["pfam_annotations"], q)
                 all_rows.append(row)
+            if source:
+                final_sources = resolve_final_prediction_sources(conn, all_rows)
+                all_rows = [
+                    row
+                    for row in all_rows
+                    if source in final_sources.get(str(row["tf_id"]), ())
+                ]
             all_rows.sort(key=lambda row: tf_search_sort_key(row, q))
             total = len(all_rows)
-            rows = all_rows[:limit]
+            total_pages = max(1, math.ceil(total / limit))
+            page = min(requested_page, total_pages)
+            page_offset = (page - 1) * limit
+            rows = all_rows[page_offset : page_offset + limit]
+            page_start = page_offset + 1 if total else 0
+            page_end = min(page_offset + limit, total)
+            page_items = compact_page_items(page, total_pages)
             exact_tf_accession_search = bool(
                 q
                 and any(str(row["tf_id"]).upper() == q.upper() for row in all_rows)
             )
-            gene_summaries = fetch_gene_summaries(conn, q)
+            gene_summaries = fetch_gene_summaries(
+                conn,
+                q,
+                allowed_tf_ids={str(row["tf_id"]) for row in all_rows},
+            )
             preferred_tf_ids = {
                 str(summary["preferred"]["tf_id"])
                 for summary in gene_summaries
@@ -2612,6 +2750,11 @@ class TFWebApp:
                 rows=rows,
                 total=total,
                 limit=limit,
+                page=page,
+                page_start=page_start,
+                page_end=page_end,
+                total_pages=total_pages,
+                page_items=page_items,
                 gene_summaries=gene_summaries,
                 preferred_tf_ids=preferred_tf_ids,
                 motif_rows=motif_rows,

@@ -4,7 +4,7 @@
 {% macro public_prediction_label(value) -%}
   {%- if value in ['Identical_PWM', 'Identical PWM', 'Known'] -%}Known
   {%- elif value in ['Homologous_PWM', 'Homologous PWM'] -%}Nearest Neighbor (&gt;70%)
-  {%- elif value in ['Relatively_Homologous_PWM', 'Relatively Homologous PWM'] -%}Nearest Neighbor (70% - 40%)
+  {%- elif value in ['Relatively_Homologous_PWM', 'Relatively Homologous PWM'] -%}Nearest Neighbor (50-70%)
   {%- elif value in ['ModCRE', 'AlphaFold', 'AlphaFold_ModCRE', 'AlphaFold3-assisted ModCRE'] -%}ModCRE
   {%- elif value in ['Unannotated', '', none] -%}Unannotated
   {%- else -%}{{ value }}
@@ -23,7 +23,7 @@
   {%- set ns = namespace(sep='') -%}
   {%- if ',identical,' in types -%}{{ ns.sep }}Known{%- set ns.sep = ', ' -%}{%- endif -%}
   {%- if ',homologous,' in types -%}{{ ns.sep }}Nearest Neighbor (&gt;70%){%- set ns.sep = ', ' -%}{%- endif -%}
-  {%- if ',relative_homologous,' in types -%}{{ ns.sep }}Nearest Neighbor (70% - 40%){%- set ns.sep = ', ' -%}{%- endif -%}
+  {%- if ',relative_homologous,' in types -%}{{ ns.sep }}Nearest Neighbor (50-70%){%- set ns.sep = ', ' -%}{%- endif -%}
   {%- if ',modcre,' in types or ',alphafold,' in types -%}{{ ns.sep }}ModCRE{%- set ns.sep = ', ' -%}{%- endif -%}
   {%- if ns.sep == '' -%}No linked TF prediction{%- endif -%}
 {%- endmacro %}
@@ -75,6 +75,9 @@
 {% endmacro %}
 
 {% block content %}
+  <style>
+    .search-pagination{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:16px 0 4px}.search-pagination a,.search-pagination span{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 9px;border:1px solid var(--line);border-radius:8px;text-decoration:none}.search-pagination [aria-current="page"]{background:#0b5bd3;border-color:#0b5bd3;color:#fff;font-weight:800}.search-pagination .ellipsis{border:0;min-width:auto;padding:0 2px}.search-pagination .direction{min-width:auto}
+  </style>
   <section>
     <p class="eyebrow">TF-to-motif prediction search</p>
     <h1>Search ModCREDB</h1>
@@ -84,15 +87,14 @@
         <option value="">Any prediction</option>
         <option value="identical" {% if evidence == 'identical' %}selected{% endif %}>Known</option>
         <option value="homologous" {% if evidence == 'homologous' %}selected{% endif %}>Nearest Neighbor (&gt;70%)</option>
-        <option value="relative_homologous" {% if evidence == 'relative_homologous' %}selected{% endif %}>Nearest Neighbor (70% - 40%)</option>
+        <option value="relative_homologous" {% if evidence == 'relative_homologous' %}selected{% endif %}>Nearest Neighbor (50-70%)</option>
         <option value="modcre" {% if evidence == 'modcre' %}selected{% endif %}>ModCRE</option>
       </select>
       <select name="source">
         <option value="">Any source</option>
         <option value="jaspar" {% if source == 'jaspar' %}selected{% endif %}>JASPAR</option>
         <option value="cisbp" {% if source == 'cisbp' %}selected{% endif %}>CisBP</option>
-        <option value="hocomoco" {% if source == 'hocomoco' %}selected{% endif %}>HOCOMOCO</option>
-        <option value="modcre" {% if source == 'modcre' %}selected{% endif %}>ModCRE</option>
+        <option value="modcre" {% if source == 'modcre' %}selected{% endif %}>Homology model</option>
         <option value="alphafold" {% if source == 'alphafold' %}selected{% endif %}>AlphaFold3 model</option>
       </select>
       <button type="submit">Search</button>
@@ -115,7 +117,7 @@
               {% set preferred = summary.preferred %}
               <tr>
                 <td><strong>{{ summary.gene }}</strong></td>
-                <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed Swiss-Prot</span>{% endif %}</td>
+                <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed (UniProtKB/Swiss-Prot)</span>{% endif %}</td>
                 <td class="number-cell" style="text-align:center">{{ summary.record_count }}</td>
                 <td>{{ public_prediction_label(preferred.primary_evidence_raw) }}</td>
                 <td class="number-cell" style="text-align:center">{{ preferred.fimo_ready_pwm_count }}</td>
@@ -136,7 +138,7 @@
   {% endif %}
 
   <details open style="margin-top:28px">
-    <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">UniProt sequence-record results</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ rows|length }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total > limit %}; refine the search to narrow it further{% endif %}</span></summary>
+    <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">UniProt sequence-record results</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ page_start }}-{{ page_end }} of {{ total }} matching record{% if total != 1 %}s{% endif %}</span></summary>
     <div class="table-wrap search-results-wrap">
       <table class="search-results-table" style="table-layout:fixed;min-width:0;width:100%">
         <colgroup>
@@ -152,7 +154,7 @@
         <tbody>
           {% for row in rows %}
             <tr>
-              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred</span>{% elif row.reviewed == 1 %}<br><span class="muted">Reviewed</span>{% endif %}</td>
+              <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred</span>{% elif row.reviewed == 1 %}<br><span class="muted">Reviewed (UniProtKB/Swiss-Prot)</span>{% endif %}</td>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
               <td class="protein-cell" style="overflow-wrap:anywhere;white-space:normal">{{ row.protein_name or "" }}</td>
               <td class="prediction-cell" style="white-space:normal">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
@@ -166,6 +168,18 @@
         </tbody>
       </table>
     </div>
+    {% if total_pages > 1 %}
+      <nav class="search-pagination" aria-label="Search result pages">
+        {% if page > 1 %}<a class="direction" href="/search?q={{ q|quote }}&amp;evidence={{ evidence|quote }}&amp;source={{ source|quote }}&amp;page={{ page - 1 }}">Previous</a>{% endif %}
+        {% for item in page_items %}
+          {% if item is none %}<span class="ellipsis" aria-hidden="true">…</span>
+          {% elif item == page %}<span aria-current="page">{{ item }}</span>
+          {% else %}<a href="/search?q={{ q|quote }}&amp;evidence={{ evidence|quote }}&amp;source={{ source|quote }}&amp;page={{ item }}">{{ item }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page < total_pages %}<a class="direction" href="/search?q={{ q|quote }}&amp;evidence={{ evidence|quote }}&amp;source={{ source|quote }}&amp;page={{ page + 1 }}">Next</a>{% endif %}
+      </nav>
+    {% endif %}
   </details>
 
   {% if motif_rows and exact_tf_accession_search %}
