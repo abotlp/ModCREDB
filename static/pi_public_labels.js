@@ -1,12 +1,15 @@
 (() => {
   const pairs = [
-    ["Predicted Low: AlphaFold3", "AF3-derived ModCRE"],
-    ["AlphaFold3-assisted ModCRE", "AF3-derived ModCRE"],
-    ["AlphaFold_ModCRE", "AF3-derived ModCRE"],
+    ["Predicted Low: AlphaFold3", "ModCRE"],
+    ["AlphaFold3-assisted ModCRE", "ModCRE"],
+    ["AlphaFold_ModCRE", "ModCRE"],
+    ["AF3-derived ModCRE", "ModCRE"],
     ["Predicted Low: ModCRE", "ModCRE"],
     ["Relatively_Homologous_PWM", "Nearest Neighbor (50–70%)"],
     ["Relatively Homologous PWM", "Nearest Neighbor (50–70%)"],
     ["Distant homologous candidate", "Nearest Neighbor (50–70%)"],
+    ["Nearest Neighbor (70% - 40%)", "Nearest Neighbor (50–70%)"],
+    ["Nearest Neighbor 70-40%", "Nearest Neighbor (50–70%)"],
     ["Homologous_PWM", "Nearest Neighbor (>70%)"],
     ["Homologous PWM", "Nearest Neighbor (>70%)"],
     ["Close homologous PWM", "Nearest Neighbor (>70%)"],
