@@ -6,17 +6,20 @@
   {%- if level in ['Identical_PWM', 'identical', 'Known'] -%}Known
   {%- elif level in ['Homologous_PWM', 'homologous'] -%}Nearest Neighbor (&gt;70%)
   {%- elif level in ['Relatively_Homologous_PWM', 'relative_homologous'] -%}Nearest Neighbor (50–70%)
-  {%- elif level in ['ModCRE', 'modcre'] -%}ModCRE
-  {%- elif level in ['AlphaFold', 'AlphaFold_ModCRE', 'AlphaFold3-assisted ModCRE', 'alphafold'] -%}AF3-derived ModCRE
+  {%- elif level in ['ModCRE', 'modcre', 'AlphaFold', 'AlphaFold_ModCRE', 'AlphaFold3-assisted ModCRE', 'alphafold'] -%}ModCRE
   {%- else -%}{{ level }}
   {%- endif -%}
 {%- endmacro %}
 
 {% block content %}
-  {% set ns = namespace(annotated_total=0) %}
+  {% set ns = namespace(annotated_total=0, modcre_total=0, modcre_percent=0) %}
   {% for row in primary_annotation_counts %}
     {% if row.label != 'Unannotated' %}
       {% set ns.annotated_total = ns.annotated_total + (row.count | int) %}
+    {% endif %}
+    {% if row.level in ['ModCRE', 'AlphaFold'] %}
+      {% set ns.modcre_total = ns.modcre_total + (row.count | int) %}
+      {% set ns.modcre_percent = ns.modcre_percent + (row.percent | float) %}
     {% endif %}
   {% endfor %}
 
@@ -25,7 +28,7 @@
       <p class="eyebrow">Help</p>
       <h1>ModCRE DB Help</h1>
       <p class="help-lead">
-        ModCRE DB is a searchable human transcription-factor motif resource. It links UniProt sequence records to Known motif databases, nearest-neighbour PWM transfer, generated PWM files, DNA-scan results and ModCRE-derived structural models.
+        ModCRE DB is a searchable human transcription-factor motif resource. It links UniProt sequence records to Known motif databases, nearest-neighbour PWM transfer, generated PWM files, DNA-scan results and TF-DNA structural models.
       </p>
       <nav class="help-index" aria-label="Help sections">
         <a href="#contains">What the database contains</a>
@@ -47,7 +50,7 @@
         </article>
         <article class="help-card">
           <h3>Motif assignments</h3>
-          <p>Known motifs from JASPAR, CisBP and HOCOMOCO; transferred motifs from nearest neighbours; and structure-derived motifs from ModCRE or AF3-derived ModCRE.</p>
+          <p>Known motifs from JASPAR, CisBP and HOCOMOCO; transferred motifs from nearest neighbours; and structure-derived ModCRE predictions. For ModCRE entries, structural provenance is reported separately as Homology model or AlphaFold3 model.</p>
         </article>
         <article class="help-card">
           <h3>Files and models</h3>
@@ -62,7 +65,7 @@
         <div class="help-step"><b>1. Human TF records</b><span>UniProt sequence records selected by transcription/DNA-binding annotation and filtered against non-TF DNA-associated functions.</span></div>
         <div class="help-step"><b>2. Known motifs</b><span>Direct motif matches from JASPAR, CisBP and HOCOMOCO are assigned first.</span></div>
         <div class="help-step"><b>3. Nearest neighbours</b><span>Unassigned records are compared with motif-bearing TFs and split into &gt;70% and 50–70% identity transfer categories.</span></div>
-        <div class="help-step"><b>4. Structural motifs</b><span>Remaining modellable records are processed with ModCRE; unresolved cases can use AF3-derived TF-DNA structures processed through ModCRE.</span></div>
+        <div class="help-step"><b>4. Structural motifs</b><span>Remaining modellable records are processed with ModCRE. The structural source is tracked separately as a Homology model or, for unresolved cases, an AlphaFold3 TF-DNA model after interface checks.</span></div>
         <div class="help-step"><b>5. Web outputs</b><span>The web database exposes TF pages, motif pages, generated PWMs, scan results, model files and source links.</span></div>
       </div>
     </section>
@@ -109,7 +112,7 @@
         <div><b>TF page</b><span>UniProt metadata, primary motif category, motif assignments, generated PWM status, sequence-logo/motif links, DNA-binding regions, PFAM/domain annotations and 3D model files.</span></div>
         <div><b>Motif page</b><span>Motif source, motif identifier, matrix information, downloadable MEME file and TF records using that motif.</span></div>
         <div><b>Scan DNA</b><span>Ranked motif hits in the submitted DNA sequence, including source, category, position, strand, matched sequence, score and p-value.</span></div>
-        <div><b>3D model links</b><span>Indexed model files and model-supported regions for ModCRE and AF3-derived ModCRE records where available.</span></div>
+        <div><b>3D model links</b><span>Indexed model files and model-supported regions for structure-based ModCRE predictions, with Homology model or AlphaFold3 model provenance where applicable.</span></div>
       </div>
     </section>
 
@@ -119,10 +122,9 @@
         <article class="help-card help-category"><strong>Known</strong><span>direct motif record</span><p>Motif assigned from a direct match in JASPAR, CisBP or HOCOMOCO.</p></article>
         <article class="help-card help-category"><strong>Nearest Neighbor (&gt;70%)</strong><span>close transfer</span><p>Motif transferred from a closely related motif-bearing TF.</p></article>
         <article class="help-card help-category"><strong>Nearest Neighbor (50–70%)</strong><span>candidate transfer</span><p>Motif transferred from a more distant annotated TF and kept as a lower-confidence assignment.</p></article>
-        <article class="help-card help-category"><strong>ModCRE</strong><span>structure-derived</span><p>PWM derived by ModCRE from a modellable protein-DNA interface.</p></article>
-        <article class="help-card help-category"><strong>AF3-derived ModCRE</strong><span>predicted structure + ModCRE</span><p>AlphaFold3 TF-DNA structure processed through ModCRE after interface checks.</p></article>
+        <article class="help-card help-category"><strong>ModCRE</strong><span>structure-derived prediction</span><p>PWM predicted by ModCRE from a TF-DNA structural model. Structural source is reported separately as Homology model or AlphaFold3 model.</p></article>
       </div>
-      <p class="help-note">The strongest available category is used as the primary category for a TF record. Supporting motif links and model files can still appear on the detail pages.</p>
+      <p class="help-note">The strongest available category is used as the primary prediction for a TF record. Supporting motif links and model files can still appear on detail pages without changing that primary prediction.</p>
     </section>
 
     <section id="scan" class="help-section">
@@ -169,7 +171,7 @@ TTTTTTGAACATGTCCCAACATGTTGTTTTTT</div>
         </article>
         <article class="help-card">
           <h3>Structure-derived motifs</h3>
-          <p>ModCRE-derived records use structural models of TF-DNA interfaces. AF3-derived ModCRE records use AlphaFold3 TF-DNA structures as input to ModCRE.</p>
+          <p>ModCRE predicts PWMs from TF-DNA structural models. Model provenance is tracked separately: Homology model for ModCRE homology models and AlphaFold3 model for validated AF3 TF-DNA structures.</p>
           <div class="help-source-links">
             <a class="help-link-pill" href="http://aleph.upf.edu/modcre/##intro" target="_blank" rel="noopener">ModCRE</a>
             <a class="help-link-pill" href="https://alphafoldserver.com/" target="_blank" rel="noopener">AlphaFold Server</a>
@@ -192,10 +194,12 @@ TTTTTTGAACATGTCCCAACATGTTGTTTTTT</div>
         <h3 style="margin-top:18px">Primary motif categories</h3>
         <div class="bar-list compact">
           {% for row in primary_annotation_counts %}
-            {% if row.label != 'Unannotated' %}
+            {% if row.label != 'Unannotated' and row.level != 'AlphaFold' %}
+              {% set display_count = ns.modcre_total if row.level == 'ModCRE' else row.count %}
+              {% set display_percent = ns.modcre_percent if row.level == 'ModCRE' else row.percent %}
               <div class="bar-row">
-                <div><strong>{{ category_label(row.label) }}</strong><span>{{ row.count }} TF records{% if row.percent %}; {{ row.percent }}%{% endif %}</span></div>
-                <div class="bar-track"><span style="width: {{ row.percent }}%"></span></div>
+                <div><strong>{{ category_label(row.label) }}</strong><span>{{ display_count }} TF records{% if display_percent %}; {{ '%.1f'|format(display_percent) }}%{% endif %}</span></div>
+                <div class="bar-track"><span style="width: {{ display_percent }}%"></span></div>
               </div>
             {% endif %}
           {% endfor %}
