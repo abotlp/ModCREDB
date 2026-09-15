@@ -1,0 +1,123 @@
+{% if active_models %}
+{% set dna=namespace(yes=0,no=0,unavailable=0,unknown=0) %}
+{% for model in active_models %}
+  {% if model.dna_qc_status == 'ok' and model.dna_interaction == 1 %}
+    {% set dna.yes = dna.yes + 1 %}
+  {% elif model.dna_qc_status == 'ok' and model.dna_interaction == 0 %}
+    {% set dna.no = dna.no + 1 %}
+  {% elif model.dna_qc_status == 'no_protein_atoms' %}
+    {% set dna.unavailable = dna.unavailable + 1 %}
+  {% else %}
+    {% set dna.unknown = dna.unknown + 1 %}
+  {% endif %}
+{% endfor %}
+
+{% if dna.yes == 0 and dna.no > 0 %}
+<section class="tf-box dna-qc-notice dna-qc-notice-no" role="status">
+  <h2>No DNA-interacting structure identified</h2>
+  <p>None of the {{ dna.no }} assessable structural model{% if dna.no != 1 %}s{% endif %} contains a protein–DNA non-hydrogen atom contact within 4.5 Å.</p>
+</section>
+{% elif dna.yes == 0 and dna.no == 0 and dna.unavailable > 0 %}
+<section class="tf-box dna-qc-notice dna-qc-notice-unavailable" role="status">
+  <h2>DNA interaction could not be assessed</h2>
+  <p>The available structural model{% if dna.unavailable != 1 %}s{% endif %} do not contain a protein component, so a protein–DNA interface cannot be evaluated.</p>
+</section>
+{% endif %}
+
+<div id="dna-qc-data" hidden aria-hidden="true">
+{% for model in active_models %}
+  {% if model.dna_qc_status == 'ok' and model.dna_interaction == 1 %}
+  <span data-model-id="{{ model.id }}" data-dna-status="yes" data-dna-contacts="{{ model.dna_contact_count or 0 }}"></span>
+  {% elif model.dna_qc_status == 'ok' and model.dna_interaction == 0 %}
+  <span data-model-id="{{ model.id }}" data-dna-status="no" data-dna-contacts="0"></span>
+  {% elif model.dna_qc_status == 'no_protein_atoms' %}
+  <span data-model-id="{{ model.id }}" data-dna-status="unavailable" data-dna-contacts="0"></span>
+  {% else %}
+  <span data-model-id="{{ model.id }}" data-dna-status="unknown" data-dna-contacts="0"></span>
+  {% endif %}
+{% endfor %}
+</div>
+
+<style>
+.dna-qc-notice{border-left:5px solid #b42318;background:#fff7f6}
+.dna-qc-notice h2{margin-top:0;color:#8a1c14}
+.dna-qc-notice p{margin-bottom:0}
+.dna-qc-notice-unavailable{border-left-color:#667085;background:#f8fafc}
+.dna-qc-notice-unavailable h2{color:#344054}
+.dna-status-badge{display:inline-flex;align-items:center;justify-content:center;min-width:52px;padding:3px 9px;border-radius:999px;border:1px solid;font-size:12px;font-weight:800;white-space:nowrap}
+.dna-status-yes{background:#eaf7ee;border-color:#b7dfc2;color:#166534}
+.dna-status-no{background:#fdecec;border-color:#f3bcbc;color:#991b1b}
+.dna-status-unavailable{background:#f2f4f7;border-color:#d0d5dd;color:#475467}
+.dna-status-unknown{background:#fff7e6;border-color:#f5d08a;color:#8a5700}
+</style>
+
+<script>
+(function(){
+  function addDnaInteractionColumns(){
+    var dataRoot=document.getElementById('dna-qc-data');
+    if(!dataRoot){return;}
+    var statusById={};
+    dataRoot.querySelectorAll('[data-model-id]').forEach(function(node){
+      statusById[node.getAttribute('data-model-id')]={
+        status:node.getAttribute('data-dna-status')||'unknown',
+        contacts:node.getAttribute('data-dna-contacts')||'0'
+      };
+    });
+
+    document.querySelectorAll('.tf-page .model-table').forEach(function(table){
+      var rows=Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+      var modelRows=[];
+      rows.forEach(function(row){
+        var link=row.querySelector('a[href^="/model?id="]');
+        if(!link){return;}
+        try{
+          var url=new URL(link.getAttribute('href'),window.location.origin);
+          var id=url.searchParams.get('id');
+          if(id && statusById[id]){modelRows.push({row:row,id:id});}
+        }catch(e){}
+      });
+      if(!modelRows.length){return;}
+
+      var headerRow=table.querySelector('thead tr');
+      if(headerRow && !headerRow.querySelector('.dna-qc-heading')){
+        var th=document.createElement('th');
+        th.className='dna-qc-heading';
+        th.textContent='DNA interaction';
+        var actionHeader=Array.prototype.find.call(headerRow.children,function(cell){return cell.textContent.trim().toLowerCase()==='actions';});
+        if(actionHeader){headerRow.insertBefore(th,actionHeader);}else{headerRow.appendChild(th);}
+      }
+
+      modelRows.forEach(function(item){
+        if(item.row.querySelector('.dna-qc-cell')){return;}
+        var info=statusById[item.id];
+        var td=document.createElement('td');
+        td.className='dna-qc-cell';
+        var badge=document.createElement('span');
+        badge.className='dna-status-badge dna-status-'+info.status;
+        if(info.status==='yes'){
+          badge.textContent='Yes';
+          badge.title=info.contacts+' protein–DNA non-H atom pair'+(info.contacts==='1'?'':'s')+' within 4.5 Å';
+        }else if(info.status==='no'){
+          badge.textContent='No';
+          badge.title='Protein and DNA are present, but no non-H atom contact was found within 4.5 Å';
+        }else if(info.status==='unavailable'){
+          badge.textContent='Unavailable';
+          badge.title='No protein component is present in this model';
+        }else{
+          badge.textContent='Not assessed';
+          badge.title='DNA-interaction QC is not available for this model';
+        }
+        td.appendChild(badge);
+        var actionCell=item.row.querySelector('.model-actions') || item.row.lastElementChild;
+        if(actionCell){item.row.insertBefore(td,actionCell);}else{item.row.appendChild(td);}
+      });
+    });
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',addDnaInteractionColumns);
+  }else{
+    addDnaInteractionColumns();
+  }
+})();
+</script>
+{% endif %}
