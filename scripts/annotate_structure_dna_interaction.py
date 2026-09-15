@@ -6,18 +6,26 @@ a model is DNA-interacting when at least one protein/nucleic-acid non-hydrogen
 atom pair is within the configured cutoff (default 4.5 A).
 
 The script updates per-structure derived QC columns on ``structure_file``.
-It is intentionally standard-library-only so it can run in the production
-Python environment without installing packages.
+It first reads an extracted model from ``--model-cache``; if that file is not
+present, it falls back to the row's indexed ``archive_path`` + ``member_path``.
+This is required for the curated Baldo ModCRE set, which is intentionally kept
+inside ``baldo_validated_modcre_models.tar.gz`` rather than duplicated on disk.
+
+The script is intentionally standard-library-only so it can run in the
+production Python environment without installing packages.
 """
 
 from __future__ import annotations
 
 import argparse
+import io
 import math
 import sqlite3
+import tarfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Iterable
 
 
 PROTEIN_RESIDUES = frozenset(
@@ -28,9 +36,6 @@ PROTEIN_RESIDUES = frozenset(
     }
 )
 
-# Keep the same residue-name convention used in the validated Baldo spot check.
-# The structural collection is TF-DNA; the broader nucleic-acid names make the
-# parser robust to PDB naming conventions in the archived models.
 NUCLEIC_RESIDUES = frozenset(
     {
         "DA", "DC", "DG", "DT", "DI",
@@ -57,7 +62,7 @@ def parse_args() -> argparse.Namespace:
         "--model-cache",
         required=True,
         type=Path,
-        help="Root containing the structure_file member_path files",
+        help="Root containing extracted structure_file member_path files",
     )
     parser.add_argument("--cutoff", type=float, default=4.5, help="Contact cutoff in Angstrom")
     parser.add_argument(
@@ -68,7 +73,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Recompute rows already annotated at the same cutoff.",
+        help="Recompute selected rows even when they already have QC at the same cutoff.",
+    )
+    parser.add_argument(
+        "--only-unresolved",
+        action="store_true",
+        help="Select only rows whose current DNA QC status is absent or not 'ok'.",
     )
     parser.add_argument(
         "--ids",
@@ -102,40 +112,64 @@ def is_hydrogen(line: str, atom_name: str) -> bool:
     return False
 
 
-def parse_pdb_atoms(path: Path) -> tuple[list[tuple[float, float, float]], list[tuple[float, float, float]]]:
+def parse_pdb_lines(
+    lines: Iterable[str],
+) -> tuple[list[tuple[float, float, float]], list[tuple[float, float, float]]]:
     protein: list[tuple[float, float, float]] = []
     nucleic: list[tuple[float, float, float]] = []
 
-    with path.open("rt", errors="replace") as handle:
-        for line in handle:
-            if not (line.startswith("ATOM  ") or line.startswith("HETATM")):
-                continue
-            if len(line) < 54:
-                continue
+    for line in lines:
+        if not (line.startswith("ATOM  ") or line.startswith("HETATM")):
+            continue
+        if len(line) < 54:
+            continue
 
-            residue = line[17:20].strip().upper()
-            if residue not in PROTEIN_RESIDUES and residue not in NUCLEIC_RESIDUES:
-                continue
+        residue = line[17:20].strip().upper()
+        if residue not in PROTEIN_RESIDUES and residue not in NUCLEIC_RESIDUES:
+            continue
 
-            atom_name = line[12:16].strip().upper()
-            if is_hydrogen(line, atom_name):
-                continue
+        atom_name = line[12:16].strip().upper()
+        if is_hydrogen(line, atom_name):
+            continue
 
-            try:
-                xyz = (
-                    float(line[30:38]),
-                    float(line[38:46]),
-                    float(line[46:54]),
-                )
-            except ValueError:
-                continue
+        try:
+            xyz = (
+                float(line[30:38]),
+                float(line[38:46]),
+                float(line[46:54]),
+            )
+        except ValueError:
+            continue
 
-            if residue in PROTEIN_RESIDUES:
-                protein.append(xyz)
-            else:
-                nucleic.append(xyz)
+        if residue in PROTEIN_RESIDUES:
+            protein.append(xyz)
+        else:
+            nucleic.append(xyz)
 
     return protein, nucleic
+
+
+def parse_pdb_path(
+    path: Path,
+) -> tuple[list[tuple[float, float, float]], list[tuple[float, float, float]]]:
+    with path.open("rt", errors="replace") as handle:
+        return parse_pdb_lines(handle)
+
+
+def parse_pdb_archive_member(
+    archive: tarfile.TarFile,
+    member_path: str,
+) -> tuple[list[tuple[float, float, float]], list[tuple[float, float, float]]]:
+    try:
+        member = archive.getmember(member_path)
+    except KeyError as exc:
+        raise FileNotFoundError(member_path) from exc
+    raw = archive.extractfile(member)
+    if raw is None:
+        raise OSError(f"Could not read archive member: {member_path}")
+    with raw:
+        with io.TextIOWrapper(raw, encoding="ascii", errors="replace") as handle:
+            return parse_pdb_lines(handle)
 
 
 def contact_count(
@@ -174,13 +208,34 @@ def contact_count(
     return contacts
 
 
-def classify(path: Path, cutoff: float) -> tuple[int | None, int | None, str]:
-    if not path.is_file():
-        return None, None, "missing_file"
+def classify(
+    row: sqlite3.Row,
+    model_cache: Path,
+    cutoff: float,
+    archive_cache: dict[Path, tarfile.TarFile],
+) -> tuple[int | None, int | None, str]:
+    member_path = str(row["member_path"])
+    local_path = model_cache / member_path
 
     try:
-        protein, nucleic = parse_pdb_atoms(path)
-    except OSError:
+        if local_path.is_file():
+            protein, nucleic = parse_pdb_path(local_path)
+        else:
+            archive_text = str(row["archive_path"] or "").strip()
+            if not archive_text:
+                return None, None, "missing_file"
+            archive_path = Path(archive_text)
+            if not archive_path.is_file():
+                return None, None, "missing_file"
+            archive = archive_cache.get(archive_path)
+            if archive is None:
+                archive = tarfile.open(archive_path, "r:gz")
+                archive_cache[archive_path] = archive
+            try:
+                protein, nucleic = parse_pdb_archive_member(archive, member_path)
+            except FileNotFoundError:
+                return None, None, "missing_file"
+    except (OSError, tarfile.TarError):
         return None, None, "read_error"
     except Exception:
         return None, None, "parse_error"
@@ -194,9 +249,13 @@ def classify(path: Path, cutoff: float) -> tuple[int | None, int | None, str]:
     return (1 if contacts > 0 else 0), contacts, "ok"
 
 
-def fetch_rows(conn: sqlite3.Connection, ids: list[int] | None) -> list[sqlite3.Row]:
+def fetch_rows(
+    conn: sqlite3.Connection,
+    ids: list[int] | None,
+    only_unresolved: bool,
+) -> list[sqlite3.Row]:
     sql = """
-        SELECT id, source, tf_id, model_id, member_path,
+        SELECT id, source, tf_id, model_id, member_path, archive_path,
                dna_interaction, dna_contact_count, dna_qc_cutoff, dna_qc_status
         FROM structure_file
         WHERE status = 'active' AND file_type = 'pdb'
@@ -205,6 +264,8 @@ def fetch_rows(conn: sqlite3.Connection, ids: list[int] | None) -> list[sqlite3.
     if ids:
         sql += " AND id IN (%s)" % ",".join("?" for _ in ids)
         params.extend(ids)
+    if only_unresolved:
+        sql += " AND (dna_qc_status IS NULL OR dna_qc_status <> 'ok')"
     sql += " ORDER BY id"
     return conn.execute(sql, params).fetchall()
 
@@ -220,6 +281,7 @@ def main() -> int:
 
     conn = sqlite3.connect(args.db)
     conn.row_factory = sqlite3.Row
+    archive_cache: dict[Path, tarfile.TarFile] = {}
 
     try:
         if args.apply:
@@ -234,10 +296,12 @@ def main() -> int:
                     f"Missing: {', '.join(missing)}"
                 )
 
-        rows = fetch_rows(conn, args.ids)
+        rows = fetch_rows(conn, args.ids, args.only_unresolved)
         print(f"active PDB rows selected: {len(rows)}")
         print(f"contact rule: protein/nucleic non-H atom pair <= {args.cutoff:.2f} A")
         print(f"mode: {'APPLY' if args.apply else 'READ-ONLY'}")
+        if args.only_unresolved:
+            print("selection: unresolved QC rows only")
 
         summary = Counter()
         source_summary: dict[str, Counter] = defaultdict(Counter)
@@ -255,8 +319,12 @@ def main() -> int:
                 skipped += 1
                 continue
 
-            path = args.model_cache / str(row["member_path"])
-            interaction, contacts, status = classify(path, args.cutoff)
+            interaction, contacts, status = classify(
+                row,
+                args.model_cache,
+                args.cutoff,
+                archive_cache,
+            )
             processed += 1
 
             label = "yes" if interaction == 1 else "no" if interaction == 0 else "unknown"
@@ -315,8 +383,8 @@ def main() -> int:
                 ORDER BY tf_id, id
                 """
             ).fetchall()
-            for row in checks:
-                print(dict(row))
+            for check_row in checks:
+                print(dict(check_row))
 
         return 0
     except Exception:
@@ -324,6 +392,8 @@ def main() -> int:
             conn.rollback()
         raise
     finally:
+        for archive in archive_cache.values():
+            archive.close()
         conn.close()
 
 
