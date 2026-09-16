@@ -153,10 +153,11 @@
         <thead><tr><th>UniProt</th><th>Gene</th><th>Protein</th><th>Prediction</th><th>PWMs</th><th>3D</th><th>PFAM</th></tr></thead>
         <tbody>
           {% for row in rows %}
+            {% set uniprot_deleted = row.protein_name and row.protein_name|trim|lower == 'deleted' %}
             <tr>
               <td><a class="mono" href="/tf/{{ row.tf_id|quote }}">{{ row.tf_id }}</a>{% if row.tf_id in preferred_tf_ids %}<br><span class="matrix-badge ready">Preferred</span>{% elif row.reviewed == 1 %}<br><span class="muted">Reviewed (UniProtKB/Swiss-Prot)</span>{% endif %}</td>
               <td>{% if row.gene_names %}<strong>{{ row.gene_names.split()[0] }}</strong>{% else %}<span class="muted">unknown</span>{% endif %}</td>
-              <td class="protein-cell" style="overflow-wrap:anywhere;white-space:normal">{{ row.protein_name or "" }}</td>
+              <td class="protein-cell" style="overflow-wrap:anywhere;white-space:normal">{% if uniprot_deleted %}<span class="muted"><strong>UniProtKB entry deleted</strong></span>{% else %}{{ row.protein_name or "" }}{% endif %}</td>
               <td class="prediction-cell" style="white-space:normal">{{ public_prediction_label(row.primary_evidence_raw) }}</td>
               <td class="number-cell" style="text-align:center;white-space:nowrap">{{ row.fimo_ready_pwm_count }}</td>
               <td class="number-cell" style="text-align:center;white-space:nowrap">{{ row.active_model_count }}</td>
