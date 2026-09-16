@@ -49,6 +49,7 @@
           </thead>
           <tbody>
             {% for row in examples %}
+              {% set uniprot_deleted = row.protein_name and row.protein_name|trim|lower == 'deleted' %}
               <tr>
                 <td>
                   <a class="mono" href="/tf/{{ row.tf_id }}">{{ row.tf_id }}</a>
@@ -58,7 +59,7 @@
                 </td>
                 <td>
                   <strong>{{ row.gene_names or row.tf_id }}</strong><br>
-                  <span class="muted">{{ row.protein_name or "No protein name available" }}</span>
+                  <span class="muted">{% if uniprot_deleted %}<strong>UniProtKB entry deleted</strong>{% else %}{{ row.protein_name or "No protein name available" }}{% endif %}</span>
                 </td>
                 <td>
                   <strong>{{ row.primary_evidence_label }}</strong>

@@ -160,9 +160,10 @@
         <thead><tr><th>TF</th><th>Gene</th><th>Best p-value</th><th>Best q-value</th><th>Significant motifs</th><th>Significant hits</th></tr></thead>
         <tbody>
           {% for result in tf_results %}
+            {% set uniprot_deleted = result.protein_name and result.protein_name|trim|lower == 'deleted' %}
             <tr data-best-pvalue="{{ result.best_pvalue if result.best_pvalue is not none else 'Infinity' }}" data-significant-motifs="{{ result.significant_motif_count }}" data-tf-id="{{ result.tf_id }}">
               <td><a class="mono" href="/tf/{{ result.tf_id|quote }}">{{ result.tf_id }}</a></td>
-              <td>{% if result.gene %}{{ result.gene }}{% else %}—{% endif %}{% if result.protein_name %}<span class="tf-gene-name">{{ result.protein_name }}</span>{% endif %}</td>
+              <td>{% if result.gene %}{{ result.gene }}{% else %}—{% endif %}{% if uniprot_deleted %}<span class="tf-gene-name">UniProtKB entry deleted</span>{% elif result.protein_name %}<span class="tf-gene-name">{{ result.protein_name }}</span>{% endif %}</td>
               <td>{% if result.best_pvalue is not none %}{{ "%.2e"|format(result.best_pvalue) }}{% endif %}</td>
               <td>{% if result.best_qvalue is not none %}{{ "%.2e"|format(result.best_qvalue) }}{% else %}—{% endif %}</td>
               <td>{{ result.significant_motif_count }}</td>

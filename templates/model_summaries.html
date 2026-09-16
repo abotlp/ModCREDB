@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 {% block title %}3D model evidence for {{ tf.tf_id }} | ModCREDB{% endblock %}
 {% block content %}
+  {% set uniprot_deleted = tf.protein_name and tf.protein_name|trim|lower == 'deleted' %}
   <section class="record-head">
     <div>
       <p class="eyebrow">3D model evidence</p>
       <h1 class="mono">{{ tf.tf_id }}</h1>
       {% if tf.gene_names %}
-        <p><strong>{{ tf.gene_names.split()[0] }}</strong>{% if tf.protein_name %}: {{ tf.protein_name }}{% endif %}</p>
+        <p><strong>{{ tf.gene_names.split()[0] }}</strong>{% if tf.protein_name and not uniprot_deleted %}: {{ tf.protein_name }}{% endif %}</p>
       {% else %}
         <p>{{ tf.family_text }}</p>
       {% endif %}
+      {% if uniprot_deleted %}<p class="muted"><strong>UniProtKB entry deleted</strong></p>{% endif %}
     </div>
     <a class="secondary-link" href="/tf/{{ tf.tf_id|quote }}">Back to TF</a>
   </section>
