@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ model.model_id }} | 3D Model Viewer{% endblock %}
 {% block content %}
+  {% set uniprot_deleted = model.protein_name and model.protein_name|trim|lower == 'deleted' %}
   <section class="record-head">
     <div>
       <p class="eyebrow">{{ model.model_label or (source_labels.get(model.source, model.source) ~ " model") }}</p>
@@ -8,7 +9,8 @@
       <p>
         <a class="mono" href="/tf/{{ model.tf_id|quote }}">{{ model.tf_id }}</a>
         {% if model.gene_names %} · <strong>{{ model.gene_names.split()[0] }}</strong>{% endif %}
-        {% if model.protein_name %} · {{ model.protein_name }}{% endif %}
+        {% if model.protein_name and not uniprot_deleted %} · {{ model.protein_name }}{% endif %}
+        {% if uniprot_deleted %} · <strong>UniProtKB entry deleted</strong>{% endif %}
       </p>
     </div>
     <div class="actions">
