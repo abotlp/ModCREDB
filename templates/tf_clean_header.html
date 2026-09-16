@@ -1,9 +1,14 @@
+{% set uniprot_deleted = tf.protein_name and tf.protein_name|trim|lower == 'deleted' %}
 <section class="tf-head">
   <div>
     <p class="eyebrow">Transcription factor</p>
     <h1><span class="mono">{{ tf.tf_id }}</span>{% if tf.gene_names %} - {{ tf.gene_names.split()[0] }}{% endif %}</h1>
-    {% if tf.protein_name %}<p><strong>{{ tf.protein_name }}</strong></p>{% endif %}
-    <p class="muted">{{ tf.organism_name or 'Organism unknown' }}{% if tf.reviewed==1 %} · Reviewed (UniProtKB/Swiss-Prot){% else %} · Unreviewed (UniProtKB/TrEMBL){% endif %}{% if tf.sequence_length %} · {{ tf.sequence_length }} aa{% endif %}</p>
+    {% if tf.protein_name and not uniprot_deleted %}<p><strong>{{ tf.protein_name }}</strong></p>{% endif %}
+    {% if uniprot_deleted %}
+      <p class="muted"><strong>UniProtKB entry deleted</strong></p>
+    {% else %}
+      <p class="muted">{{ tf.organism_name or 'Organism unknown' }}{% if tf.reviewed==1 %} · Reviewed (UniProtKB/Swiss-Prot){% elif tf.reviewed==0 %} · Unreviewed (UniProtKB/TrEMBL){% endif %}{% if tf.sequence_length %} · {{ tf.sequence_length }} aa{% endif %}</p>
+    {% endif %}
     <div class="tf-tags">
       <span class="tf-tag good">{{ generated_rows|length }} Generated PWM</span>
       {% if tf_status.active_model_count %}<span class="tf-tag">{{ tf_status.active_model_count }} 3D models</span>{% endif %}
