@@ -15,6 +15,9 @@
     </div>
     <div class="actions">
       <a class="button-link" href="{{ download_model_url }}">Download {{ download_format }}</a>
+      {% if confidence_json_url %}
+        <a class="secondary-link" href="{{ confidence_json_url }}">Download confidence / PAE JSON</a>
+      {% endif %}
       {% if model.template_pdb %}
         <a class="secondary-link" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">Template PDB</a>
       {% endif %}

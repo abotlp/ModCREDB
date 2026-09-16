@@ -3653,6 +3653,68 @@ class TFWebApp:
         except OSError:
             return row, None, None
 
+    def get_assignment_confidence_file(
+        self,
+        assignment_id: str,
+    ) -> tuple[dict[str, object] | None, bytes | None, str | None]:
+        if not assignment_id.isdigit():
+            return None, None, None
+
+        with connect(self.db_path) as conn:
+            if not db_table_exists(conn, "structure_model_assignment"):
+                return None, None, None
+            if not db_table_exists(conn, "structure_confidence_artifact"):
+                return None, None, None
+
+            row = dict_row(
+                conn.execute(
+                    """
+                    SELECT
+                        sca.*,
+                        sma.display_accession,
+                        sma.source AS assignment_source,
+                        sma.model_role
+                    FROM structure_model_assignment AS sma
+                    JOIN structure_confidence_artifact AS sca
+                      ON sca.model_path = sma.model_path
+                    WHERE sma.id = ?
+                      AND sma.is_active = 1
+                      AND LOWER(sma.source) = 'af3'
+                      AND sca.artifact_type = 'PAE_JSON'
+                    ORDER BY sca.id
+                    LIMIT 1
+                    """,
+                    (int(assignment_id),),
+                ).fetchone()
+            )
+
+        if not row:
+            return None, None, None
+
+        artifact_path = Path(str(row["artifact_path"])).resolve()
+
+        if not is_allowed_local_af3_path(artifact_path):
+            return row, None, None
+        if artifact_path.suffix.casefold() != ".json":
+            return row, None, None
+        if not artifact_path.is_file():
+            return row, None, None
+
+        try:
+            content = artifact_path.read_bytes()
+
+            expected_sha256 = str(row.get("sha256") or "").strip().casefold()
+            observed_sha256 = hashlib.sha256(content).hexdigest()
+
+            if not expected_sha256 or observed_sha256 != expected_sha256:
+                return row, None, None
+
+            json.loads(content)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return row, None, None
+
+        return row, content, artifact_path.name
+
     def model_viewer(self, params: dict[str, list[str]]) -> tuple[bytes, str, int]:
         assignment_id = params.get("assignment", [""])[0].strip()
         if assignment_id:
@@ -3709,6 +3771,7 @@ class TFWebApp:
                     summary=None,
                     model_data_url=f"/model-data?assignment={assignment_id}",
                     download_model_url=f"/download/model?assignment={assignment_id}",
+                    confidence_json_url=f"/download/confidence?assignment={assignment_id}",
                     viewer_extension="cif",
                     download_format="mmCIF",
                     is_alphafold_model=is_alphafold_model,
@@ -3790,6 +3853,36 @@ class TFWebApp:
         return content, "chemical/x-pdb" if filename.endswith(".pdb") else "text/plain", 200, {
             "Cache-Control": "no-store"
         }
+
+    def download_confidence(
+        self,
+        params: dict[str, list[str]],
+    ) -> tuple[bytes, str, int, dict[str, str]]:
+        assignment_id = params.get("assignment", [""])[0].strip()
+
+        row, content, filename = self.get_assignment_confidence_file(assignment_id)
+
+        if not row:
+            body, content_type, status = self.not_found(
+                "Active AF3 confidence artifact is not indexed."
+            )
+            return body, content_type, status, {}
+
+        if content is None or filename is None:
+            body, content_type, status = self.not_found(
+                "Indexed AF3 confidence artifact is unavailable or failed integrity validation."
+            )
+            return body, content_type, status, {}
+
+        return (
+            content,
+            "application/json",
+            200,
+            {
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-store",
+            },
+        )
 
     def download_model(self, params: dict[str, list[str]]) -> tuple[bytes, str, int, dict[str, str]]:
         assignment_id = params.get("assignment", [""])[0].strip()
@@ -3899,6 +3992,8 @@ def make_handler(app: TFWebApp):
                     body, content_type, status = app.evidence()
                 elif parsed.path == "/download/motif":
                     body, content_type, status, headers = app.download_motif(params)
+                elif parsed.path == "/download/confidence":
+                    body, content_type, status, headers = app.download_confidence(params)
                 elif parsed.path == "/download/model":
                     body, content_type, status, headers = app.download_model(params)
                 elif parsed.path.startswith("/static/"):
