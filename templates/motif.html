@@ -35,9 +35,13 @@
       </section>
 
       {% if matrix_position_rows %}
-        <section class="motif-block motif-matrix-block">
-          <h2>Matrix</h2>
-          <div class="table-wrap motif-matrix-wrap">
+        <details class="motif-block motif-matrix-block data-disclosure" open>
+          <summary>
+            <span class="data-disclosure-summary-title">Matrix</span>
+            <span class="data-disclosure-summary-meta">{{ matrix_position_rows|length }} positions</span>
+          </summary>
+          <div class="data-disclosure-body">
+            <div class="table-wrap motif-matrix-wrap">
             <table class="motif-matrix-table">
               <thead>
                 <tr>
@@ -60,8 +64,9 @@
                 {% endfor %}
               </tbody>
             </table>
+            </div>
           </div>
-        </section>
+        </details>
       {% endif %}
     {% elif motif %}
       <section class="motif-block">
@@ -79,17 +84,20 @@
       {% endif %}
     {% endfor %}
 
-    <section class="motif-block">
-      <h2>TFs using this motif</h2>
-      <p class="muted">
-        This motif is linked to {{ distinct_linked_tf_count }} TF record{% if distinct_linked_tf_count != 1 %}s{% endif %}:
-        {{ link_counts.known }} known/direct,
-        {{ link_counts.close }} nearest-neighbor &gt;70%,
-        {{ link_counts.distant }} nearest-neighbor 50–70%,
-        {{ link_counts.predicted }} structure-derived.
-        {% if evidence_link_count > ref_limit %} Showing first {{ refs|length }} assignments.{% else %} Showing all {{ refs|length }} assignment{% if refs|length != 1 %}s{% endif %}.{% endif %}
-      </p>
-      <div class="table-wrap">
+    <details class="motif-block data-disclosure" open>
+      <summary>
+        <span class="data-disclosure-summary-title">TFs using this motif</span>
+        <span class="data-disclosure-summary-meta">{{ distinct_linked_tf_count }} linked TF record{% if distinct_linked_tf_count != 1 %}s{% endif %}</span>
+      </summary>
+      <div class="data-disclosure-body">
+        <p class="muted">
+          {{ link_counts.known }} known/direct,
+          {{ link_counts.close }} nearest-neighbor &gt;70%,
+          {{ link_counts.distant }} nearest-neighbor 50–70%,
+          {{ link_counts.predicted }} structure-derived.
+          {% if evidence_link_count > ref_limit %} Showing first {{ refs|length }} assignments.{% else %} Showing all {{ refs|length }} assignment{% if refs|length != 1 %}s{% endif %}.{% endif %}
+        </p>
+        <div class="table-wrap">
         <table>
           <thead>
             <tr>
@@ -112,13 +120,18 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
-    </section>
+    </details>
 
     {% if structures %}
-      <section class="motif-block">
-        <h2>3D models</h2>
-        <div class="table-wrap">
+      <details class="motif-block data-disclosure" open>
+        <summary>
+          <span class="data-disclosure-summary-title">3D models</span>
+          <span class="data-disclosure-summary-meta">{{ structures|length }} model{% if structures|length != 1 %}s{% endif %}</span>
+        </summary>
+        <div class="data-disclosure-body">
+          <div class="table-wrap">
           <table>
             <thead><tr><th>Model</th><th>Template</th><th>Residues</th><th>Actions</th></tr></thead>
             <tbody>
@@ -132,8 +145,9 @@
               {% endfor %}
             </tbody>
           </table>
+          </div>
         </div>
-      </section>
+      </details>
     {% endif %}
   </div>
 {% endblock %}
