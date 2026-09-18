@@ -10,6 +10,7 @@
 <style>
 .scan-compact-hero{margin-bottom:18px}.scan-compact-hero h1{margin-bottom:4px}.scan-global-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-bottom:20px}.scan-global-card summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-global-card summary::-webkit-details-marker{display:none}.scan-global-body{padding:20px;border-top:1px solid var(--line)}.scan-grid{display:grid;grid-template-columns:minmax(0,2fr) 260px;gap:16px}.scan-param-panel{background:#f8fbfe;border:1px solid var(--line);border-radius:14px;padding:14px}.scan-param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scan-actions{display:grid;gap:10px;margin-top:14px}.scan-button{border:1px solid var(--line);border-radius:10px;background:#fff;color:#243145;font-weight:850;text-decoration:none;padding:11px 16px;text-align:center;display:inline-flex;justify-content:center}.scan-button.primary{background:#117a46;border-color:#117a46;color:#fff}.scan-button.blue{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.scan-chip{display:inline-flex;border:1px solid #b9d2ff;background:#e9f2ff;color:#164f9f;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:850;white-space:nowrap}.scan-chip.orange{background:#fff2df;border-color:#efc58a;color:#b85b00}.scan-personalized{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-top:20px}.scan-personalized[open]{border-color:#a8c6ef}.scan-personalized summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-personalized summary::-webkit-details-marker{display:none}.scan-summary-title{font-size:19px;font-weight:900}.scan-summary-title:before{content:"▸";color:#2f5f86;display:inline-block;margin-right:8px;transition:transform .12s ease}.scan-personalized[open] .scan-summary-title:before,.scan-global-card[open] .scan-summary-title:before{transform:rotate(90deg)}.scan-summary-sub{display:block;color:#667085;font-size:13px;font-weight:500;margin-top:4px}.scan-personalized-body{padding:20px;border-top:1px solid var(--line)}.scan-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.scan-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.scan-filter-grid label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff;font-size:12px;font-weight:800;margin:0}.scan-filter-grid input{width:auto}.scan-textarea-motifs{min-height:160px}.scan-textarea-dna{min-height:150px}@media(max-width:900px){.scan-grid,.scan-two-col{grid-template-columns:1fr;display:grid;min-width:0}}
 .tf-level-results{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:14px;background:#f8fbfe}.tf-level-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.tf-level-head h3{margin:0}.tf-rank-controls{display:flex;gap:7px;flex-wrap:wrap}.tf-rank-button{border:1px solid #a8bfd8;border-radius:999px;background:#fff;color:#26425f;padding:6px 11px;font-size:12px;font-weight:800;cursor:pointer}.tf-rank-button[aria-pressed="true"]{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.tf-gene-name{display:block;color:#667085;font-size:11px;max-width:280px;margin-top:2px}
+.scan-submit-status{display:none;margin:10px 0 0;padding:10px 12px;border:1px solid #b9d2ff;border-radius:10px;background:#eef5ff;color:#26425f;font-size:13px;font-weight:700;line-height:1.4}.scan-submit-status.is-visible{display:flex;align-items:center;gap:9px}.scan-spinner{width:16px;height:16px;border:2px solid #b9c7d8;border-top-color:#0b5bd3;border-radius:50%;animation:scan-spin .8s linear infinite;flex:0 0 auto}.scan-button[disabled]{cursor:wait;opacity:.72}@keyframes scan-spin{to{transform:rotate(360deg)}}
 </style>
 
 <section class="scan-compact-hero">
@@ -37,8 +38,12 @@
           </div>
           <label style="margin-top:12px">Max motifs<input name="max_motifs" type="number" min="1" max="{{ max_motifs_hard }}" step="1" value="{{ max_motifs or 5000 }}"></label>
           <div class="scan-actions">
-            <button class="scan-button primary" type="submit">Run global scan</button>
+            <button class="scan-button primary" type="submit" data-scan-submit>Run global scan</button>
             <a class="scan-button" href="https://snpebot2.upf.edu/tool" target="_blank" rel="noopener">Open SNPeBOT</a>
+            <div class="scan-submit-status" data-scan-status role="status" aria-live="polite">
+              <span class="scan-spinner" aria-hidden="true"></span>
+              <span>Scanning motifs… larger scans can take a few minutes. Please keep this page open.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -102,8 +107,12 @@
             <label>Max hits<input name="max_hits" type="number" min="1" max="1000" step="1" value="{{ max_hits }}"></label>
           </div>
           <div class="scan-actions">
-            <button class="scan-button blue" type="submit">Run selected scan</button>
+            <button class="scan-button blue" type="submit" data-scan-submit>Run selected scan</button>
             <button class="scan-button" type="button" data-clear-personalized>Clear selected fields</button>
+            <div class="scan-submit-status" data-scan-status role="status" aria-live="polite">
+              <span class="scan-spinner" aria-hidden="true"></span>
+              <span>Scanning motifs… larger scans can take a few minutes. Please keep this page open.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -227,6 +236,20 @@
   {% elif selected_motif or selected_tf %}
     if (personalized) requestAnimationFrame(() => personalized.scrollIntoView({ block: "start" }));
   {% endif %}
+
+  document.querySelectorAll('form[action="/scan"]').forEach((form) => {
+    form.addEventListener("submit", () => {
+      const button = form.querySelector("[data-scan-submit]");
+      const status = form.querySelector("[data-scan-status]");
+      form.setAttribute("aria-busy", "true");
+      if (button) {
+        button.disabled = true;
+        button.dataset.originalLabel = button.textContent;
+        button.textContent = "Scanning… please wait";
+      }
+      if (status) status.classList.add("is-visible");
+    });
+  });
 
   const tfTable = document.querySelector("[data-tf-results-table]");
   const tfRankButtons = document.querySelectorAll("[data-tf-rank]");
