@@ -26,9 +26,13 @@
   </section>
 
   {% if counts.dimer %}
-    <section>
-      <h2>Dimers</h2>
-      <div class="table-wrap wide-table">
+    <details class="data-disclosure" open>
+      <summary>
+        <span class="data-disclosure-summary-title">Dimers</span>
+        <span class="data-disclosure-summary-meta">{{ counts.dimer }} row{% if counts.dimer != 1 %}s{% endif %}</span>
+      </summary>
+      <div class="data-disclosure-body">
+        <div class="table-wrap wide-table">
         <table>
           <thead><tr><th>Template</th><th>Domain</th><th>N-tails</th><th>C-tails</th><th>Protein chain</th><th>DNA chain</th><th>Identities</th><th>Coverage</th><th>Template by RMSD</th><th>% identity</th><th>% similarity</th><th>Actions</th></tr></thead>
           <tbody>
@@ -37,14 +41,19 @@
             {% endif %}{% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
-    </section>
+    </details>
   {% endif %}
 
   {% if counts.monomer %}
-    <section>
-      <h2>Monomers</h2>
-      <div class="table-wrap wide-table">
+    <details class="data-disclosure" open>
+      <summary>
+        <span class="data-disclosure-summary-title">Monomers</span>
+        <span class="data-disclosure-summary-meta">{{ counts.monomer }} row{% if counts.monomer != 1 %}s{% endif %}</span>
+      </summary>
+      <div class="data-disclosure-body">
+        <div class="table-wrap wide-table">
         <table>
           <thead><tr><th>Template</th><th>Domain</th><th>N-tails</th><th>C-tails</th><th>Protein chain</th><th>DNA chain</th><th>Identities</th><th>Coverage</th><th>Template by RMSD</th><th>% identity</th><th>% similarity</th><th>Actions</th></tr></thead>
           <tbody>
@@ -53,7 +62,8 @@
             {% endif %}{% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
-    </section>
+    </details>
   {% endif %}
 {% endblock %}
