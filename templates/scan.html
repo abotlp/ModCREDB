@@ -151,20 +151,22 @@
     <h2>Scan results</h2>
     <span class="muted">{{ hits|length }} hits shown · sequence length {{ sequence_length }} bp</span>
   </div>
-  <div class="tf-level-results">
-    <div class="tf-level-head">
-      <div>
-        <h3>TF-level results</h3>
-        <p class="muted">{{ tf_results|length }} TFs mapped by exact source and motif ID · {{ unmapped_motif_count }} unmapped motif identit{% if unmapped_motif_count == 1 %}y{% else %}ies{% endif %}</p>
-      </div>
+  <details class="tf-level-results data-disclosure" open>
+    <summary>
+      <span class="data-disclosure-summary-title">TF-level results</span>
+      <span class="data-disclosure-summary-meta">{{ tf_results|length }} TFs mapped · {{ unmapped_motif_count }} unmapped motif identit{% if unmapped_motif_count == 1 %}y{% else %}ies{% endif %}</span>
+    </summary>
+    <div class="data-disclosure-body">
       {% if tf_results %}
-        <div class="tf-rank-controls" aria-label="Rank TF-level results">
-          <button class="tf-rank-button" type="button" data-tf-rank="best_pvalue" aria-pressed="true">Best p-value</button>
-          <button class="tf-rank-button" type="button" data-tf-rank="significant_motifs" aria-pressed="false">Number of significant motifs</button>
+        <div class="tf-level-head" style="margin-bottom:12px">
+          <span class="muted">Rank results by:</span>
+          <div class="tf-rank-controls" aria-label="Rank TF-level results">
+            <button class="tf-rank-button" type="button" data-tf-rank="best_pvalue" aria-pressed="true">Best p-value</button>
+            <button class="tf-rank-button" type="button" data-tf-rank="significant_motifs" aria-pressed="false">Number of significant motifs</button>
+          </div>
         </div>
       {% endif %}
-    </div>
-    <div class="table-wrap wide-table">
+      <div class="table-wrap wide-table">
       <table data-tf-results-table>
         <thead><tr><th>TF</th><th>Gene</th><th>Best p-value</th><th>Best q-value</th><th>Significant motifs</th><th>Significant hits</th></tr></thead>
         <tbody>
@@ -183,16 +185,28 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     </div>
-  </div>
+  </details>
   {% if profile_svg %}
-    <div class="profile-panel">
-      <div class="section-head"><h3>Motif-match profile</h3>{% if profile_summary %}<span class="muted">{{ profile_summary.profiled_hits }} hits profiled</span>{% endif %}</div>
-      <div class="profile-plot">{{ profile_svg|safe }}</div>
-    </div>
+    <details class="data-disclosure" open>
+      <summary>
+        <span class="data-disclosure-summary-title">Motif-match profile</span>
+        {% if profile_summary %}<span class="data-disclosure-summary-meta">{{ profile_summary.profiled_hits }} hits profiled</span>{% endif %}
+      </summary>
+      <div class="data-disclosure-body">
+        <div class="profile-plot">{{ profile_svg|safe }}</div>
+      </div>
+    </details>
   {% endif %}
-  <div class="table-wrap wide-table">
-    <table>
+  <details class="data-disclosure" open>
+    <summary>
+      <span class="data-disclosure-summary-title">Motif hits</span>
+      <span class="data-disclosure-summary-meta">{{ hits|length }} hits shown</span>
+    </summary>
+    <div class="data-disclosure-body">
+      <div class="table-wrap wide-table">
+        <table>
       <thead><tr><th>Motif</th><th>Source</th><th>Start</th><th>End</th><th>Strand</th><th>Matched sequence</th><th>Score</th><th>P-value</th><th>Q-value</th></tr></thead>
       <tbody>
         {% for hit in hits %}
@@ -211,8 +225,10 @@
           <tr><td colspan="9" class="scanbot-placeholder">No hits met the selected p-value threshold.</td></tr>
         {% endfor %}
       </tbody>
-    </table>
-  </div>
+        </table>
+      </div>
+    </div>
+  </details>
 </section>
 {% endif %}
 
