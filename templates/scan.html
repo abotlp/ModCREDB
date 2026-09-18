@@ -38,7 +38,7 @@
           <label style="margin-top:12px">Max motifs<input name="max_motifs" type="number" min="1" max="{{ max_motifs_hard }}" step="1" value="{{ max_motifs or 5000 }}"></label>
           <div class="scan-actions">
             <button class="scan-button primary" type="submit">Run global scan</button>
-            <a class="scan-button" href="https://snpebot.upf.edu/" target="_blank" rel="noopener">Open SNPeBOT</a>
+            <a class="scan-button" href="https://snpebot2.upf.edu/tool" target="_blank" rel="noopener">Open SNPeBOT</a>
           </div>
         </div>
       </div>
@@ -132,7 +132,7 @@
     </div>
     <div class="scanbot-export-actions">
       {% if hits_csv_uri %}<a class="button-link scanbot-success" href="{{ hits_csv_uri }}" download="modcredb_snpebot_ready.csv">Download SNPeBOT-ready file</a>{% endif %}
-      <a class="button-link secondary" href="https://snpebot.upf.edu/" target="_blank" rel="noopener">Open SNPeBOT</a>
+      <a class="button-link secondary" href="https://snpebot2.upf.edu/tool" target="_blank" rel="noopener">Open SNPeBOT</a>
     </div>
   </div>
 </section>
