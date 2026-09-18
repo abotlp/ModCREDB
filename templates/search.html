@@ -102,13 +102,14 @@
   </section>
 
   {% if gene_summaries %}
-    <section>
-      <div class="section-head">
-        <h2>Gene summary results</h2>
-        <span class="muted">Navigation aids, not separate database records</span>
-      </div>
-      <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
-      <div class="table-wrap search-summary-wrap">
+    <details class="data-disclosure" open>
+      <summary>
+        <span class="data-disclosure-summary-title">Gene summary results</span>
+        <span class="data-disclosure-summary-meta">Navigation aids, not separate database records</span>
+      </summary>
+      <div class="data-disclosure-body">
+        <p class="muted">ModCREDB is built at UniProt sequence-record level. A single gene can appear as multiple reviewed/unreviewed accessions, isoforms, fragments, or related sequence records. Gene summaries are shown for navigation; prediction records remain stored at the UniProt-record level.</p>
+        <div class="table-wrap search-summary-wrap">
         <table class="gene-summary-table" style="table-layout:fixed;min-width:0;width:100%">
           <colgroup><col style="width:14%"><col style="width:26%"><col style="width:10%"><col style="width:26%"><col style="width:12%"><col style="width:12%"></colgroup>
           <thead><tr><th>Gene</th><th>Preferred record</th><th>Records</th><th>Prediction</th><th>PWMs</th><th>3D</th></tr></thead>
@@ -126,18 +127,19 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
-    </section>
+    </details>
   {% endif %}
 
   {% if motif_rows and motif_search_is_direct and not exact_tf_accession_search %}
-    <details open style="margin-top:28px">
+    <details class="data-disclosure" open>
       <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></summary>
       {{ motif_records_table(motif_rows) }}
     </details>
   {% endif %}
 
-  <details open style="margin-top:28px">
+  <details class="data-disclosure" open>
     <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">UniProt sequence-record results</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ page_start }}-{{ page_end }} of {{ total }} matching record{% if total != 1 %}s{% endif %}</span></summary>
     <div class="table-wrap search-results-wrap">
       <table class="search-results-table" style="table-layout:fixed;min-width:0;width:100%">
@@ -184,13 +186,13 @@
   </details>
 
   {% if motif_rows and exact_tf_accession_search %}
-    <details open id="technical-motif-records" style="margin-top:28px">
+    <details class="data-disclosure" open id="technical-motif-records">
       <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Technical motif-file matches</strong><span class="muted" style="float:right;margin-top:8px">{{ motif_total }} record{% if motif_total != 1 %}s{% endif %}</span></summary>
       <p class="muted">These are archive-level motif records whose technical IDs contain this accession. Open the TF record above for the biological prediction groups, DNA-binding regions, and models.</p>
       {{ motif_records_table(motif_rows) }}
     </details>
   {% elif motif_rows and not motif_search_is_direct %}
-    <details open style="margin-top:28px">
+    <details class="data-disclosure" open>
       <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></summary>
       {{ motif_records_table(motif_rows) }}
     </details>
