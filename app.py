@@ -722,6 +722,7 @@ def fetch_search_motif_rows(
     evidence: str,
     preferred_tf_id: str = "",
     limit: int = 100,
+    offset: int = 0,
 ) -> tuple[list[dict[str, object]], int]:
     if not query:
         return [], 0
@@ -828,9 +829,9 @@ def fetch_search_motif_rows(
           END,
           mf.source,
           mf.motif_id
-        LIMIT ?
+        LIMIT ? OFFSET ?
         """,
-        [preferred_tf_id, f"% {query.upper()} %", *args, query, limit],
+        [preferred_tf_id, f"% {query.upper()} %", *args, query, limit, max(0, offset)],
     ).fetchall()
     return [dict(row) for row in rows], int(total)
 
@@ -2633,6 +2634,7 @@ class TFWebApp:
             source = ""
         limit = 60
         requested_page = parse_search_page(params.get("page", ["1"])[0])
+        requested_motif_page = parse_search_page(params.get("motif_page", ["1"])[0])
 
         where = []
         args: list[object] = []
@@ -2728,6 +2730,7 @@ class TFWebApp:
             preferred_tf_id = ""
             if gene_summaries:
                 preferred_tf_id = str(gene_summaries[0]["preferred"]["tf_id"])
+            motif_offset = (requested_motif_page - 1) * motif_limit
             motif_rows, motif_total = fetch_search_motif_rows(
                 conn,
                 q,
@@ -2735,7 +2738,24 @@ class TFWebApp:
                 evidence,
                 preferred_tf_id=preferred_tf_id,
                 limit=motif_limit,
+                offset=motif_offset,
             )
+            motif_total_pages = max(1, math.ceil(motif_total / motif_limit))
+            motif_page = min(requested_motif_page, motif_total_pages)
+            if motif_page != requested_motif_page:
+                motif_offset = (motif_page - 1) * motif_limit
+                motif_rows, motif_total = fetch_search_motif_rows(
+                    conn,
+                    q,
+                    source,
+                    evidence,
+                    preferred_tf_id=preferred_tf_id,
+                    limit=motif_limit,
+                    offset=motif_offset,
+                )
+            motif_page_start = motif_offset + 1 if motif_total else 0
+            motif_page_end = min(motif_offset + motif_limit, motif_total)
+            motif_page_items = compact_page_items(motif_page, motif_total_pages)
             motif_search_is_direct = any(
                 str(row["motif_id"]).upper() == q.upper()
                 or str(row["source"]).upper() == q.upper()
@@ -2760,6 +2780,11 @@ class TFWebApp:
                 motif_rows=motif_rows,
                 motif_total=motif_total,
                 motif_limit=motif_limit,
+                motif_page=motif_page,
+                motif_page_start=motif_page_start,
+                motif_page_end=motif_page_end,
+                motif_total_pages=motif_total_pages,
+                motif_page_items=motif_page_items,
                 motif_search_is_direct=motif_search_is_direct,
                 exact_tf_accession_search=exact_tf_accession_search,
             ),
