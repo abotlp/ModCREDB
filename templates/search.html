@@ -47,7 +47,7 @@
           <th>DNA binding</th>
           <th>Width</th>
           <th>TF records</th>
-          <th>Predictions</th>
+          <th>Linked evidence</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -74,6 +74,28 @@
   </div>
 {% endmacro %}
 
+{% macro motif_pagination() %}
+  {% if motif_total_pages > 1 %}
+    <nav class="search-pagination" aria-label="Motif result pages">
+      {% if motif_page > 1 %}
+        <a class="direction" href="/search?q={{ q|quote }}&amp;evidence={{ evidence|quote }}&amp;source={{ source|quote }}&amp;page={{ page }}&amp;motif_page={{ motif_page - 1 }}">Previous</a>
+      {% endif %}
+      {% for item in motif_page_items %}
+        {% if item is none %}
+          <span class="ellipsis" aria-hidden="true">…</span>
+        {% elif item == motif_page %}
+          <span aria-current="page">{{ item }}</span>
+        {% else %}
+          <a href="/search?q={{ q|quote }}&amp;evidence={{ evidence|quote }}&amp;source={{ source|quote }}&amp;page={{ page }}&amp;motif_page={{ item }}">{{ item }}</a>
+        {% endif %}
+      {% endfor %}
+      {% if motif_page < motif_total_pages %}
+        <a class="direction" href="/search?q={{ q|quote }}&amp;evidence={{ evidence|quote }}&amp;source={{ source|quote }}&amp;page={{ page }}&amp;motif_page={{ motif_page + 1 }}">Next</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endmacro %}
+
 {% block content %}
   <style>
     .search-pagination{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:16px 0 4px}.search-pagination a,.search-pagination span{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 9px;border:1px solid var(--line);border-radius:8px;text-decoration:none}.search-pagination [aria-current="page"]{background:#0b5bd3;border-color:#0b5bd3;color:#fff;font-weight:800}.search-pagination .ellipsis{border:0;min-width:auto;padding:0 2px}.search-pagination .direction{min-width:auto}
@@ -84,11 +106,11 @@
     <form class="filters" action="/search" method="get">
       <input name="q" value="{{ q }}" placeholder="Gene, UniProt accession, protein, PFAM family/domain, legacy family, or motif ID">
       <select name="evidence">
-        <option value="">Any prediction</option>
-        <option value="identical" {% if evidence == 'identical' %}selected{% endif %}>Known</option>
-        <option value="homologous" {% if evidence == 'homologous' %}selected{% endif %}>Nearest Neighbor (&gt;70%)</option>
-        <option value="relative_homologous" {% if evidence == 'relative_homologous' %}selected{% endif %}>Nearest Neighbor (50-70%)</option>
-        <option value="modcre" {% if evidence == 'modcre' %}selected{% endif %}>ModCRE</option>
+        <option value="">Any primary prediction</option>
+        <option value="identical" {% if evidence == 'identical' %}selected{% endif %}>Primary: Known</option>
+        <option value="homologous" {% if evidence == 'homologous' %}selected{% endif %}>Primary: Nearest Neighbor (&gt;70%)</option>
+        <option value="relative_homologous" {% if evidence == 'relative_homologous' %}selected{% endif %}>Primary: Nearest Neighbor (50-70%)</option>
+        <option value="modcre" {% if evidence == 'modcre' %}selected{% endif %}>Primary: ModCRE</option>
       </select>
       <select name="source">
         <option value="">Any source</option>
@@ -99,6 +121,11 @@
       </select>
       <button type="submit">Search</button>
     </form>
+    <p class="muted" style="margin-top:10px">
+      <strong>Primary prediction</strong> is the highest-priority evidence assigned to a UniProt sequence record in the ModCREDB hierarchy.
+      A record can also contain additional lower-priority motif assignments on its TF page.
+      <strong>UniProtKB reviewed</strong> means a manually curated Swiss-Prot entry; it is not a ModCREDB manual-review label.
+    </p>
   </section>
 
   {% if gene_summaries %}
@@ -118,7 +145,7 @@
               {% set preferred = summary.preferred %}
               <tr>
                 <td><strong>{{ summary.gene }}</strong></td>
-                <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">Reviewed (UniProtKB/Swiss-Prot)</span>{% endif %}</td>
+                <td><a class="mono" href="/tf/{{ preferred.tf_id|quote }}">{{ preferred.tf_id }}</a>{% if preferred.reviewed == 1 %}<br><span class="muted">UniProtKB reviewed (Swiss-Prot)</span>{% endif %}</td>
                 <td class="number-cell" style="text-align:center">{{ summary.record_count }}</td>
                 <td>{{ public_prediction_label(preferred.primary_evidence_raw) }}</td>
                 <td class="number-cell" style="text-align:center">{{ preferred.fimo_ready_pwm_count }}</td>
@@ -134,13 +161,14 @@
 
   {% if motif_rows and motif_search_is_direct and not exact_tf_accession_search %}
     <details class="data-disclosure" open>
-      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></summary>
+      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_page_start }}-{{ motif_page_end }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total_pages > 1 %} · page {{ motif_page }} of {{ motif_total_pages }}{% endif %}</span></summary>
       {{ motif_records_table(motif_rows) }}
+      {{ motif_pagination() }}
     </details>
   {% endif %}
 
   <details class="data-disclosure" open>
-    <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">UniProt sequence-record results</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ page_start }}-{{ page_end }} of {{ total }} matching record{% if total != 1 %}s{% endif %}</span></summary>
+    <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">UniProt sequence-record results</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ page_start }}-{{ page_end }} of {{ total }} matching record{% if total != 1 %}s{% endif %}{% if total_pages > 1 %} · page {{ page }} of {{ total_pages }}{% endif %}</span></summary>
     <div class="table-wrap search-results-wrap">
       <table class="search-results-table" style="table-layout:fixed;min-width:0;width:100%">
         <colgroup>
@@ -152,7 +180,7 @@
           <col class="search-col-3d" style="width:6%">
           <col class="search-col-pfam" style="width:16%">
         </colgroup>
-        <thead><tr><th>UniProt</th><th>Gene</th><th>Protein</th><th>Prediction</th><th>PWMs</th><th>3D</th><th>PFAM</th></tr></thead>
+        <thead><tr><th>UniProt</th><th>Gene</th><th>Protein</th><th>Primary prediction</th><th>PWMs</th><th>3D</th><th>PFAM</th></tr></thead>
         <tbody>
           {% for row in rows %}
             {% set uniprot_deleted = row.protein_name and row.protein_name|trim|lower == 'deleted' %}
@@ -187,14 +215,16 @@
 
   {% if motif_rows and exact_tf_accession_search %}
     <details class="data-disclosure" open id="technical-motif-records">
-      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Technical motif-file matches</strong><span class="muted" style="float:right;margin-top:8px">{{ motif_total }} record{% if motif_total != 1 %}s{% endif %}</span></summary>
+      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Technical motif-file matches</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_page_start }}-{{ motif_page_end }} of {{ motif_total }} record{% if motif_total != 1 %}s{% endif %}{% if motif_total_pages > 1 %} · page {{ motif_page }} of {{ motif_total_pages }}{% endif %}</span></summary>
       <p class="muted">These are archive-level motif records whose technical IDs contain this accession. Open the TF record above for the biological prediction groups, DNA-binding regions, and models.</p>
       {{ motif_records_table(motif_rows) }}
+      {{ motif_pagination() }}
     </details>
   {% elif motif_rows and not motif_search_is_direct %}
     <details class="data-disclosure" open>
-      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_rows|length }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total > motif_limit %}; refine the search to narrow it further{% endif %}</span></summary>
+      <summary style="cursor:pointer;color:#8b95a5;margin-bottom:12px"><strong style="color:var(--ink);font-size:28px">Motif records</strong><span class="muted" style="float:right;margin-top:8px">Showing {{ motif_page_start }}-{{ motif_page_end }} of {{ motif_total }} matching motif file{% if motif_total != 1 %}s{% endif %}{% if motif_total_pages > 1 %} · page {{ motif_page }} of {{ motif_total_pages }}{% endif %}</span></summary>
       {{ motif_records_table(motif_rows) }}
+      {{ motif_pagination() }}
     </details>
   {% endif %}
 {% endblock %}
