@@ -3,7 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 .venv/
+.venv-*/
 venv/
+.conda-*/
 .env
 
 # Local databases and large data artifacts
@@ -34,3 +36,10 @@ outputs/
 *.sqlite.before_*.bak
 data/*.bak
 modcredb.log
+
+# Machine-local runtime, deployment, and recovery artifacts
+backups/
+deploy/
+modcredb.local.log
+*.local.log
+*.orig

@@ -58,6 +58,10 @@
     <div class="annotation-grid">
       <div><span>TF</span><strong class="mono">{{ model.tf_id }}</strong></div>
       <div><span>Source</span><strong>{{ source_labels.get(model.source, model.source) }}</strong></div>
+      {% if model.model_kind is defined and model.model_kind %}<div><span>Model type</span><strong>{{ model.model_kind }}</strong></div>{% endif %}
+      {% if model.protein_chain_count is defined and model.protein_chain_count is not none %}<div><span>Protein chains</span><strong>{{ model.protein_chain_count }}</strong></div>{% endif %}
+      {% if model.dna_chain_count is defined and model.dna_chain_count is not none %}<div><span>DNA chains</span><strong>{{ model.dna_chain_count }}</strong></div>{% endif %}
+      {% if model.dna_qc_status == 'ok' %}<div><span>DNA interaction</span><strong>{{ 'Yes' if model.dna_interaction == 1 else 'No' }}</strong></div>{% elif model.dna_qc_status == 'no_protein_atoms' %}<div><span>DNA interaction</span><strong>Unavailable — no protein component</strong></div>{% endif %}
       {% if model.model_role %}<div><span>Assignment</span><strong>{{ model.model_label }}</strong></div>{% endif %}
       {% if model.fragment_identity %}<div><span>Fragment identity</span><strong class="mono">{{ model.fragment_identity }}</strong></div>{% endif %}
       {% if model.interface_status %}<div><span>Interface</span><strong>{{ model.interface_status }}</strong></div>{% endif %}

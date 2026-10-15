@@ -87,6 +87,14 @@ def parse_args() -> argparse.Namespace:
         help="Optional structure_file IDs to restrict the run.",
     )
     parser.add_argument(
+        "--source",
+        help="Optional exact case-insensitive structure_file.source filter.",
+    )
+    parser.add_argument(
+        "--tf-id",
+        help="Optional exact case-insensitive TF accession filter.",
+    )
+    parser.add_argument(
         "--progress-every",
         type=int,
         default=250,
@@ -253,6 +261,8 @@ def fetch_rows(
     conn: sqlite3.Connection,
     ids: list[int] | None,
     only_unresolved: bool,
+    source: str | None,
+    tf_id: str | None,
 ) -> list[sqlite3.Row]:
     sql = """
         SELECT id, source, tf_id, model_id, member_path, archive_path,
@@ -266,6 +276,12 @@ def fetch_rows(
         params.extend(ids)
     if only_unresolved:
         sql += " AND (dna_qc_status IS NULL OR dna_qc_status <> 'ok')"
+    if source:
+        sql += " AND LOWER(source) = LOWER(?)"
+        params.append(source)
+    if tf_id:
+        sql += " AND UPPER(tf_id) = UPPER(?)"
+        params.append(tf_id)
     sql += " ORDER BY id"
     return conn.execute(sql, params).fetchall()
 
@@ -296,12 +312,22 @@ def main() -> int:
                     f"Missing: {', '.join(missing)}"
                 )
 
-        rows = fetch_rows(conn, args.ids, args.only_unresolved)
+        rows = fetch_rows(
+            conn,
+            args.ids,
+            args.only_unresolved,
+            args.source,
+            args.tf_id,
+        )
         print(f"active PDB rows selected: {len(rows)}")
         print(f"contact rule: protein/nucleic non-H atom pair <= {args.cutoff:.2f} A")
         print(f"mode: {'APPLY' if args.apply else 'READ-ONLY'}")
         if args.only_unresolved:
             print("selection: unresolved QC rows only")
+        if args.source:
+            print(f"source filter: {args.source}")
+        if args.tf_id:
+            print(f"TF filter: {args.tf_id}")
 
         summary = Counter()
         source_summary: dict[str, Counter] = defaultdict(Counter)

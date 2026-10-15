@@ -58,7 +58,7 @@
           <dt>Sources</dt><dd>{% if region.sources %}{{ region.sources|join(', ') }}{% else %}<span class="muted">Structure model</span>{% endif %}</dd>
         </dl>
         <div class="region-links">
-          <a href="/scan?tf={{ tf.tf_id|quote }}&tf_region={{ region.start }}-{{ region.end }}">Scan this region</a>
+          {% if ready.count %}<a href="/scan?tf_id={{ tf.tf_id|quote }}&tf_region={{ region.start }}-{{ region.end }}">Scan motifs linked to this region</a>{% endif %}
           <a href="#models-region-{{ loop.index }}">Show models</a>
         </div>
       </article>
@@ -106,30 +106,32 @@
   <summary class="tf-disclosure-summary">
     <div>
       <div class="summary-title">3D Models</div>
-      <div class="summary-note">Collapsible technical table. Rows are grouped by protein region and retain model, template, residue coverage, and available summary evidence.</div>
+      <div class="summary-note">All distinct models are shown. Models with a verified protein–DNA interface and complete DNA are listed first, with DIMER models before TFS models. DIMER/TFS describes the protein arrangement; DNA chains are reported separately. “DNA interaction” means that at least one non-hydrogen protein–DNA atom pair is within 4.5 Å.</div>
     </div>
     <div class="summary-pills">
-      <span class="tf-tag">{{ active_models|length }} active PDB model{% if active_models|length != 1 %}s{% endif %}</span>
+      <span class="tf-tag">{{ active_models|length }} PDB model{% if active_models|length != 1 %}s{% endif %}</span>
       {% if model_summaries %}<span class="tf-tag">{{ model_summaries|length }} summary row{% if model_summaries|length != 1 %}s{% endif %}</span>{% endif %}
     </div>
   </summary>
   <div class="disclosure-body">
     {% if region_groups %}
       {% for region in region_groups %}
-        <details class="model-region" id="models-region-{{ loop.index }}" {% if loop.first %}open{% endif %}>
+        <details class="model-region" id="models-region-{{ loop.index }}" open>
           <summary><span>Region {{ region.start }}-{{ region.end }}</span><span>{{ region.models|length }} model{% if region.models|length != 1 %}s{% endif %}{% if region.summaries %} · {{ region.summaries|length }} summary row{% if region.summaries|length != 1 %}s{% endif %}{% endif %}</span></summary>
           {% if region.models %}
           <div class="table-wrap">
             <table class="model-table">
-              <thead><tr><th><button class="sort-btn">Source <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Model <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Template <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Residues modeled <span class="sort-icon">↕</span></button></th><th>Actions</th></tr></thead>
+              <thead><tr><th><button class="sort-btn">Type <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Model <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Template <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">Residues modeled <span class="sort-icon">↕</span></button></th><th><button class="sort-btn">DNA chains <span class="sort-icon">↕</span></button></th><th class="dna-qc-heading"><button class="sort-btn">DNA interaction <span class="sort-icon">↕</span></button></th><th>Actions</th></tr></thead>
               <tbody>
                 {% for model in region.models %}
                 <tr>
-                  <td>{{ source_labels.get(model.source, model.source) }}</td>
+                  <td><strong>{{ model.model_kind or 'Model' }}</strong>{% if model.protein_chain_count is defined and model.protein_chain_count is not none %}<br><span class="muted">{{ model.protein_chain_count }} protein chain{% if model.protein_chain_count != 1 %}s{% endif %}</span>{% endif %}</td>
                   <td class="mono">{{ model.model_id }}</td>
                   <td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td>
                   <td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td>
-                  <td class="model-actions"><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td>
+                  <td>{% if model.dna_chain_count is defined and model.dna_chain_count is not none %}{{ model.dna_chain_count }}{% else %}<span class="muted">Not assessed</span>{% endif %}</td>
+                  <td class="dna-qc-cell">{% if model.dna_qc_status == 'ok' and model.dna_interaction == 1 %}<span class="dna-status-badge dna-status-yes" title="{{ model.dna_contact_count or 0 }} protein–DNA non-H atom pairs within 4.5 Å">Yes</span>{% elif model.dna_qc_status == 'ok' and model.dna_interaction == 0 %}<span class="dna-status-badge dna-status-no" title="Protein and DNA are present, but no non-H atom contact was found within 4.5 Å">No</span>{% elif model.dna_qc_status == 'no_protein_atoms' %}<span class="dna-status-badge dna-status-unavailable" title="No protein component is present in this coordinate file">Unavailable</span>{% else %}<span class="dna-status-badge dna-status-unknown">Not assessed</span>{% endif %}</td>
+                  <td class="model-actions"><a href="/model?model={{ model.model_id|quote }}">View model</a> · <a href="/download/model?model={{ model.model_id|quote }}">PDB</a></td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -152,7 +154,7 @@
                   <td class="mono">{% if row.protein_chain %}P:{{ row.protein_chain }}{% endif %}{% if row.dna_chain %} · DNA:{{ row.dna_chain }}{% endif %}</td>
                   <td>{% if row.identity_percent is not none %}{{ '%.1f'|format(row.identity_percent) }}%{% endif %}{% if row.similarity_percent is not none %} / {{ '%.1f'|format(row.similarity_percent) }}%{% endif %}</td>
                   <td>{{ row.coverage or '' }}</td>
-                  <td>{% if row.matched_file_id %}<a href="/model?id={{ row.matched_file_id }}">View</a> · <a href="/download/model?id={{ row.matched_file_id }}">{{ row.matched_file_type|upper }}</a> <span class="muted mono">{{ row.matched_model_id }}</span>{% else %}<span class="muted">unlinked</span>{% endif %}</td>
+                  <td>{% if row.matched_file_id %}<a href="/model?model={{ row.matched_model_id|quote }}">View</a> · <a href="/download/model?model={{ row.matched_model_id|quote }}">{{ row.matched_file_type|upper }}</a> <span class="muted mono">{{ row.matched_model_id }}</span>{% else %}<span class="muted">unlinked</span>{% endif %}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -164,8 +166,8 @@
     {% else %}
       <div class="table-wrap">
         <table class="model-table">
-          <thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead>
-          <tbody>{% for model in active_models %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endfor %}</tbody>
+          <thead><tr><th>Type</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>DNA chains</th><th class="dna-qc-heading">DNA interaction</th><th>Actions</th></tr></thead>
+          <tbody>{% for model in active_models %}<tr><td><strong>{{ model.model_kind or 'Model' }}</strong>{% if model.protein_chain_count is defined and model.protein_chain_count is not none %}<br><span class="muted">{{ model.protein_chain_count }} protein chain{% if model.protein_chain_count != 1 %}s{% endif %}</span>{% endif %}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td>{% if model.residue_start and model.residue_end %}{{ model.residue_start }}-{{ model.residue_end }}{% else %}<span class="muted">Full sequence</span>{% endif %}</td><td>{% if model.dna_chain_count is defined and model.dna_chain_count is not none %}{{ model.dna_chain_count }}{% else %}<span class="muted">Not assessed</span>{% endif %}</td><td class="dna-qc-cell">{% if model.dna_qc_status == 'ok' and model.dna_interaction == 1 %}<span class="dna-status-badge dna-status-yes">Yes</span>{% elif model.dna_qc_status == 'ok' and model.dna_interaction == 0 %}<span class="dna-status-badge dna-status-no">No</span>{% elif model.dna_qc_status == 'no_protein_atoms' %}<span class="dna-status-badge dna-status-unavailable">Unavailable</span>{% else %}<span class="dna-status-badge dna-status-unknown">Not assessed</span>{% endif %}</td><td class="model-actions"><a href="/model?model={{ model.model_id|quote }}">View model</a> · <a href="/download/model?model={{ model.model_id|quote }}">PDB</a></td></tr>{% endfor %}</tbody>
         </table>
       </div>
     {% endif %}
@@ -173,9 +175,9 @@
     {% set full = namespace(count=0) %}
     {% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}{% set full.count = full.count + 1 %}{% endif %}{% endfor %}
     {% if region_groups and full.count %}
-      <details class="model-region">
+      <details class="model-region" open>
         <summary><span>Full sequence / unlocalized models</span><span>{{ full.count }} model{% if full.count != 1 %}s{% endif %}</span></summary>
-        <div class="table-wrap"><table class="model-table"><thead><tr><th>Source</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>Actions</th></tr></thead><tbody>{% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}<tr><td>{{ source_labels.get(model.source, model.source) }}</td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td><span class="muted">Full sequence / not localized</span></td><td><a href="/model?id={{ model.id }}">View model</a> · <a href="/download/model?id={{ model.id }}">PDB</a></td></tr>{% endif %}{% endfor %}</tbody></table></div>
+        <div class="table-wrap"><table class="model-table"><thead><tr><th>Type</th><th>Model</th><th>Template</th><th>Residues modeled</th><th>DNA chains</th><th class="dna-qc-heading">DNA interaction</th><th>Actions</th></tr></thead><tbody>{% for model in active_models %}{% if not (model.residue_start and model.residue_end) %}<tr><td><strong>{{ model.model_kind or 'Model' }}</strong></td><td class="mono">{{ model.model_id }}</td><td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% else %}<span class="muted">-</span>{% endif %}</td><td><span class="muted">Full sequence / not localized</span></td><td>{% if model.dna_chain_count is defined and model.dna_chain_count is not none %}{{ model.dna_chain_count }}{% else %}<span class="muted">Not assessed</span>{% endif %}</td><td class="dna-qc-cell">{% if model.dna_qc_status == 'ok' and model.dna_interaction == 1 %}<span class="dna-status-badge dna-status-yes">Yes</span>{% elif model.dna_qc_status == 'ok' and model.dna_interaction == 0 %}<span class="dna-status-badge dna-status-no">No</span>{% elif model.dna_qc_status == 'no_protein_atoms' %}<span class="dna-status-badge dna-status-unavailable">Unavailable</span>{% else %}<span class="dna-status-badge dna-status-unknown">Not assessed</span>{% endif %}</td><td class="model-actions"><a href="/model?model={{ model.model_id|quote }}">View model</a> · <a href="/download/model?model={{ model.model_id|quote }}">PDB</a></td></tr>{% endif %}{% endfor %}</tbody></table></div>
       </details>
     {% endif %}
     <p class="muted" style="margin-top:14px"><a href="/model-summaries/{{ tf.tf_id|quote }}">View full model evidence table</a> for rank, chains, N/C tails, coverage, RMSD-template information, identity/similarity, and linked model files.</p>

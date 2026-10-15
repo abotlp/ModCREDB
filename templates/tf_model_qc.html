@@ -27,13 +27,13 @@
 <div id="dna-qc-data" hidden aria-hidden="true">
 {% for model in active_models %}
   {% if model.dna_qc_status == 'ok' and model.dna_interaction == 1 %}
-  <span data-model-id="{{ model.id }}" data-dna-status="yes" data-dna-contacts="{{ model.dna_contact_count or 0 }}"></span>
+  <span data-model-key="{{ model.model_id }}" data-dna-status="yes" data-dna-contacts="{{ model.dna_contact_count or 0 }}"></span>
   {% elif model.dna_qc_status == 'ok' and model.dna_interaction == 0 %}
-  <span data-model-id="{{ model.id }}" data-dna-status="no" data-dna-contacts="0"></span>
+  <span data-model-key="{{ model.model_id }}" data-dna-status="no" data-dna-contacts="0"></span>
   {% elif model.dna_qc_status == 'no_protein_atoms' %}
-  <span data-model-id="{{ model.id }}" data-dna-status="unavailable" data-dna-contacts="0"></span>
+  <span data-model-key="{{ model.model_id }}" data-dna-status="unavailable" data-dna-contacts="0"></span>
   {% else %}
-  <span data-model-id="{{ model.id }}" data-dna-status="unknown" data-dna-contacts="0"></span>
+  <span data-model-key="{{ model.model_id }}" data-dna-status="unknown" data-dna-contacts="0"></span>
   {% endif %}
 {% endfor %}
 </div>
@@ -57,8 +57,8 @@
     var dataRoot=document.getElementById('dna-qc-data');
     if(!dataRoot){return;}
     var statusById={};
-    dataRoot.querySelectorAll('[data-model-id]').forEach(function(node){
-      statusById[node.getAttribute('data-model-id')]={
+    dataRoot.querySelectorAll('[data-model-key]').forEach(function(node){
+      statusById[node.getAttribute('data-model-key')]={
         status:node.getAttribute('data-dna-status')||'unknown',
         contacts:node.getAttribute('data-dna-contacts')||'0'
       };
@@ -68,11 +68,11 @@
       var rows=Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
       var modelRows=[];
       rows.forEach(function(row){
-        var link=row.querySelector('a[href^="/model?id="]');
+        var link=row.querySelector('a[href^="/model?model="]');
         if(!link){return;}
         try{
           var url=new URL(link.getAttribute('href'),window.location.origin);
-          var id=url.searchParams.get('id');
+          var id=url.searchParams.get('model');
           if(id && statusById[id]){modelRows.push({row:row,id:id});}
         }catch(e){}
       });

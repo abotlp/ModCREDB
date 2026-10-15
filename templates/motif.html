@@ -140,7 +140,7 @@
                   <td class="mono">{{ model.model_id }}</td>
                   <td>{% if model.template_pdb %}<a class="mono" href="{{ pdb_url(model.template_pdb) }}" target="_blank" rel="noopener">{{ model.template_pdb }}</a>{% endif %}</td>
                   <td>{% if model.residue_start %}{{ model.residue_start }}-{{ model.residue_end }}{% endif %}</td>
-                  <td>{% if model.file_type == "pdb" %}<a href="/model?id={{ model.id }}">View 3D</a>{% endif %} <a href="/download/model?id={{ model.id }}">Download {{ model.file_type|upper }}</a></td>
+                  <td>{% if model.file_type == "pdb" %}<a href="/model?model={{ model.model_id|quote }}">View 3D</a>{% endif %} <a href="/download/model?model={{ model.model_id|quote }}">Download {{ model.file_type|upper }}</a></td>
                 </tr>
               {% endfor %}
             </tbody>

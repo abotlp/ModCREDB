@@ -1,0 +1,12 @@
+tf_id	gene	original_primary_class	withdrawn_original_motif	canonical_accession	sequence_relationship	aligned_residues	canonical_length	identity_percent	dbd_evidence	replacement_source	replacement_motif_ids	corrected_primary_class
+A0A024R274	SMAD4	Identical_PWM	MA0513.1	Q13485	full_length_exact_sequence	552	552	100.00	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Identical_PWM
+A0AAQ5BHS5	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	483	552	100.00	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+A0AAQ5BHS9	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	345	552	100.00	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+A0AAQ5BHU0	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	482	552	95.23	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+A0AAQ5BHU1	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	190	552	95.26	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+B4DZP1	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	177	552	97.74	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+K7ELK2	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	493	552	98.99	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+K7ES96	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	320	552	100.00	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+Q53XR6	SMAD2	Identical_PWM	MA0513.1	Q15796	full_length_exact_sequence	467	467	100.00	PF03165_MH1_present	jaspar	MA1964.1;MA1964.2	Identical_PWM
+Q9BYG6	SMAD4	Identical_PWM	MA0513.1	Q13485	partial_same_gene_isoform	436	552	100.00	PF03165_MH1_present	cisbp	M09377_2.00;M09634_2.00	Homologous_PWM
+F8VWL0	TFCP2	Identical_PWM	MA0145.3	Q12800	partial_same_gene_isoform	381	502	100.00	PF04516_CP2_present	cisbp	M03074_2.00;M03075_2.00;M04889_2.00;M04890_2.00;M04891_2.00;M04892_2.00;M10610_2.00	Homologous_PWM

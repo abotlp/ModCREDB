@@ -1,13 +1,24 @@
 {% set uniprot_deleted = tf.protein_name and tf.protein_name|trim|lower == 'deleted' %}
+{% set uniprot_merged = tf.protein_name and tf.protein_name|trim|lower == 'merged' %}
+{% set uniprot_external_accession = tf.merged_into_accession if uniprot_merged and tf.merged_into_accession else tf.tf_id %}
+{% set uniprot_external_url = ('https://www.uniprot.org/uniprotkb/' ~ (uniprot_external_accession|quote) ~ '/entry') if uniprot_merged else tf.uniprot_url %}
 <section class="tf-head">
   <div>
     <p class="eyebrow">Transcription factor</p>
-    <h1><span class="mono">{{ tf.tf_id }}</span>{% if tf.gene_names %} - {{ tf.gene_names.split()[0] }}{% endif %}</h1>
-    {% if tf.protein_name and not uniprot_deleted %}<p><strong>{{ tf.protein_name }}</strong></p>{% endif %}
+    <h1>{% if not uniprot_deleted and uniprot_external_url %}<a class="mono" href="{{ uniprot_external_url }}" target="_blank" rel="noopener" title="Open {{ uniprot_external_accession }} in UniProtKB">{{ tf.tf_id }}</a>{% else %}<span class="mono">{{ tf.tf_id }}</span>{% endif %}{% if tf.gene_names %} - {{ tf.gene_names.split()[0] }}{% endif %}</h1>
+    {% if tf.protein_name and not uniprot_deleted and not uniprot_merged %}<p><strong>{{ tf.protein_name }}</strong></p>{% endif %}
     {% if uniprot_deleted %}
       <p class="muted"><strong>UniProtKB entry deleted</strong></p>
+    {% elif uniprot_merged %}
+      <p class="muted"><strong>UniProtKB entry merged{% if tf.merged_into_accession %} into <a class="mono" href="/tf/{{ tf.merged_into_accession|quote }}">{{ tf.merged_into_accession }}</a>{% endif %}</strong></p>
     {% else %}
       <p class="muted">{{ tf.organism_name or 'Organism unknown' }}{% if tf.reviewed==1 %} · Reviewed (UniProtKB/Swiss-Prot){% elif tf.reviewed==0 %} · Unreviewed (UniProtKB/TrEMBL){% endif %}{% if tf.sequence_length %} · {{ tf.sequence_length }} aa{% endif %}</p>
+    {% endif %}
+    {% if (not uniprot_deleted and uniprot_external_url) or tf_status.fimo_ready_pwm_count %}
+      <div class="external-links">
+        {% if not uniprot_deleted and uniprot_external_url %}<a href="{{ uniprot_external_url }}" target="_blank" rel="noopener">Open {{ uniprot_external_accession }} in UniProtKB ↗</a>{% endif %}
+        {% if tf_status.fimo_ready_pwm_count %}<a href="/scan?tf_id={{ tf.tf_id|quote }}">Scan all motifs for this TF</a>{% endif %}
+      </div>
     {% endif %}
     <div class="tf-tags">
       <span class="tf-tag good">{{ generated_rows|length }} Generated PWM</span>

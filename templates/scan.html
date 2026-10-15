@@ -11,6 +11,7 @@
 .scan-compact-hero{margin-bottom:18px}.scan-compact-hero h1{margin-bottom:4px}.scan-global-card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-bottom:20px}.scan-global-card summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-global-card summary::-webkit-details-marker{display:none}.scan-global-body{padding:20px;border-top:1px solid var(--line)}.scan-grid{display:grid;grid-template-columns:minmax(0,2fr) 260px;gap:16px}.scan-param-panel{background:#f8fbfe;border:1px solid var(--line);border-radius:14px;padding:14px}.scan-param-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.scan-actions{display:grid;gap:10px;margin-top:14px}.scan-button{border:1px solid var(--line);border-radius:10px;background:#fff;color:#243145;font-weight:850;text-decoration:none;padding:11px 16px;text-align:center;display:inline-flex;justify-content:center}.scan-button.primary{background:#117a46;border-color:#117a46;color:#fff}.scan-button.blue{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.scan-chip{display:inline-flex;border:1px solid #b9d2ff;background:#e9f2ff;color:#164f9f;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:850;white-space:nowrap}.scan-chip.orange{background:#fff2df;border-color:#efc58a;color:#b85b00}.scan-personalized{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:0 14px 34px rgba(22,35,58,.08);overflow:hidden;margin-top:20px}.scan-personalized[open]{border-color:#a8c6ef}.scan-personalized summary{cursor:pointer;list-style:none;padding:18px 20px;background:linear-gradient(180deg,#fff,#f8fbfe);display:flex;justify-content:space-between;gap:16px;align-items:center}.scan-personalized summary::-webkit-details-marker{display:none}.scan-summary-title{font-size:19px;font-weight:900}.scan-summary-title:before{content:"▸";color:#2f5f86;display:inline-block;margin-right:8px;transition:transform .12s ease}.scan-personalized[open] .scan-summary-title:before,.scan-global-card[open] .scan-summary-title:before{transform:rotate(90deg)}.scan-summary-sub{display:block;color:#667085;font-size:13px;font-weight:500;margin-top:4px}.scan-personalized-body{padding:20px;border-top:1px solid var(--line)}.scan-two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}.scan-filter-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.scan-filter-grid label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff;font-size:12px;font-weight:800;margin:0}.scan-filter-grid input{width:auto}.scan-textarea-motifs{min-height:160px}.scan-textarea-dna{min-height:150px}@media(max-width:900px){.scan-grid,.scan-two-col{grid-template-columns:1fr;display:grid;min-width:0}}
 .tf-level-results{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:14px;background:#f8fbfe}.tf-level-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.tf-level-head h3{margin:0}.tf-rank-controls{display:flex;gap:7px;flex-wrap:wrap}.tf-rank-button{border:1px solid #a8bfd8;border-radius:999px;background:#fff;color:#26425f;padding:6px 11px;font-size:12px;font-weight:800;cursor:pointer}.tf-rank-button[aria-pressed="true"]{background:#0b5bd3;border-color:#0b5bd3;color:#fff}.tf-gene-name{display:block;color:#667085;font-size:11px;max-width:280px;margin-top:2px}
 .scan-submit-status{display:none;margin:10px 0 0;padding:10px 12px;border:1px solid #b9d2ff;border-radius:10px;background:#eef5ff;color:#26425f;font-size:13px;font-weight:700;line-height:1.4}.scan-submit-status.is-visible{display:flex;align-items:center;gap:9px}.scan-spinner{width:16px;height:16px;border:2px solid #b9c7d8;border-top-color:#0b5bd3;border-radius:50%;animation:scan-spin .8s linear infinite;flex:0 0 auto}.scan-button[disabled]{cursor:wait;opacity:.72}@keyframes scan-spin{to{transform:rotate(360deg)}}
+.scan-selection-summary{margin:0 0 18px;padding:14px 16px;border:1px solid #b9d2ff;border-radius:12px;background:#eef5ff}.scan-selection-summary h3{margin:0 0 6px}.scan-selection-summary p{margin:5px 0}.scan-selection-counts{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.scan-selection-counts .scan-chip{background:#fff}.scan-selected-motifs{margin-top:10px}.scan-selected-motifs summary{cursor:pointer;font-weight:800}.scan-selected-motif-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.scan-selected-motif-list span{border:1px solid #c8ddf8;border-radius:999px;background:#fff;padding:3px 8px;font-size:11px}
 </style>
 
 <section class="scan-compact-hero">
@@ -60,6 +61,29 @@
     {% if selected_motif or selected_tf %}<span class="scan-chip orange">Prefilled</span>{% endif %}
   </summary>
   <div class="scan-personalized-body">
+    {% if tf_scan_summary %}
+      {% set selected_tf_record = tf_scan_summary.tf %}
+      <section class="scan-selection-summary" aria-label="Selected TF motif set">
+        <h3>Selected TF: <span class="mono">{{ selected_tf_record.tf_id }}</span>{% if selected_tf_record.gene_names %} — {{ selected_tf_record.gene_names.split()[0] }}{% endif %}</h3>
+        <p><strong>{{ tf_scan_summary.used_count }} usable motif{% if tf_scan_summary.used_count != 1 %}s{% endif %}</strong> selected{% if tf_scan_summary.selected_region %} for protein region {{ tf_scan_summary.selected_region }}{% else %} across all TF assignments, with no protein-region restriction{% endif %}.</p>
+        <div class="scan-selection-counts">
+          {% for item in tf_scan_summary.evidence_counts %}<span class="scan-chip">{{ evidence_labels.get(item.evidence_type, item.evidence_type) }}: {{ item.count }}</span>{% endfor %}
+        </div>
+        {% if tf_scan_summary.skipped_no_matrix %}<p class="muted">{{ tf_scan_summary.skipped_no_matrix }} additional assignment{% if tf_scan_summary.skipped_no_matrix != 1 %}s were{% else %} was{% endif %} excluded because no usable PWM matrix is available.</p>{% endif %}
+        {% if motifs %}
+          <details class="scan-selected-motifs">
+            <summary>Show selected motif IDs{% if motifs|length > 50 %} (first 50 of {{ motifs|length }}){% endif %}</summary>
+            <div class="scan-selected-motif-list">{% for motif in motifs[:50] %}<span class="mono">{{ motif.source }}|{{ motif.motif_id }}</span>{% endfor %}</div>
+          </details>
+        {% endif %}
+      </section>
+    {% elif selected_motif %}
+      <section class="scan-selection-summary" aria-label="Selected motif set">
+        <h3>Selected motif scan</h3>
+        <p><strong>{{ motifs|length }} usable motif{% if motifs|length != 1 %}s{% endif %}</strong> selected explicitly.</p>
+        {% if motifs %}<div class="scan-selected-motif-list">{% for motif in motifs %}<span class="mono">{{ motif.source }}|{{ motif.motif_id }}</span>{% endfor %}</div>{% endif %}
+      </section>
+    {% endif %}
     <form action="/scan" method="post" class="section">
       <div class="scan-two-col">
         <div>
@@ -69,13 +93,14 @@
             </label>
             <label>DNA-binding region
               <select name="tf_region"{% if tf_id and not tf_scan_regions %} disabled{% endif %}>
-                <option value="">All available regions</option>
+                <option value="">All TF motifs — no region filter</option>
                 {% for region in tf_scan_regions %}
                   <option value="{{ region.value }}"{% if tf_region == region.value %} selected{% endif %}>{{ region.label }} ({{ region.motif_count }} motif{% if region.motif_count != 1 %}s{% endif %})</option>
                 {% endfor %}
                 {% if not tf_scan_regions and not tf_id %}<option value="" disabled>Enter a TF accession to list regions</option>{% endif %}
                 {% if tf_id and not tf_scan_regions %}<option value="" disabled>No explicit regions with motif matrices</option>{% endif %}
               </select>
+              <span class="muted">A specific region includes only motifs explicitly linked to a structure overlapping that protein interval.</span>
             </label>
           </div>
 
@@ -154,7 +179,7 @@
   <details class="tf-level-results data-disclosure" open>
     <summary>
       <span class="data-disclosure-summary-title">TF-level results</span>
-      <span class="data-disclosure-summary-meta">{{ tf_results|length }} TFs mapped · {{ unmapped_motif_count }} unmapped motif identit{% if unmapped_motif_count == 1 %}y{% else %}ies{% endif %}</span>
+      <span class="data-disclosure-summary-meta">{{ tf_results|length }} TF{% if tf_results|length != 1 %}s{% endif %} mapped · {{ unmapped_motif_count }} unmapped motif identit{% if unmapped_motif_count == 1 %}y{% else %}ies{% endif %}</span>
     </summary>
     <div class="data-disclosure-body">
       {% if tf_results %}

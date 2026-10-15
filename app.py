@@ -57,7 +57,7 @@ PDB_PROTEIN_RESIDUE_NAMES = frozenset(
 EVIDENCE_LABELS = {
     "identical": "Known",
     "homologous": "Nearest Neighbor (>70%)",
-    "relative_homologous": "Nearest Neighbor (70% - 40%)",
+    "relative_homologous": "Nearest Neighbor (50–70%)",
     "modcre": "Predicted = Low",
     "alphafold": "Predicted = Low",
 }
@@ -88,7 +88,13 @@ EVIDENCE_INFO = {
         "use": "Useful exploratory evidence; needs structural and biological validation.",
     },
 }
-TF_SCAN_DEFAULT_EVIDENCE = ["identical", "homologous", "modcre", "alphafold"]
+TF_SCAN_DEFAULT_EVIDENCE = [
+    "identical",
+    "homologous",
+    "relative_homologous",
+    "modcre",
+    "alphafold",
+]
 TF_SCAN_MAX_MOTIFS = 500
 GLOBAL_SCAN_DEFAULT_EVIDENCE = ["identical", "homologous", "relative_homologous", "modcre", "alphafold"]
 GLOBAL_SCAN_MAX_MOTIFS = int(os.environ.get("TF_WEBDB_GLOBAL_SCAN_MAX_MOTIFS", "5000"))
@@ -266,6 +272,15 @@ def db_table_exists(conn: sqlite3.Connection, table_name: str) -> bool:
             (table_name,),
         ).fetchone()
         is not None
+    )
+
+
+def db_column_exists(conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+    if not db_table_exists(conn, table_name):
+        return False
+    return any(
+        str(row[1]) == column_name
+        for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()
     )
 
 
@@ -1677,18 +1692,18 @@ def parse_region_value(value: str) -> tuple[int, int] | None:
 def load_tf_scan_regions(conn: sqlite3.Connection, tf_id: str) -> list[dict[str, object]]:
     rows = conn.execute(
         """
-        SELECT DISTINCT mr.source, mr.motif_id, sf.residue_start, sf.residue_end
+        SELECT DISTINCT mr.source, mr.motif_id, mf.matrix_status,
+                        sf.residue_start, sf.residue_end
         FROM motif_ref AS mr
         JOIN motif_structure AS ms ON ms.motif_ref_id = mr.id
         JOIN structure_file AS sf ON sf.id = ms.structure_file_id
-        JOIN motif_file AS mf
+        LEFT JOIN motif_file AS mf
           ON mf.source = mr.source
          AND mf.motif_id = mr.motif_id
         WHERE UPPER(mr.tf_id) = UPPER(?)
           AND sf.status = 'active'
           AND sf.residue_start IS NOT NULL
           AND sf.residue_end IS NOT NULL
-          AND mf.matrix_status = 'usable'
         ORDER BY sf.residue_start, sf.residue_end
         """,
         (tf_id,),
@@ -1712,7 +1727,8 @@ def load_tf_scan_regions(conn: sqlite3.Connection, tf_id: str) -> list[dict[str,
         motif_keys = {
             (row["source"], row["motif_id"])
             for row in rows
-            if overlaps(start, end, int(row["residue_start"]), int(row["residue_end"]))
+            if row["matrix_status"] == "usable"
+            and overlaps(start, end, int(row["residue_start"]), int(row["residue_end"]))
         }
         value = f"{start}-{end}"
         regions.append(
@@ -2796,13 +2812,18 @@ class TFWebApp:
         tf_id = unquote(tf_id)
         with connect(self.db_path) as conn:
             ensure_pfam_annotation_table(conn)
+            merged_accession_select = (
+                "ta.merged_into_accession"
+                if db_column_exists(conn, "tf_annotation", "merged_into_accession")
+                else "NULL AS merged_into_accession"
+            )
             tf = dict_row(
                 conn.execute(
-                    """
+                    f"""
                     SELECT tf.*, ta.entry_name, ta.gene_names, ta.protein_name,
                            ta.organism_name, ta.organism_id, ta.reviewed,
                            ta.sequence_length, ta.annotation_score, ta.uniprot_url,
-                           ta.fetched_at
+                           ta.fetched_at, {merged_accession_select}
                     FROM tf
                     LEFT JOIN tf_annotation AS ta ON ta.tf_id = tf.tf_id
                     WHERE tf.tf_id = ?
@@ -2886,15 +2907,53 @@ class TFWebApp:
                 (tf_id,),
             ).fetchall()
             tf_fimo_ready_count = int(tf_status["fimo_ready_pwm_count"])
-            active_models = conn.execute(
+            has_model_qc = all(
+                db_column_exists(conn, "structure_file", column)
+                for column in (
+                    "model_kind",
+                    "protein_chain_count",
+                    "dna_chain_count",
+                    "dna_interaction",
+                    "dna_qc_status",
+                )
+            )
+            model_order = (
                 """
-                SELECT * FROM structure_file
-                WHERE tf_id = ? AND status = 'active' AND file_type = 'pdb'
-                ORDER BY source, model_id
-                LIMIT 100
-                """,
-                (tf_id,),
-            ).fetchall()
+                ORDER BY
+                  CASE
+                    WHEN dna_qc_status = 'ok' AND dna_interaction = 1
+                     AND dna_chain_count >= 2 THEN 0
+                    WHEN dna_qc_status = 'ok' AND dna_interaction = 1 THEN 1
+                    WHEN dna_qc_status = 'ok' AND dna_interaction = 0 THEN 2
+                    WHEN dna_qc_status = 'no_protein_atoms' THEN 3
+                    ELSE 4
+                  END,
+                  CASE WHEN model_kind = 'DIMER' THEN 0 ELSE 1 END,
+                  residue_start,
+                  residue_end,
+                  model_id
+                """
+                if has_model_qc
+                else "ORDER BY source, model_id"
+            )
+            active_models = [
+                dict(row)
+                for row in conn.execute(
+                    f"""
+                    SELECT * FROM structure_file
+                    WHERE tf_id = ? AND status = 'active' AND file_type = 'pdb'
+                    {model_order}
+                    """,
+                    (tf_id,),
+                ).fetchall()
+            ]
+            for model in active_models:
+                model_id = str(model.get("model_id") or "")
+                model["model_kind"] = str(model.get("model_kind") or (
+                    "DIMER" if model_id.startswith("DIMER_")
+                    else "TFS" if model_id.startswith("TFS_")
+                    else ""
+                ))
             active_assignment_rows = (
                 conn.execute(
                     """
@@ -3121,7 +3180,10 @@ class TFWebApp:
         motif_id = params.get("id", [""])[0].strip()
         default_motifs = motif_spec(source, motif_id) if source and motif_id else ""
         motifs_text = params.get("motifs", [default_motifs])[0].strip()
-        tf_id = normalize_tf_id(params.get("tf_id", [""])[0])
+        # ``tf`` was used by older TF-page links. Keep it as a compatibility
+        # alias so cached links still select the intended TF, while all new
+        # links and forms use the explicit ``tf_id`` parameter.
+        tf_id = normalize_tf_id(params.get("tf_id", params.get("tf", [""]))[0])
         tf_evidence = selected_evidence_from_params(params, tf_id)
         tf_region_raw = params.get("tf_region", [""])[0].strip()
         tf_region = parse_region_value(tf_region_raw)
@@ -3646,6 +3708,32 @@ class TFWebApp:
             content = extracted.read()
         return row, content, member_path.name
 
+    def resolve_structure_file_id(self, params: dict[str, list[str]]) -> str:
+        """Resolve a stable active model identifier to the current SQLite row id.
+
+        SQLite row ids can change when the database is rebuilt.  Public links
+        therefore use the active ``structure_file.model_id`` value.  An old
+        id-only URL is deliberately not resolved because it could otherwise
+        open an unrelated model after a rebuild.
+        """
+        model_id = params.get("model", [""])[0].strip()
+        if not model_id:
+            return ""
+        with connect(self.db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT id
+                FROM structure_file
+                WHERE model_id = ?
+                  AND status = 'active'
+                  AND file_type = 'pdb'
+                ORDER BY id
+                LIMIT 2
+                """,
+                (model_id,),
+            ).fetchall()
+        return str(rows[0]["id"]) if len(rows) == 1 else ""
+
     def get_assignment_model_file(
         self,
         assignment_id: str,
@@ -3805,9 +3893,13 @@ class TFWebApp:
                 "text/html",
                 200,
             )
-        file_id = params.get("id", [""])[0].strip()
-        if not file_id.isdigit():
-            return self.not_found("Model id is required.")
+        file_id = self.resolve_structure_file_id(params)
+        if not file_id:
+            if params.get("id", [""])[0].strip():
+                return self.not_found(
+                    "This numeric model link is obsolete. Open the TF page and select the model by name."
+                )
+            return self.not_found("An active model identifier is required.")
         with connect(self.db_path) as conn:
             model = dict_row(
                 conn.execute(
@@ -3845,8 +3937,8 @@ class TFWebApp:
                 "model.html",
                 model=model,
                 summary=summary,
-                model_data_url=f"/model-data?id={file_id}",
-                download_model_url=f"/download/model?id={file_id}",
+                model_data_url=f"/model-data?model={quote(str(model['model_id']), safe='')}",
+                download_model_url=f"/download/model?model={quote(str(model['model_id']), safe='')}",
                 viewer_extension="pdb",
                 download_format="PDB",
                 is_alphafold_model=is_alphafold_model,
@@ -3867,7 +3959,7 @@ class TFWebApp:
                 body, content_type, status = self.not_found("Assigned AF3 model file is unavailable.")
                 return body, content_type, status, {}
             return content, "chemical/x-mmcif", 200, {"Cache-Control": "no-store"}
-        file_id = params.get("id", [""])[0].strip()
+        file_id = self.resolve_structure_file_id(params)
         row, content, filename = self.get_model_file(file_id)
         if not row:
             body, content_type, status = self.not_found("Model file is not indexed.")
@@ -3925,7 +4017,7 @@ class TFWebApp:
                 200,
                 {"Content-Disposition": f'attachment; filename="{filename}"'},
             )
-        file_id = params.get("id", [""])[0].strip()
+        file_id = self.resolve_structure_file_id(params)
         row, content, filename = self.get_model_file(file_id)
         if not row:
             body, content_type, status = self.not_found("Model file is not indexed.")

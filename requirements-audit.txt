@@ -1,0 +1,2 @@
+# Structural audit helpers; not required by the web runtime.
+gemmi==0.7.5
