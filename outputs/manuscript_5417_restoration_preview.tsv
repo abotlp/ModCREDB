@@ -1,0 +1,151 @@
+tf_id	delivered_primary_class	restored_primary_class	gene	record_action	motif_refs_planned	active_models_planned	reason
+A0A024R274	Identical_PWM	Identical_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+A0A087WV68	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+A0A087WX29	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A087WXQ5	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+A0A087WYY0	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+A0A087X260	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+A0A0A0MQW0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0A0MR39	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0A0MRL0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0A0N0L3	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+A0A0A0N0M3	AlphaFold	AlphaFold		INSERT	2	2	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+A0A0B6XK52	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0C4DG06	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0C5B5G6	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0S2Z5X3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A0S2Z6H0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A1U9X8R9	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A384MTX4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A3B3IRZ6	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HHY9	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HI14	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HI40	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HIG4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HIN4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HIQ7	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HIV5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HJH8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HJZ1	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HK02	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HK30	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HKJ0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HKR3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HKR5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HKX0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HL40	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A804HLG8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A8V8TP18	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A8V8TQW3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A994J795	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0A9L9PX76	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+A0AAQ5BHS5	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+A0AAQ5BHS9	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+A0AAQ5BHU0	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+A0AAQ5BHU1	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+A8K964	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B1AKC8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B1AKP7	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+B1AQP5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B2CW77	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B3KMS4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B3KR52	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DGN3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DGV6	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DKM1	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DRW3	AlphaFold	AlphaFold		INSERT	5	5	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+B4DSR0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DV67	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DY09	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B4DZP1	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+B7Z1Z0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+B8ZZ38	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9IZC5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9J8Y5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9JC04	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9JCA9	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9JED5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9JLL5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9JVQ7	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9JZZ6	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+C9K0L9	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+D6R9I2	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+D6RAT8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+D6RBK1	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+D6RE06	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+D6RFI6	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+D6RJH2	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+E5RIW4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+F4ZW62	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+F4ZW63	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+F8VWL0	Identical_PWM	Homologous_PWM	TFCP2	INSERT	7	0	Restore omitted manuscript TF; replace withdrawn MA0145.3 with current cisbp evidence from Q12800.
+F8WCV6	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+F8WE32	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+G1UI23	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+G3V162	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+H0YAU0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+H0YHG0	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+H0YKA1	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+H3BT57	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+H7C528	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+I3L373	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+K7ELK2	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+K7ERT3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+K7ES96	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+M0QZD2	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+M0R040	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+O43593	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+O75618	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+P23193	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+P29692	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+P58340	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+P82970	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q08999	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q13148	AlphaFold	AlphaFold		INSERT	6	6	Restore exact delivered AlphaFold PWM/model pairs and current DNA-interface QC.
+Q13835	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q13901	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q15651	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q16533	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q16594	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q3SWV5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q53FG3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q53QZ9	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q53T94	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q53XR6	Identical_PWM	Identical_PWM	SMAD2	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current jaspar evidence from Q15796.
+Q561W4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q59GQ8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q59H09	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q59H57	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q5SY21	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q5T284	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q5T6W2	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q5T7U4	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q6E433	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q6NT89	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q6PK66	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q6ZVD7	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q6ZW83	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q86WP2	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q8IUX7	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q8N5A5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q8TF63	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q8WXF8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q8WYN3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q969F1	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q96T58	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q99732	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9BR39	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9BRQ8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9BXG8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9BYG6	Identical_PWM	Homologous_PWM	SMAD4	INSERT	2	0	Restore omitted manuscript TF; replace withdrawn MA0513.1 with current cisbp evidence from Q13485.
+Q9H307	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9H5J8	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9HCU5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9NWB7	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9P043	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9P2K5	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9ULW3	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+Q9Y237	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+U3KQ75	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+V9GY48	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
+X6R6Z1	Unannotated	Unannotated		INSERT	0	0	Restore delivered manuscript-universe record without inventing annotation evidence.
